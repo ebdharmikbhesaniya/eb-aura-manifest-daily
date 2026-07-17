@@ -1,0 +1,1 @@
+# eb-aura-manifest-daily
