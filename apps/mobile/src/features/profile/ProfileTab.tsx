@@ -1,10 +1,10 @@
 import type { Update } from '@aura/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Card, Label, Screen, TextButton } from '@/components';
+import { Card, Label, Screen, SerifDisplay, TextButton, TAB_BAR_CLEARANCE } from '@/components';
 import { profileCopy } from '@/copy/profile';
 import { profileKeys, useProfile } from '@/hooks/useProfile';
 import { useAppState } from '@/stores/appState';
@@ -23,11 +23,18 @@ interface EditableField {
  * Profile — the trust center and memory front door (product 11). Everything
  * here answers one question: "what does Aura think is true about me, and how
  * do I change it?" Edits go through sheets; saves state the memory contract.
+ *
+ * The layout follows Home (product 12 §spacing): section label ABOVE its card,
+ * never inside it. Sharing one uppercase treatment between "BASICS" and "YOUR
+ * NAME" flattened the page into a wall of same-weight text — the label belongs
+ * to the group, the field belongs to the card. Whitespace does the rest: it is
+ * the premium signal the design system asks for, so sections breathe at
+ * `sectionGap` and every row is tappable with a chevron that says so.
  */
 export function ProfileTab() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, layout, spacing, typography } = useTheme();
   const userId = useAppState((s) => s.userId);
 
   const { data: profile } = useProfile(userId ?? undefined);
@@ -59,88 +66,142 @@ export function ProfileTab() {
     await queryClient.invalidateQueries({ queryKey: ['people', userId] });
   };
 
-  const row = (field: EditableField) => (
-    <Pressable
-      key={field.key}
-      accessibilityRole="button"
-      accessibilityLabel={field.title}
-      onPress={() => setEditing(field)}
-      style={{ paddingVertical: spacing.sm }}
-    >
-      <Label>{field.title}</Label>
-      <Text style={[typography.body, { color: colors.text.primary }]}>
-        {fieldValue(field.key) || profileCopy.edit.empty}
-      </Text>
-    </Pressable>
-  );
+  const hairline = { height: StyleSheet.hairlineWidth, backgroundColor: colors.surface.border };
+
+  const row = (field: EditableField) => {
+    const value = fieldValue(field.key);
+
+    return (
+      <Pressable
+        key={field.key}
+        accessibilityRole="button"
+        accessibilityLabel={field.title}
+        onPress={() => setEditing(field)}
+        // Same acknowledgment language as the rest of the app, in the one form a
+        // full-width row can carry: it dims under the finger (product 13).
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.md,
+          paddingVertical: spacing.md,
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <View style={{ flex: 1, gap: spacing.xs }}>
+          <Label>{field.title}</Label>
+          <Text
+            style={[
+              typography.body,
+              // An unfilled field is an invitation, not data — it recedes to
+              // secondary so the filled answers carry the page.
+              { color: value ? colors.text.primary : colors.text.secondary },
+            ]}
+          >
+            {value || profileCopy.edit.empty}
+          </Text>
+        </View>
+
+        <Chevron />
+      </Pressable>
+    );
+  };
+
+  /** Rows sit flush inside the card; the hairline is what separates them. */
+  const rows = (fields: EditableField[]) =>
+    fields.map((field, index) => (
+      <View key={field.key}>
+        {index > 0 && <View style={hairline} />}
+        {row(field)}
+      </View>
+    ));
 
   return (
     <Screen testID="profile-tab">
-      <ScrollView contentContainerStyle={{ gap: spacing.xl, paddingVertical: spacing.xl }}>
-        <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
-          {profileCopy.tagline}
-        </Text>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingTop: spacing.xl,
+          // The tab bar floats over this screen — without the clearance the last
+          // card ends up underneath it.
+          paddingBottom: TAB_BAR_CLEARANCE,
+          gap: layout.sectionGap,
+        }}
+      >
+        {/* The page's one editorial line (product 11 §profile). Serif and large:
+            it sets the room before any data appears. */}
+        <SerifDisplay variant="title">{profileCopy.tagline}</SerifDisplay>
 
-        <Card variant="solid">
-          <Label>{profileCopy.sections.basics}</Label>
-          {row({ key: 'name', title: profileCopy.fields.name })}
-          {row({
-            key: 'self_description',
-            title: profileCopy.fields.selfDescription,
-            multiline: true,
-          })}
-        </Card>
+        <Section label={profileCopy.sections.basics}>
+          {rows([
+            { key: 'name', title: profileCopy.fields.name },
+            {
+              key: 'self_description',
+              title: profileCopy.fields.selfDescription,
+              multiline: true,
+            },
+          ])}
+        </Section>
 
-        <Card variant="solid">
-          <Label>{profileCopy.sections.dream}</Label>
-          {row({ key: 'dream_city', title: profileCopy.fields.dreamCity })}
-          {row({ key: 'dream_home', title: profileCopy.fields.dreamHome })}
-        </Card>
+        <Section label={profileCopy.sections.dream}>
+          {rows([
+            { key: 'dream_city', title: profileCopy.fields.dreamCity },
+            { key: 'dream_home', title: profileCopy.fields.dreamHome },
+          ])}
+        </Section>
 
-        <Card variant="solid">
-          <Label>{profileCopy.sections.people}</Label>
-          {(people ?? []).length === 0 && (
-            <Text style={[typography.body, { color: colors.text.secondary }]}>
-              {profileCopy.people.empty}
-            </Text>
-          )}
-          {(people ?? []).map((person) => (
-            <View
-              key={person.id}
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingVertical: spacing.xs,
-              }}
-            >
-              <Text style={[typography.body, { color: colors.text.primary }]}>
-                {person.name}
-                {person.descriptor ? ` — ${person.descriptor}` : ''}
+        <Section label={profileCopy.sections.people}>
+          {(people ?? []).length === 0 ? (
+            <View style={{ paddingVertical: spacing.md }}>
+              <Text style={[typography.body, { color: colors.text.secondary }]}>
+                {profileCopy.people.empty}
               </Text>
-              <TextButton
-                title={profileCopy.people.remove}
-                onPress={() => void removePerson(person.id)}
-              />
             </View>
-          ))}
-        </Card>
+          ) : (
+            (people ?? []).map((person, index) => (
+              <View key={person.id}>
+                {index > 0 && <View style={hairline} />}
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: spacing.md,
+                    paddingVertical: spacing.md,
+                  }}
+                >
+                  {/* "Ivy — safe" stays one line: the name and its one word are
+                      a single phrase in the product's voice, not two fields. */}
+                  <Text style={[typography.body, { flex: 1, color: colors.text.primary }]}>
+                    {person.name}
+                    {person.descriptor ? ` — ${person.descriptor}` : ''}
+                  </Text>
+                  <TextButton
+                    title={profileCopy.people.remove}
+                    onPress={() => void removePerson(person.id)}
+                  />
+                </View>
+              </View>
+            ))
+          )}
+        </Section>
 
+        <Section label={profileCopy.sections.note}>
+          {rows([{ key: 'note', title: profileCopy.fields.note, multiline: true }])}
+        </Section>
+
+        {/* The transparency entries earn a card of their own: they are the trust
+            centre's front door (product 11), not a footer. */}
         <Card variant="solid">
-          <Label>{profileCopy.sections.note}</Label>
-          {row({ key: 'note', title: profileCopy.fields.note, multiline: true })}
-        </Card>
-
-        <View style={{ gap: spacing.sm }}>
-          <TextButton
+          <LinkRow
             title={profileCopy.links.whatAuraKnows}
             onPress={() => router.push('/profile/what-aura-knows' as never)}
           />
-          <TextButton
+          <View style={hairline} />
+          <LinkRow
             title={profileCopy.links.neverInclude}
             onPress={() => router.push('/profile/never-include' as never)}
           />
-        </View>
+        </Card>
       </ScrollView>
 
       <EditFieldSheet
@@ -152,5 +213,58 @@ export function ProfileTab() {
         onClose={() => setEditing(null)}
       />
     </Screen>
+  );
+}
+
+/** Label above, card below — the grouping Home already established. */
+function Section({ label, children }: { label: string; children: ReactNode }) {
+  const { spacing } = useTheme();
+
+  return (
+    <View style={{ gap: spacing.sm }}>
+      <Label>{label}</Label>
+      <Card variant="solid">{children}</Card>
+    </View>
+  );
+}
+
+function LinkRow({ title, onPress }: { title: string; onPress: () => void }) {
+  const { colors, spacing, typography } = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+        paddingVertical: spacing.md,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Text style={[typography.body, { flex: 1, color: colors.text.primary }]}>{title}</Text>
+      <Chevron />
+    </Pressable>
+  );
+}
+
+/**
+ * The one affordance saying "this opens". No icon set ships at V1 (product 12
+ * §icons), so the glyph stands in — hidden from screen readers, which already
+ * hear the row's button role.
+ */
+function Chevron() {
+  const { colors, typography } = useTheme();
+
+  return (
+    <Text
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+      style={[typography.body, { color: colors.text.secondary }]}
+    >
+      ›
+    </Text>
   );
 }

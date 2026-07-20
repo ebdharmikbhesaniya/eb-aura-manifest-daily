@@ -23,6 +23,17 @@ export interface TabBarProps {
 }
 
 /**
+ * Bottom space a scrolling tab screen must leave clear.
+ *
+ * The bar floats over content instead of docking, so nothing reserves room for
+ * it: a list that ends at the safe-area edge ends up underneath it. The number
+ * is the bar itself (spacing.sm × 2 outer + spacing.sm × 2 inner + a 22pt icon
+ * ≈ 54) plus its spacing.lg gap from the edge, rounded up for breathing room.
+ * Screens sit inside `Screen`'s safe area, so the inset is already handled.
+ */
+export const TAB_BAR_CLEARANCE = 88;
+
+/**
  * The floating pill tab bar (product 12 §navigation, 06 §6): four tabs, no
  * more — the IA does not grow tabs. It floats clear of the edges rather than
  * docking, so screens keep their full-bleed gradient underneath.
