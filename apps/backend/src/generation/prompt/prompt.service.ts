@@ -1,4 +1,4 @@
-import type { JobArtifact } from '@aura/shared';
+import type { AffirmationTone, JobArtifact } from '@aura/shared';
 import { Injectable } from '@nestjs/common';
 
 import { ARTIFACT_SPEC } from '../artifact-spec';
@@ -17,6 +17,16 @@ const TOKENS_PER_WORD = 2.2;
 const JSON_OVERHEAD_TOKENS = 60;
 
 /**
+ * Both affirmation artifacts also emit a `whyLine` alongside the body, which the
+ * `maxWords` ceiling (which counts only the affirmation text) does not include.
+ * Budgeting for the text alone truncated the JSON mid-object — the model stopped
+ * on `max_tokens`, the parse failed, and the job died as `malformed_output`.
+ */
+const AFFIRMATION_WHYLINE_WORDS = 25;
+/** The guided flow returns three candidates to choose between (product 09 §9.3b). */
+const GUIDED_CANDIDATES = 3;
+
+/**
  * Prompt builders, one per artifact (08 §3). Every builder shares the voice
  * constitution and the rendered memory block; only the artifact spec differs.
  *
@@ -26,7 +36,12 @@ const JSON_OVERHEAD_TOKENS = 60;
  */
 @Injectable()
 export class PromptService {
-  build(artifact: JobArtifact, context: MemoryContext, refineInput?: RefineInput): BuiltPrompt {
+  build(
+    artifact: JobArtifact,
+    context: MemoryContext,
+    refineInput?: RefineInput,
+    guided?: GuidedPromptInput,
+  ): BuiltPrompt {
     switch (artifact) {
       case 'letter':
         return this.letter(context);
@@ -42,7 +57,7 @@ export class PromptService {
       case 'affirmation_daily':
         return this.affirmationDaily(context);
       case 'affirmation_guided':
-        return this.affirmationGuided(context);
+        return this.affirmationGuided(context, guided);
     }
   }
 
@@ -147,6 +162,30 @@ Return JSON: { "title": "a short italic-serif title", "body": "the moment" }`,
     );
   }
 
+  /**
+   * The exact strings that satisfy the QA verbatim gate — the SAME set the gate
+   * itself collects (name, dream city, people, exact phrases). Affirmations are
+   * short, and the model reliably drops the anchor unless it is handed the literal
+   * list and told the line is rejected without one. Making the gate's requirement
+   * explicit is what turns the recurring `verbatim_tokens` failure into a pass.
+   */
+  private verbatimAnchors(context: MemoryContext): string[] {
+    return [
+      context.name,
+      context.dreamCity,
+      ...context.people.map((person) => person.name),
+      ...context.exactPhrases,
+    ].filter((value): value is string => Boolean(value && value.trim()));
+  }
+
+  /** The hard-requirement line naming the anchors; empty when there are none to name. */
+  private anchorRequirement(context: MemoryContext, where: string): string {
+    const anchors = this.verbatimAnchors(context);
+    if (anchors.length === 0) return '';
+    const list = anchors.map((anchor) => `"${anchor}"`).join(', ');
+    return `\nHARD REQUIREMENT — ${where} must contain at least one of these exact strings, word-for-word and unchanged: ${list}. A line without one is rejected.\n`;
+  }
+
   private affirmationDaily(context: MemoryContext): BuiltPrompt {
     const spec = ARTIFACT_SPEC.affirmation_daily;
     return this.assemble(
@@ -159,36 +198,59 @@ Requirements:
 - If the phrase you reach for is negatively framed or too long to fit, reach for a different one of her words rather than bending this into a negative or over-long line.
 - A plausible stretch — a truth she is growing into, not a lie.
 - ${spec.maxWords} words or fewer.
-
+${this.anchorRequirement(context, 'the affirmation')}
 Return JSON: { "title": "a two-or-three word mantra", "body": "the affirmation", "whyLine": "one line explaining why this works, grounded not mystical" }`,
       context,
+      { words: spec.maxWords + AFFIRMATION_WHYLINE_WORDS },
     );
   }
 
-  private affirmationGuided(context: MemoryContext): BuiltPrompt {
+  private affirmationGuided(context: MemoryContext, guided?: GuidedPromptInput): BuiltPrompt {
     const spec = ARTIFACT_SPEC.affirmation_guided;
+    // Her studio selections steer the set; goalText is her own free words, so it
+    // is offered as a phrase to anchor on, not as an instruction.
+    const steer = guided
+      ? `\nShe chose this for ${guided.goalArea}, wants to feel ${guided.feeling}, and picked a ${guided.tone} tone.${
+          guided.goalText ? ` In her words: "${guided.goalText}".` : ''
+        }\n`
+      : '';
     return this.assemble(
       spec,
       `Write her three affirmation candidates to choose from.
-
+${steer}
 Each: present tense, positive frame, identity form preferred, ≤${spec.maxWords} words, a plausible stretch, and anchored to one of her exact phrases or a specific detail she gave you, reused literally — a value word from the fixed list is not quoting her and the QA gate will not count it.
-
+${this.anchorRequirement(context, 'EACH of the three affirmations')}
 Return JSON: { "candidates": [ { "text": "...", "whyLine": "why it works", "technique": "identity|present_tense|three_six_nine|scripting" }, ... three of them ] }`,
       context,
+      {
+        words: GUIDED_CANDIDATES * (spec.maxWords + AFFIRMATION_WHYLINE_WORDS),
+        items: GUIDED_CANDIDATES,
+      },
     );
   }
 
-  /** Shared assembly: constitution + context block + artifact instructions. */
+  /**
+   * Shared assembly: constitution + context block + artifact instructions.
+   *
+   * `output` describes the real shape the model must emit so the token budget
+   * fits it: `words` is the total across every text field (body + any why-line,
+   * summed across candidates), and `items` scales the flat JSON overhead by how
+   * many objects the response nests. Most artifacts return one {title, body};
+   * the affirmations are the exceptions and pass their own numbers.
+   */
   private assemble(
     spec: { maxWords: number },
     instructions: string,
     context: MemoryContext,
+    output?: { words?: number; items?: number },
   ): BuiltPrompt {
+    const words = output?.words ?? spec.maxWords;
+    const items = output?.items ?? 1;
     return {
       system: VOICE_CONSTITUTION,
       prompt: `${renderContextBlock(context)}\n\n---\n\n${instructions}`,
       promptVersion: PROMPT_VERSION,
-      maxTokens: Math.ceil(spec.maxWords * TOKENS_PER_WORD) + JSON_OVERHEAD_TOKENS,
+      maxTokens: Math.ceil(words * TOKENS_PER_WORD) + JSON_OVERHEAD_TOKENS * items,
     };
   }
 }
@@ -197,6 +259,18 @@ export interface RefineInput {
   previousBody: string;
   direction: 'more_realistic' | 'softer' | 'more_ambitious' | 'note';
   note?: string;
+}
+
+/**
+ * The three choices she made in the guided studio (product 09 §9.3b). Threaded
+ * into the candidate prompt so the three affirmations actually answer the goal,
+ * feeling, and tone she picked — without it the candidates ignore her selections.
+ */
+export interface GuidedPromptInput {
+  goalArea: string;
+  goalText?: string;
+  feeling: string;
+  tone: AffirmationTone;
 }
 
 const REFINE_DIRECTION_COPY: Record<RefineInput['direction'], string> = {

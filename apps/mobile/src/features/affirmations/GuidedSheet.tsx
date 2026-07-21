@@ -1,5 +1,5 @@
 import type { AffirmationTone } from '@aura/shared';
-import { BottomSheetView, type BottomSheetModal } from '@gorhom/bottom-sheet';
+import { BottomSheetScrollView, type BottomSheetModal } from '@gorhom/bottom-sheet';
 import { forwardRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -59,9 +59,17 @@ export const GuidedSheet = forwardRef<BottomSheetModal, GuidedSheetProps>(functi
   const label = (text: string) => <SerifDisplay variant="title">{text}</SerifDisplay>;
 
   return (
-    <Sheet ref={ref} snapPoints={['70%']}>
-      <BottomSheetView
-        style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md }}
+    // The candidate step stacks three cards with why-lines and keep buttons, which
+    // overflows the medium detent — it gets the taller detent and a scroll view so
+    // the third candidate is always reachable. The short question steps stay at 70%.
+    <Sheet ref={ref} snapPoints={step === 'candidates' ? ['90%'] : ['70%']}>
+      <BottomSheetScrollView
+        contentContainerStyle={{
+          paddingHorizontal: spacing.lg,
+          paddingBottom: spacing.xxl,
+          gap: spacing.md,
+        }}
+        showsVerticalScrollIndicator={false}
       >
         {step === 'goal' && (
           <View style={{ gap: spacing.md }} testID="guided-goal">
@@ -197,7 +205,7 @@ export const GuidedSheet = forwardRef<BottomSheetModal, GuidedSheetProps>(functi
             ))}
           </View>
         )}
-      </BottomSheetView>
+      </BottomSheetScrollView>
     </Sheet>
   );
 });

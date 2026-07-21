@@ -1,5 +1,5 @@
 import type { GenerationFailureReason, JobArtifact, Json } from '@aura/shared';
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 
 import { AnalyticsService } from '../analytics/analytics.service';
 import { MemoryContextService } from '../memory/memory-context.service';
@@ -18,7 +18,7 @@ import {
 import { ARTIFACT_SPEC } from './artifact-spec';
 import { CreditsService } from './credits.service';
 import { JobsService, QaFailedError, type JobRow } from './jobs/jobs.service';
-import { PromptService, type RefineInput } from './prompt/prompt.service';
+import { PromptService, type GuidedPromptInput, type RefineInput } from './prompt/prompt.service';
 import { QaService } from './qa/qa.service';
 import { StorageService } from './storage.service';
 
@@ -33,6 +33,8 @@ import { StorageService } from './storage.service';
  */
 @Injectable()
 export class GenerationService implements OnModuleInit {
+  private readonly logger = new Logger(GenerationService.name);
+
   constructor(
     private readonly jobs: JobsService,
     private readonly credits: CreditsService,
@@ -82,6 +84,16 @@ export class GenerationService implements OnModuleInit {
       // (04 §4), so a crash re-queue regenerates the SAME thing rather than a
       // generic moment she never asked for.
       const input = parseJobInput(job.input);
+
+      // The guided studio is the one artifact that is not a single {title, body}
+      // moment: it produces three candidate affirmations she chooses between, so
+      // it parses and persists differently (product 09 §9.3b). It writes rows to
+      // `affirmations`, not `moments`, and so returns no moment id.
+      if (job.artifact === 'affirmation_guided') {
+        await this.runGuided(job, context, input.guided);
+        return { momentId: null };
+      }
+
       const artifact = await this.generateWithQa(
         job.user_id,
         job.artifact,
@@ -114,6 +126,14 @@ export class GenerationService implements OnModuleInit {
       return { momentId };
     } catch (error) {
       const reason = this.classify(error);
+      // The job row stores only the classified `reason` (and the worker further
+      // collapses everything non-QA to `provider_error`), so the underlying
+      // cause is invisible without this. The message is safe to log — it names
+      // the failure mode ("OpenAI 429…", "unparseable output"), never the prompt
+      // or her content, which live in the request, not the error.
+      this.logger.warn(
+        `Pipeline ${job.artifact} failed (${reason}): ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`,
+      );
       if (job.artifact === 'letter') {
         this.analytics.capture(job.user_id, 'letter_generation_failed', { reason });
       }
@@ -195,13 +215,118 @@ export class GenerationService implements OnModuleInit {
     }
   }
 
+  /**
+   * The guided studio pipeline (product 09 §9.3b): prompt → LLM → parse the
+   * candidate array → QA each candidate → persist as `affirmations` rows she can
+   * choose between. Mirrors `generateWithQa` but for the three-candidate shape;
+   * throws the same `QaFailedError`/`MalformedOutputError` the state machine reads.
+   */
+  private async runGuided(
+    job: JobRow,
+    context: MemoryContext,
+    guided: GuidedPromptInput | undefined,
+  ): Promise<void> {
+    const built = this.prompts.build('affirmation_guided', context, undefined, guided);
+
+    const response = await this.llm.generate({
+      system: built.system,
+      prompt: built.prompt,
+      maxTokens: built.maxTokens,
+      timeoutMs: 15_000,
+      model: this.modelFor(ARTIFACT_MODEL_TIER.affirmation_guided),
+      json: true,
+    });
+
+    const candidates = this.parseCandidates(response.text);
+
+    // Every candidate is held to the same gate a single affirmation is (the text
+    // rides her collection just the same). One failure fails the pass, which the
+    // state machine turns into a single corrective regeneration.
+    for (const candidate of candidates) {
+      const result = this.qa.check(
+        'affirmation_guided',
+        { title: '', body: candidate.text },
+        context,
+      );
+      for (const rule of result.flaggedRules) {
+        this.analytics.capture(job.user_id, 'generation_qa_flagged', { rule });
+      }
+      if (!result.passed) throw new QaFailedError(result.flaggedRules);
+    }
+
+    await this.persistCandidates(job.user_id, guided, candidates);
+  }
+
+  /** Defensive parse of the `{ candidates: [...] }` guided shape (see `parseArtifact`). */
+  private parseCandidates(raw: string): GuidedCandidate[] {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new MalformedOutputError();
+
+    try {
+      const obj = JSON.parse(match[0]) as { candidates?: unknown };
+      if (!Array.isArray(obj.candidates)) throw new MalformedOutputError();
+
+      const candidates = obj.candidates
+        .filter((c): c is Record<string, unknown> => Boolean(c) && typeof c === 'object')
+        .map((c) => ({
+          text: typeof c.text === 'string' ? c.text.trim() : '',
+          whyLine: typeof c.whyLine === 'string' && c.whyLine.trim() !== '' ? c.whyLine : null,
+          technique: typeof c.technique === 'string' ? c.technique : null,
+        }))
+        .filter((c) => c.text !== '')
+        // The studio shows three; a model that over-produces is trimmed rather
+        // than failed, and one that under-produces still gives her a choice.
+        .slice(0, 3);
+
+      if (candidates.length === 0) throw new MalformedOutputError();
+      return candidates;
+    } catch (error) {
+      if (error instanceof MalformedOutputError) throw error;
+      throw new MalformedOutputError();
+    }
+  }
+
+  /**
+   * Writes the candidate set for her to choose from. A fresh pass first clears any
+   * candidates still lingering from an earlier, abandoned pass — the studio shows
+   * every `candidate` row, so leftovers would stack. Kept affirmations are left
+   * untouched; retiring the siblings of the one she keeps is the keep endpoint's job.
+   */
+  private async persistCandidates(
+    userId: string,
+    guided: GuidedPromptInput | undefined,
+    candidates: GuidedCandidate[],
+  ): Promise<void> {
+    await this.supabase
+      .from('affirmations')
+      .delete()
+      .eq('user_id', userId)
+      .eq('kind', 'guided')
+      .eq('status', 'candidate');
+
+    const rows = candidates.map((candidate) => ({
+      user_id: userId,
+      kind: 'guided' as const,
+      status: 'candidate' as const,
+      text: candidate.text,
+      why_line: candidate.whyLine,
+      technique: candidate.technique,
+      tone: guided?.tone ?? null,
+      feeling: guided?.feeling ?? null,
+      goal_area: guided?.goalArea ?? null,
+    }));
+
+    const { error } = await this.supabase.from('affirmations').insert(rows);
+    if (error) throw new Error(`Persist candidates failed: ${error.message}`);
+  }
+
   /** Persists the moment row, then synthesizes + uploads audio for spoken artifacts. */
   private async persist(
     job: JobRow,
     context: MemoryContext,
     artifact: GeneratedArtifact,
     supportive: boolean,
-    input: ParsedJobInput = { refine: undefined, desire: undefined },
+    input: ParsedJobInput = { refine: undefined, desire: undefined, guided: undefined },
   ): Promise<string> {
     const spec = ARTIFACT_SPEC[job.artifact];
 
@@ -310,16 +435,41 @@ export class GenerationService implements OnModuleInit {
 export interface ParsedJobInput {
   refine: (RefineInput & { momentId: string }) | undefined;
   desire: string | undefined;
+  guided: GuidedPromptInput | undefined;
+}
+
+/** One parsed candidate from a guided pass, before it becomes an `affirmations` row. */
+interface GuidedCandidate {
+  text: string;
+  whyLine: string | null;
+  technique: string | null;
 }
 
 const REFINE_DIRECTIONS = new Set(['more_realistic', 'softer', 'more_ambitious', 'note']);
+const AFFIRMATION_TONES = new Set(['gentle', 'bold', 'grounded']);
 
 function parseJobInput(raw: unknown): ParsedJobInput {
-  if (!raw || typeof raw !== 'object') return { refine: undefined, desire: undefined };
+  if (!raw || typeof raw !== 'object')
+    return { refine: undefined, desire: undefined, guided: undefined };
 
   const value = raw as Record<string, unknown>;
   const desire =
     typeof value.desire === 'string' && value.desire.trim() !== '' ? value.desire : undefined;
+
+  const guidedRaw = value.guided as Record<string, unknown> | undefined;
+  const guided =
+    guidedRaw &&
+    typeof guidedRaw.goalArea === 'string' &&
+    typeof guidedRaw.feeling === 'string' &&
+    typeof guidedRaw.tone === 'string' &&
+    AFFIRMATION_TONES.has(guidedRaw.tone)
+      ? {
+          goalArea: guidedRaw.goalArea,
+          feeling: guidedRaw.feeling,
+          tone: guidedRaw.tone as GuidedPromptInput['tone'],
+          ...(typeof guidedRaw.goalText === 'string' ? { goalText: guidedRaw.goalText } : {}),
+        }
+      : undefined;
 
   const refineRaw = value.refine as Record<string, unknown> | undefined;
   const refine =
@@ -336,7 +486,7 @@ function parseJobInput(raw: unknown): ParsedJobInput {
         }
       : undefined;
 
-  return { refine, desire };
+  return { refine, desire, guided };
 }
 
 class MalformedOutputError extends Error {

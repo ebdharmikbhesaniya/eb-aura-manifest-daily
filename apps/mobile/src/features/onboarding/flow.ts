@@ -15,7 +15,6 @@ export const SCREEN_ORDER: readonly OnboardingScreenId[] = [
   's04-self-description',
   's05-work-feeling',
   's06-values',
-  's07-dream-home',
   's08-dream-city',
   's09-people',
   's10-struggle',

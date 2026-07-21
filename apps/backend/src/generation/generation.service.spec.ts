@@ -34,6 +34,9 @@ describe('GenerationService (pipeline)', () => {
   let runner: JobRunner;
   let capture: jest.Mock;
   let momentRows: Record<string, unknown>[];
+  // Guided candidates are inserted as an array into `affirmations`; captured here
+  // so a test can assert the rows without the fake needing to know table names.
+  let affirmationInserts: Record<string, unknown>[];
   let upload: jest.Mock;
   let assemble: jest.Mock;
   let llm: LlmProvider;
@@ -57,10 +60,14 @@ describe('GenerationService (pipeline)', () => {
     from: () => {
       let pending: Record<string, unknown> | null = null;
       const builder: Record<string, unknown> = {
-        insert: (row: Record<string, unknown>) => {
-          pending = row;
+        insert: (row: Record<string, unknown> | Record<string, unknown>[]) => {
+          // An array insert is the guided candidate set (affirmations); a single
+          // object is a moment or a memory_items row, which flow through .single().
+          if (Array.isArray(row)) affirmationInserts.push(...row);
+          else pending = row;
           return builder;
         },
+        delete: () => builder,
         update: (patch: Record<string, unknown>) => {
           const target = momentRows[momentRows.length - 1];
           if (target) Object.assign(target, patch);
@@ -123,6 +130,7 @@ describe('GenerationService (pipeline)', () => {
     capture = jest.fn();
     refund = jest.fn().mockResolvedValue(undefined);
     momentRows = [];
+    affirmationInserts = [];
     insertError = null;
     upload = jest.fn().mockResolvedValue({ error: null });
     assemble = jest.fn().mockResolvedValue(buildContext());
@@ -212,6 +220,47 @@ describe('GenerationService (pipeline)', () => {
       await runner(job({ artifact: 'affirmation_daily' }));
 
       expect(generate).toHaveBeenCalledWith(expect.objectContaining({ model: 'model-mini' }));
+    });
+  });
+
+  describe('the guided studio path (product 09 §9.3b)', () => {
+    const guidedJob = () =>
+      job({
+        artifact: 'affirmation_guided',
+        input: { guided: { goalArea: 'Love', feeling: 'Certain', tone: 'gentle' } },
+      });
+
+    it('parses the candidate set and writes affirmation rows, not a moment', async () => {
+      const { momentId } = await runner(guidedJob());
+
+      // Guided has no moment — the candidates ARE the output.
+      expect(momentId).toBeNull();
+      expect(momentRows).toHaveLength(0);
+      expect(affirmationInserts.length).toBeGreaterThan(0);
+    });
+
+    it('stamps each row as a live guided candidate carrying her selections', async () => {
+      await runner(guidedJob());
+
+      expect(affirmationInserts[0]).toMatchObject({
+        user_id: 'user-1',
+        kind: 'guided',
+        status: 'candidate',
+        goal_area: 'Love',
+        feeling: 'Certain',
+        tone: 'gentle',
+        text: expect.any(String),
+      });
+    });
+
+    it('sends the guided prompt to the mini model as JSON', async () => {
+      const generate = jest.spyOn(llm, 'generate');
+
+      await runner(guidedJob());
+
+      expect(generate).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'model-mini', json: true }),
+      );
     });
   });
 

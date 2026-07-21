@@ -66,6 +66,8 @@ export function ProfileTab() {
     await queryClient.invalidateQueries({ queryKey: ['people', userId] });
   };
 
+  const name = (profile?.name ?? '').trim();
+
   const hairline = { height: StyleSheet.hairlineWidth, backgroundColor: colors.surface.border };
 
   const row = (field: EditableField) => {
@@ -127,13 +129,45 @@ export function ProfileTab() {
           gap: layout.sectionGap,
         }}
       >
-        {/* The page's one editorial line (product 11 §profile). Serif and large:
-            it sets the room before any data appears. */}
-        <SerifDisplay variant="title">{profileCopy.tagline}</SerifDisplay>
+        {/* Identity first. Without it the page opened straight into labelled
+            rows and read as Settings — but this is the trust centre, and the
+            person it describes should be at the top of it. The monogram is the
+            whole avatar: no photo is asked for anywhere in the product, and
+            inventing an upload here would be a new data request (product 18). */}
+        <View style={{ alignItems: 'center', gap: spacing.md }}>
+          {/* The name is edited HERE rather than from a row in Basics. It only
+              belongs in one place, and repeating it as both the page's title
+              and a labelled field was the page telling her the same thing
+              twice. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={profileCopy.fields.name}
+            onPress={() => setEditing({ key: 'name', title: profileCopy.fields.name })}
+            style={({ pressed }) => ({
+              alignItems: 'center',
+              gap: spacing.md,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Monogram name={name} />
+            {name ? (
+              <SerifDisplay variant="title">{name}</SerifDisplay>
+            ) : (
+              <Text style={[typography.body, { color: colors.text.secondary }]}>
+                {profileCopy.edit.empty}
+              </Text>
+            )}
+          </Pressable>
+
+          <Text
+            style={[typography.bodySmall, { color: colors.text.secondary, textAlign: 'center' }]}
+          >
+            {profileCopy.tagline}
+          </Text>
+        </View>
 
         <Section label={profileCopy.sections.basics}>
           {rows([
-            { key: 'name', title: profileCopy.fields.name },
             {
               key: 'self_description',
               title: profileCopy.fields.selfDescription,
@@ -213,6 +247,52 @@ export function ProfileTab() {
         onClose={() => setEditing(null)}
       />
     </Screen>
+  );
+}
+
+/** Diameter sits on the 8pt grid and stays clear of the serif name below it. */
+const MONOGRAM_SIZE = 88;
+
+/**
+ * Her initial, set in the same serif the name uses — the page's one ornament.
+ *
+ * Sand on the gradient rather than periwinkle: the accent is reserved for the
+ * active tab and CTAs (product 12 §color), and a full periwinkle disc at the
+ * top of a quiet page would outshout everything under it.
+ */
+function Monogram({ name }: { name: string }) {
+  const { colors, typography } = useTheme();
+  const initial = name.charAt(0).toUpperCase();
+
+  return (
+    <View
+      // The letter is decoration — the name is right below it in real text, so
+      // a screen reader announcing "R" first would only repeat it.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        width: MONOGRAM_SIZE,
+        height: MONOGRAM_SIZE,
+        borderRadius: MONOGRAM_SIZE / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.surface.card,
+        borderWidth: 1,
+        borderColor: colors.surface.border,
+      }}
+    >
+      <Text
+        allowFontScaling={false}
+        style={{
+          fontFamily: typography.title.fontFamily,
+          fontSize: 36,
+          lineHeight: 44,
+          color: colors.text.primary,
+        }}
+      >
+        {initial}
+      </Text>
+    </View>
   );
 }
 

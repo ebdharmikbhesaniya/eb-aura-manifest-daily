@@ -67,9 +67,9 @@ describe('onboarding draft', () => {
       // rewind past where she actually was.
       const store = useOnboardingDraft.getState();
       store.setAnswer('s03-name', 'Maya');
-      store.advanceTo('s07-dream-home');
+      store.advanceTo('s08-dream-city');
 
-      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s07-dream-home');
+      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s08-dream-city');
     });
 
     it('treats a skip as answered for resume purposes', () => {

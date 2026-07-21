@@ -1,5 +1,5 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Share, ScrollView, Text, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 
@@ -7,6 +7,7 @@ import { Card, PillButton, Screen, SerifDisplay, TextButton } from '@/components
 import { affirmationsCopy } from '@/copy/affirmations';
 import { AffirmationCard } from '@/features/affirmations/AffirmationCard';
 import { GuidedSheet, type GuidedStep } from '@/features/affirmations/GuidedSheet';
+import { useGenerationJob } from '@/features/letter/useGenerationJob';
 import { TechniqueSheet } from '@/features/affirmations/TechniqueSheet';
 import { captureShareCard, toShareContent } from '@/features/affirmations/shareCard';
 import { recordBeat, TECHNIQUES } from '@/features/affirmations/practice';
@@ -44,6 +45,12 @@ export default function AffirmationsRoute() {
   const [step, setStep] = useState<GuidedStep>('goal');
   const [busy, setBusy] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  // The guided pass is async: the POST only enqueues a job, so the candidates
+  // are not written until it finishes. We poll the job and refetch the candidate
+  // rows only once it succeeds — refetching at enqueue (the old bug) always read
+  // an empty set and left the sheet stuck on "Writing them…".
+  const [guidedJobId, setGuidedJobId] = useState<string | undefined>();
+  const guidedJob = useGenerationJob(guidedJobId);
 
   // `affirmations.technique` is a free text column the generator fills; anything
   // unrecognised falls back to identity rather than rendering no chip at all.
@@ -67,17 +74,29 @@ export default function AffirmationsRoute() {
       setStep('candidates');
       void api
         .generateGuidedAffirmation(input)
-        .then(() => {
+        .then((res) => {
           analytics.capture('affirmation_generated_guided', {
             goal_area: input.goalArea,
             tone: input.tone,
           });
-          return candidates.refetch();
+          // Hand off to the poll; busy stays true until the job is terminal.
+          setGuidedJobId(res.jobId);
         })
-        .finally(() => setBusy(false));
+        .catch(() => setBusy(false));
     },
-    [candidates],
+    [],
   );
+
+  // When the guided job reaches a terminal state, stop the spinner. On success
+  // the candidate rows now exist, so refetch to render them.
+  const guidedStatus = guidedJob.data?.status;
+  useEffect(() => {
+    if (!guidedStatus) return;
+    if (guidedStatus === 'succeeded') void candidates.refetch();
+    if (guidedStatus === 'succeeded' || guidedStatus === 'failed' || guidedStatus === 'qa_failed') {
+      setBusy(false);
+    }
+  }, [guidedStatus, candidates]);
 
   /**
    * Share-as-image (product 09 §9.3).

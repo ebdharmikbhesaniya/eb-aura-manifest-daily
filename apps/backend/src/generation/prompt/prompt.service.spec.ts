@@ -41,12 +41,14 @@ describe('PromptService', () => {
       const { maxWords } = ARTIFACT_SPEC[artifact];
       const built = prompts.build(artifact, buildContext());
 
-      // Room for the words plus JSON scaffolding, and never unbounded. The flat
-      // JSON overhead dominates for the 20-word affirmations, so the upper bound
-      // is deliberately loose — it guards against runaway, not against the exact
-      // constants (which the monotonicity check below pins instead).
+      // Room for the words plus JSON scaffolding, and never unbounded. The bound
+      // is an absolute ceiling rather than a tight multiple of maxWords: the
+      // affirmations look tiny by maxWords but emit a why-line (daily) or three
+      // whole candidates (guided), so a per-body multiple would wrongly cap them.
+      // This guards against a runaway budget, not the exact constants (which the
+      // monotonicity check below pins instead).
       expect(built.maxTokens).toBeGreaterThan(maxWords);
-      expect(built.maxTokens).toBeLessThan(maxWords * 3 + 100);
+      expect(built.maxTokens).toBeLessThanOrEqual(800);
     });
 
     it('budgets more for a letter than for an affirmation', () => {
