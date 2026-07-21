@@ -4,7 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { Card, Input, PillButton, SerifDisplay, WeekDots } from '@/components';
 import { gratitudeCopy } from '@/copy/gratitude';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 /** How long the field may sit empty before Aura offers a starter (product 09 §9.4). */
 export const STARTER_DELAY_MS = 5_000;
@@ -70,7 +70,7 @@ export function GratitudeScreen({
 
       <Text
         allowFontScaling={false}
-        style={{ fontSize: 16 * scale, lineHeight: 24 * scale, color: colors.text.secondary }}
+        style={[scaledType('body', scale), { color: colors.text.secondary }]}
       >
         {prompt}
       </Text>
@@ -87,7 +87,7 @@ export function GratitudeScreen({
         <Text
           testID="gratitude-starter"
           allowFontScaling={false}
-          style={{ fontSize: 14 * scale, color: colors.text.secondary }}
+          style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
         >
           {gratitudeCopy.starter}
         </Text>
@@ -104,7 +104,7 @@ export function GratitudeScreen({
         <Text
           testID="gratitude-contract"
           allowFontScaling={false}
-          style={{ fontSize: 14 * scale, lineHeight: 21 * scale, color: colors.text.secondary }}
+          style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
         >
           {gratitudeCopy.memoryContract}
         </Text>
@@ -113,7 +113,7 @@ export function GratitudeScreen({
       <View style={{ gap: spacing.sm }}>
         <Text
           allowFontScaling={false}
-          style={{ fontSize: 12 * scale, letterSpacing: 1, color: colors.text.secondary }}
+          style={[scaledType('label', scale), { color: colors.text.label }]}
         >
           {gratitudeCopy.historyTitle.toUpperCase()}
         </Text>
@@ -123,7 +123,7 @@ export function GratitudeScreen({
             <Text
               testID="gratitude-history-empty"
               allowFontScaling={false}
-              style={{ fontSize: 15 * scale, color: colors.text.secondary }}
+              style={[scaledType('body', scale), { color: colors.text.secondary }]}
             >
               {gratitudeCopy.historyEmpty}
             </Text>
@@ -133,7 +133,7 @@ export function GratitudeScreen({
             <Card key={item.entryDate} variant="solid">
               <Text
                 allowFontScaling={false}
-                style={{ fontSize: 15 * scale, color: colors.text.primary }}
+                style={[scaledType('body', scale), { color: colors.text.primary }]}
               >
                 {item.entry}
               </Text>

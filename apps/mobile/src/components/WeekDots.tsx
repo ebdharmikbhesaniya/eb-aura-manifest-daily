@@ -39,7 +39,8 @@ function Dot({ filled, size, motion }: { filled: boolean; size: number; motion: 
     >
       <Animated.View
         style={[
-          { flex: 1, borderRadius: size / 2, backgroundColor: colors.accent.sage },
+          // Blush = wrote gratitude (v3 day marks) — warmth, not a scoreboard.
+          { flex: 1, borderRadius: size / 2, backgroundColor: colors.accent.blush },
           fillStyle,
         ]}
       />

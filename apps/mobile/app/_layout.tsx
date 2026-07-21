@@ -1,9 +1,15 @@
 import {
-  Fraunces_400Regular,
-  Fraunces_400Regular_Italic,
-  Fraunces_600SemiBold,
+  Figtree_400Regular,
+  Figtree_500Medium,
+  Figtree_600SemiBold,
+  Figtree_700Bold,
+} from '@expo-google-fonts/figtree';
+import {
+  Newsreader_500Medium,
+  Newsreader_500Medium_Italic,
+  Newsreader_600SemiBold,
   useFonts,
-} from '@expo-google-fonts/fraunces';
+} from '@expo-google-fonts/newsreader';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
@@ -44,9 +50,13 @@ function HapticScreenTracker(): null {
  */
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Fraunces_400Regular,
-    Fraunces_400Regular_Italic,
-    Fraunces_600SemiBold,
+    Newsreader_500Medium,
+    Newsreader_500Medium_Italic,
+    Newsreader_600SemiBold,
+    Figtree_400Regular,
+    Figtree_500Medium,
+    Figtree_600SemiBold,
+    Figtree_700Bold,
   });
 
   useEffect(() => {

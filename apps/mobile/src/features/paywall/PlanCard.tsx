@@ -2,7 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { paywallCopy } from '@/copy/paywall';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 import { priceLine } from './pricing';
 import type { OfferedPlan } from './purchases';
@@ -52,11 +52,7 @@ export function PlanCard({ plan, selected, onSelect, testID }: PlanCardProps) {
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text
           allowFontScaling={false}
-          style={{
-            fontFamily: 'Fraunces_600SemiBold',
-            fontSize: 18 * scale,
-            color: colors.text.primary,
-          }}
+          style={[scaledType('headline', scale), { color: colors.text.primary }]}
         >
           {label}
         </Text>
@@ -64,10 +60,7 @@ export function PlanCard({ plan, selected, onSelect, testID }: PlanCardProps) {
         {plan.id === 'annual' && (
           <Text
             allowFontScaling={false}
-            style={{
-              fontSize: 12 * scale,
-              color: colors.cta.background,
-            }}
+            style={[scaledType('bodySmall', scale), { color: colors.cta.background }]}
           >
             {paywallCopy.plans.annualBadge}
           </Text>
@@ -77,13 +70,16 @@ export function PlanCard({ plan, selected, onSelect, testID }: PlanCardProps) {
       {plan.hasTrial && (
         <Text
           allowFontScaling={false}
-          style={{ fontSize: 13 * scale, color: colors.text.secondary }}
+          style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
         >
           {paywallCopy.plans.trialNote}
         </Text>
       )}
 
-      <Text allowFontScaling={false} style={{ fontSize: 13 * scale, color: colors.text.secondary }}>
+      <Text
+        allowFontScaling={false}
+        style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
+      >
         {paywallCopy.plans.renewalNote}
       </Text>
     </Pressable>

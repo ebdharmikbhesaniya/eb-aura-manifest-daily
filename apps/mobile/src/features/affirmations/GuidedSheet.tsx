@@ -7,7 +7,7 @@ import { Chip, Input, PillButton, SerifDisplay, TextButton } from '@/components'
 import { Sheet } from '@/components';
 import { affirmationsCopy } from '@/copy/affirmations';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 export type GuidedStep = 'goal' | 'feeling' | 'tone' | 'candidates';
 
@@ -173,7 +173,7 @@ export const GuidedSheet = forwardRef<BottomSheetModal, GuidedSheetProps>(functi
               <Text
                 testID="guided-generating"
                 allowFontScaling={false}
-                style={{ fontSize: 15 * scale, color: colors.text.secondary }}
+                style={[scaledType('body', scale), { color: colors.text.secondary }]}
               >
                 {affirmationsCopy.guided.generating}
               </Text>
@@ -190,7 +190,7 @@ export const GuidedSheet = forwardRef<BottomSheetModal, GuidedSheetProps>(functi
                 {candidate.whyLine && (
                   <Text
                     allowFontScaling={false}
-                    style={{ fontSize: 13 * scale, color: colors.text.secondary }}
+                    style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
                   >
                     {candidate.whyLine}
                   </Text>

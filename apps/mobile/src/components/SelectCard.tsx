@@ -18,8 +18,8 @@ export interface SelectCardProps {
 
 /**
  * Selectable card — the onboarding dream-home vocabulary (product 07 S7).
- * Same solid Card surface everywhere; selection is a periwinkle border, the
- * one high-contrast colour, so "chosen" reads in both schemes.
+ * Same solid Card surface everywhere; selection is an ink border, the one
+ * high-contrast colour, so "chosen" reads in both schemes.
  */
 export function SelectCard({ title, subtitle, selected, onPress, children }: SelectCardProps) {
   const { colors, spacing, typography } = useTheme();

@@ -1,23 +1,20 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+
+import { useTheme } from '@/theme/ThemeProvider';
 
 /**
  * Phase 0 scaffolding only. Every tab renders this until its real screen lands.
  *
- * Deliberately unstyled: the design tokens arrive in Phase 1 (05 §4), and there
- * is a lint rule coming that bans raw literals in feature code. Nothing here
- * should survive Phase 1 — if it does, that's a bug.
+ * Minimal by design, but still themed — even a placeholder renders in the
+ * brand's type and colours so nothing unthemed ever reaches a device.
  */
 export function PlaceholderScreen({ title, phase }: { title: string; phase: string }) {
+  const { colors, spacing, typography } = useTheme();
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.phase}>{phase}</Text>
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}>
+      <Text style={[typography.sheetTitle, { color: colors.text.primary }]}>{title}</Text>
+      <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>{phase}</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  title: { fontSize: 20 },
-  phase: { fontSize: 13, opacity: 0.6 },
-});

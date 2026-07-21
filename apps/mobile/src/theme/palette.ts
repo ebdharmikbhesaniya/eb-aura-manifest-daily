@@ -1,50 +1,66 @@
 /**
- * The raw palette (product 12 §colors). RAW VALUES LIVE ONLY HERE.
+ * The raw palette — Aura Design v3 "Ember & Bone". RAW VALUES LIVE ONLY HERE.
  *
  * Feature code must never import from this file — it imports semantic tokens from
  * `./tokens`, which resolve per colour scheme. A hex in a screen is a bug: it
  * cannot respond to dark mode, and it quietly forks the brand.
  *
- * Grounded in the research palette (lavender = blue's calm + pink's warmth) but
- * deliberately more restrained than the competitor world.
+ * V3 is warm-editorial: bone backgrounds, white cards, an ember gradient
+ * reserved for anything that speaks or plays, ink-black pills for action.
+ * Ember is earned — it only appears where the app speaks (voice, audio, the
+ * letter). Everything else is bone, white and olive.
  */
 export const palette = {
-  // Primary family
-  lavender: '#B5A9D6',
-  sky: '#A8D0E6',
-  /** Growth/becoming accents. */
-  sage: '#B7C9A8',
+  // Bone neutrals — every screen background.
+  bone: '#ECE9DF',
+  boneDeep: '#E2DECF',
+  /** Text and glyphs on ink fills; never a screen background. */
+  cream: '#F5F2E8',
+  white: '#FFFFFF',
 
-  // Neutrals — warm, never clinical.
-  warmWhite: '#FBF9F6',
-  sand: '#EDE6DD',
+  // Ink — text, CTAs, the FAB. Warm near-black, never pure black.
+  ink: '#1B1810',
+  inkBody: '#4A4536',
+  inkMuted: '#6F6A58',
 
-  /** Used sparingly, for self-compassion moments only. */
-  blush: '#F3D9DE',
+  // Olive — the quiet workhorse: captions, borders, selected chips.
+  olive: '#8A8265',
+  oliveSoft: '#DAD5BE',
+  oliveMuted: '#C9C3AC',
+  /** Dashed "future" outlines, empty checkboxes. */
+  oliveFaint: '#B4AE9C',
+  oliveDisabledText: '#A39D89',
+  oliveDisabledFill: '#E5E1D2',
 
-  /** The single high-contrast colour: buttons, active tab, play. */
-  periwinkle: '#6C63B5',
+  // Ember — voice & audio only. The gradient runs emberSoft → ember.
+  ember: '#E2682F',
+  emberSoft: '#F2A96F',
+  /** Links, progress, the voice serif. */
+  emberDeep: '#C9531F',
+  /** Inactive waveform bars. */
+  emberFaint: '#EBD9C4',
 
-  // Dark-world bases. Warm plum-charcoal, never harsh black.
-  dusk: '#2A2540',
-  darkBase: '#1E1B2E',
+  // Blush — marked days, hearts. Warmth without reward mechanics.
+  blush: '#F6D3DF',
+  blushSoft: '#FBEAF0',
+  blushDeep: '#C2537C',
+  heart: '#E38FB0',
 
-  // Ink
-  ink: '#2A2540',
-  inkSoft: '#5A5470',
+  /** Affirmation surfaces. */
+  parchment: '#F4EBD6',
 
   /**
-   * Destructive text inside confirmation sheets only (product 12 §buttons).
-   * Muted rather than alarm-red: saturated red triggers fight-or-flight, which
-   * is the opposite of everything this product is for.
+   * Errors only (v3 foundations). Muted rust rather than alarm-red: saturated
+   * red triggers fight-or-flight, which is the opposite of everything this
+   * product is for.
    */
-  quietRed: '#A3565B',
+  rust: '#9E2B12',
 
-  white: '#FFFFFF',
   black: '#000000',
 } as const;
 
 /**
- * Not in the palette, on purpose (product 12 §avoid): saturated red, neon,
- * stark clinical white, and anything celebratory near vulnerable content.
+ * Not in the palette, on purpose: saturated red, neon, cold clinical greys,
+ * and anything celebratory near vulnerable content. Ember never decorates —
+ * if it isn't speaking or playing, it isn't ember.
  */

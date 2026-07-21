@@ -6,7 +6,7 @@ import { Chip, Sheet } from '@/components';
 import { notificationsCopy } from '@/copy/notifications';
 import { useAppState } from '@/stores/appState';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 import { useNotificationPrefs, type NotificationPrefs } from './useNotifications';
 
@@ -42,11 +42,7 @@ export const NotificationPrefsSheet = forwardRef<BottomSheetModal, NotificationP
         >
           <Text
             allowFontScaling={false}
-            style={{
-              fontFamily: 'Fraunces_400Regular',
-              fontSize: 22 * scale,
-              color: colors.text.primary,
-            }}
+            style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
           >
             {notificationsCopy.prefs.title}
           </Text>
@@ -57,13 +53,13 @@ export const NotificationPrefsSheet = forwardRef<BottomSheetModal, NotificationP
             <View style={{ flex: 1, paddingRight: spacing.md }}>
               <Text
                 allowFontScaling={false}
-                style={{ fontSize: 16 * scale, color: colors.text.primary }}
+                style={[scaledType('body', scale), { color: colors.text.primary }]}
               >
                 {notificationsCopy.prefs.arrival}
               </Text>
               <Text
                 allowFontScaling={false}
-                style={{ fontSize: 13 * scale, color: colors.text.secondary }}
+                style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
               >
                 {notificationsCopy.prefs.arrivalDetail}
               </Text>
@@ -79,7 +75,7 @@ export const NotificationPrefsSheet = forwardRef<BottomSheetModal, NotificationP
           <View style={{ gap: spacing.sm }}>
             <Text
               allowFontScaling={false}
-              style={{ fontSize: 16 * scale, color: colors.text.primary }}
+              style={[scaledType('body', scale), { color: colors.text.primary }]}
             >
               {notificationsCopy.prefs.nudge}
             </Text>

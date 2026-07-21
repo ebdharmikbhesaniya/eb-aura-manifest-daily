@@ -8,7 +8,7 @@ import { paywallCopy } from '@/copy/paywall';
 import { analytics } from '@/lib/analytics';
 import { Sheet } from '@/components';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 export interface LockedFeatureSheetProps {
   feature: GatedFeature | null;
@@ -47,12 +47,7 @@ export const LockedFeatureSheet = forwardRef<BottomSheetModal, LockedFeatureShee
         >
           <Text
             allowFontScaling={false}
-            style={{
-              fontFamily: 'Fraunces_400Regular',
-              fontSize: 22 * scale,
-              lineHeight: 30 * scale,
-              color: colors.text.primary,
-            }}
+            style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
           >
             {paywallCopy.locked.title}
           </Text>
@@ -60,11 +55,7 @@ export const LockedFeatureSheet = forwardRef<BottomSheetModal, LockedFeatureShee
           {feature && (
             <Text
               allowFontScaling={false}
-              style={{
-                fontSize: 16 * scale,
-                lineHeight: 24 * scale,
-                color: colors.text.secondary,
-              }}
+              style={[scaledType('body', scale), { color: colors.text.secondary }]}
             >
               {paywallCopy.locked.features[feature]}
             </Text>

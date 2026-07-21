@@ -3,7 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { PillButton, TextButton } from '@/components';
 import { paywallCopy } from '@/copy/paywall';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 export interface SubscriptionScreenProps {
   premium: boolean;
@@ -65,11 +65,7 @@ export function SubscriptionScreen({
         <Text
           testID="subscription-status"
           allowFontScaling={false}
-          style={{
-            fontFamily: 'Fraunces_400Regular',
-            fontSize: 22 * scale,
-            color: colors.text.primary,
-          }}
+          style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
         >
           {status}
         </Text>
@@ -77,7 +73,7 @@ export function SubscriptionScreen({
         {dateLine && (
           <Text
             allowFontScaling={false}
-            style={{ fontSize: 15 * scale, color: colors.text.secondary }}
+            style={[scaledType('body', scale), { color: colors.text.secondary }]}
           >
             {dateLine}
           </Text>
@@ -88,7 +84,7 @@ export function SubscriptionScreen({
           <Text
             testID="subscription-billing-issue"
             allowFontScaling={false}
-            style={{ fontSize: 15 * scale, color: colors.text.secondary }}
+            style={[scaledType('body', scale), { color: colors.text.secondary }]}
           >
             {paywallCopy.subscription.billingIssue}
           </Text>
@@ -119,7 +115,7 @@ export function SubscriptionScreen({
 
       <Text
         allowFontScaling={false}
-        style={{ fontSize: 14 * scale, lineHeight: 21 * scale, color: colors.text.secondary }}
+        style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
       >
         {paywallCopy.subscription.lapsedKeepsData}
       </Text>

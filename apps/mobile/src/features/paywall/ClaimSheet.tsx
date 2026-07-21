@@ -5,7 +5,7 @@ import { Text, View } from 'react-native';
 import { Input, PillButton, Sheet, TextButton } from '@/components';
 import { paywallCopy } from '@/copy/paywall';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 import { claimWithApple, claimWithEmail } from './claim';
 
@@ -62,19 +62,14 @@ export const ClaimSheet = forwardRef<BottomSheetModal, ClaimSheetProps>(function
       >
         <Text
           allowFontScaling={false}
-          style={{
-            fontFamily: 'Fraunces_400Regular',
-            fontSize: 22 * scale,
-            lineHeight: 30 * scale,
-            color: colors.text.primary,
-          }}
+          style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
         >
           {paywallCopy.claim.title}
         </Text>
 
         <Text
           allowFontScaling={false}
-          style={{ fontSize: 15 * scale, lineHeight: 22 * scale, color: colors.text.secondary }}
+          style={[scaledType('body', scale), { color: colors.text.secondary }]}
         >
           {paywallCopy.claim.body}
         </Text>
@@ -82,7 +77,7 @@ export const ClaimSheet = forwardRef<BottomSheetModal, ClaimSheetProps>(function
         {afterPurchase && (
           <Text
             allowFontScaling={false}
-            style={{ fontSize: 14 * scale, color: colors.text.secondary }}
+            style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
           >
             {paywallCopy.claim.claimNotRequired}
           </Text>
@@ -92,7 +87,7 @@ export const ClaimSheet = forwardRef<BottomSheetModal, ClaimSheetProps>(function
           <Text
             testID="claim-email-sent"
             allowFontScaling={false}
-            style={{ fontSize: 15 * scale, color: colors.text.primary }}
+            style={[scaledType('body', scale), { color: colors.text.primary }]}
           >
             {paywallCopy.claim.emailSent}
           </Text>

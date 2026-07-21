@@ -21,7 +21,7 @@ const CONFIRM_WORD = 'delete';
  */
 export default function DeleteAccountRoute() {
   const router = useRouter();
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -32,7 +32,7 @@ export default function DeleteAccountRoute() {
       <View style={{ flex: 1, gap: spacing.lg, paddingVertical: spacing.lg }}>
         <SerifDisplay variant="title">Delete everything?</SerifDisplay>
 
-        <Text style={{ color: colors.text.secondary, lineHeight: 22 }}>
+        <Text style={[typography.body, { color: colors.text.secondary }]}>
           Your letter, your moments and everything you’ve told me. This can’t be undone, and I won’t
           keep a copy.
         </Text>

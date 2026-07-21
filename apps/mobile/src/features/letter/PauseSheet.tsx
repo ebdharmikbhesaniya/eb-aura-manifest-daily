@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { PillButton, Sheet, TextButton } from '@/components';
 import { letterCopy } from '@/copy/letter';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 import { Text } from 'react-native';
 
 export interface PauseSheetProps {
@@ -33,14 +33,14 @@ export const PauseSheet = forwardRef<BottomSheetModal, PauseSheetProps>(function
       <BottomSheetView style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl }}>
         <Text
           allowFontScaling={false}
-          style={{
-            fontFamily: 'Fraunces_400Regular',
-            fontSize: 22 * scale,
-            lineHeight: 30 * scale,
-            color: colors.text.primary,
-            textAlign: 'center',
-            marginBottom: spacing.lg,
-          }}
+          style={[
+            scaledType('sheetTitle', scale),
+            {
+              color: colors.text.primary,
+              textAlign: 'center',
+              marginBottom: spacing.lg,
+            },
+          ]}
         >
           {letterCopy.pauseSheet.title}
         </Text>

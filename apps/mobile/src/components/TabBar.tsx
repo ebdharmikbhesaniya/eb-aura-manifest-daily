@@ -94,10 +94,10 @@ export function TabBar({ state, descriptors, navigation }: TabBarProps) {
           >
             <TabIcon
               name={route.name}
-              // Periwinkle is the single high-contrast colour; the active tab
-              // is one of its few sanctioned uses (product 12 §color). With the
-              // caption gone this tint is now the ONLY thing marking the active
-              // tab, so it carries more weight than it did.
+              // Ink is the action colour (v3: actions are ink pills); the
+              // active tab is one of its few sanctioned uses. With the caption
+              // gone this tint is now the ONLY thing marking the active tab,
+              // so it carries more weight than it did.
               color={focused ? colors.cta.background : colors.text.secondary}
             />
           </Pressable>

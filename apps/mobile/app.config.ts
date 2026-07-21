@@ -92,6 +92,17 @@ const config: ExpoConfig = {
 
   plugins: [
     'expo-router',
+    [
+      // Splash mirrors the design tokens (src/theme/palette.ts, Aura Design v3
+      // "Ember & Bone"): bone in light, the warm dark base in dark. Configured
+      // here so prebuild regenerates the native splash from the brand, never
+      // from template defaults.
+      'expo-splash-screen',
+      {
+        backgroundColor: '#ECE9DF',
+        dark: { backgroundColor: '#171410' },
+      },
+    ],
     // Required for RevenueCat, Skia and MMKV native modules (05 §1).
     'expo-dev-client',
     '@sentry/react-native/expo',

@@ -9,7 +9,7 @@ import { NotificationPrefsSheet } from '@/features/notifications/NotificationPre
 import { notificationsCopy } from '@/copy/notifications';
 import { paywallCopy } from '@/copy/paywall';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 /**
  * `settings/index` — reached from the gear on Profile (06 §7: the gear lives on
@@ -84,7 +84,10 @@ function SettingsRow({
         borderBottomColor: colors.surface.border,
       }}
     >
-      <Text allowFontScaling={false} style={{ fontSize: 17 * scale, color: colors.text.primary }}>
+      <Text
+        allowFontScaling={false}
+        style={[scaledType('body', scale), { color: colors.text.primary }]}
+      >
         {label}
       </Text>
     </Pressable>

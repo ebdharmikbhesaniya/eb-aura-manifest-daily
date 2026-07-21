@@ -4,7 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Card, SerifDisplay } from '@/components';
 import { affirmationsCopy } from '@/copy/affirmations';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 export interface AffirmationCardProps {
   text: string;
@@ -45,7 +45,10 @@ export const AffirmationCard = forwardRef<View, AffirmationCardProps>(function A
         <Card variant="glassy">
           <Text
             allowFontScaling={false}
-            style={{ fontSize: 16 * scale, color: colors.text.secondary, textAlign: 'center' }}
+            style={[
+              scaledType('body', scale),
+              { color: colors.text.secondary, textAlign: 'center' },
+            ]}
           >
             {affirmationsCopy.reveal}
           </Text>
@@ -63,12 +66,13 @@ export const AffirmationCard = forwardRef<View, AffirmationCardProps>(function A
           <Text
             testID="affirmation-why"
             allowFontScaling={false}
-            style={{
-              marginTop: spacing.md,
-              fontSize: 14 * scale,
-              lineHeight: 21 * scale,
-              color: colors.text.secondary,
-            }}
+            style={[
+              scaledType('bodySmall', scale),
+              {
+                marginTop: spacing.md,
+                color: colors.text.secondary,
+              },
+            ]}
           >
             {whyLine}
           </Text>
@@ -84,7 +88,7 @@ export const AffirmationCard = forwardRef<View, AffirmationCardProps>(function A
             testID="affirmation-technique"
             style={{ marginTop: spacing.md, alignSelf: 'flex-start' }}
           >
-            <Text style={{ fontSize: 13 * scale, color: colors.cta.background }}>
+            <Text style={[scaledType('bodySmall', scale), { color: colors.cta.link }]}>
               {affirmationsCopy.techniques[technique].label}
             </Text>
           </Pressable>

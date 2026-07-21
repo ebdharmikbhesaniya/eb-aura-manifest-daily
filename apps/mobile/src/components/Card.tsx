@@ -15,7 +15,7 @@ export interface CardProps {
  * translucent card only reads as special while it stays rare.
  */
 export function Card({ variant, children, style }: CardProps) {
-  const { colors, layout, radii, scheme, spacing } = useTheme();
+  const { colors, layout, radii, scheme, shadows } = useTheme();
 
   const glassy = variant === 'glassy';
 
@@ -32,14 +32,8 @@ export function Card({ variant, children, style }: CardProps) {
           borderColor: colors.surface.border,
         },
         // Shadow in light only. In dark, elevation comes from the border — an ink
-        // shadow is invisible against the plum base, and a light one would glow.
-        glassy &&
-          scheme === 'light' && {
-            shadowColor: colors.text.primary,
-            shadowOpacity: 0.06,
-            shadowRadius: spacing.md,
-            shadowOffset: { width: 0, height: spacing.xs },
-          },
+        // shadow is invisible against the warm dark base, and a light one would glow.
+        glassy && scheme === 'light' && shadows.card,
         style,
       ]}
     >

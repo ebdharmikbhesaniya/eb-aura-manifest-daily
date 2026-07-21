@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, Text, View } from 'react-native';
 
 import { memoryCopy } from '@/copy/memory';
 import { analytics } from '@/lib/analytics';
 import { useAppState } from '@/stores/appState';
+import { useTheme } from '@/theme/ThemeProvider';
 
 import type { MemoryItem } from './api';
 import { useDeleteMemoryItem, useMemoryItems } from './hooks';
@@ -23,10 +24,11 @@ import { useDeleteMemoryItem, useMemoryItems } from './hooks';
  *    screen never shows a category, tier, weight or id. If it reads like a
  *    database row, it reads like surveillance.
  *
- * Styling is placeholder — Phase 1 brings the design system (05 §4). The
- * behaviour and the copy are what matter here and are tested.
+ * Layout is deliberately spare; everything it does render comes from the
+ * design tokens. The behaviour and the copy are what matter here and are tested.
  */
 export function WhatAuraKnows() {
+  const { colors, spacing, typography } = useTheme();
   const userId = useAppState((s) => s.userId);
   const { data: items, isLoading } = useMemoryItems(userId ?? undefined);
   const deleteItem = useDeleteMemoryItem(userId ?? undefined);
@@ -50,28 +52,49 @@ export function WhatAuraKnows() {
     );
   };
 
-  if (isLoading) return <View testID="what-aura-knows-loading" style={styles.container} />;
+  const container = { flex: 1, padding: spacing.lg, gap: spacing.md } as const;
+
+  if (isLoading) return <View testID="what-aura-knows-loading" style={container} />;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{memoryCopy.whatAuraKnows.title}</Text>
-      <Text style={styles.contract}>{memoryCopy.whatAuraKnows.contract}</Text>
+    <View style={container}>
+      <Text style={[typography.title, { color: colors.text.primary }]}>
+        {memoryCopy.whatAuraKnows.title}
+      </Text>
+      <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
+        {memoryCopy.whatAuraKnows.contract}
+      </Text>
 
       <FlatList
         testID="memory-list"
         data={items ?? []}
         keyExtractor={(item) => item.id}
-        ListEmptyComponent={<Text style={styles.empty}>{memoryCopy.whatAuraKnows.empty}</Text>}
+        ListEmptyComponent={
+          <Text style={[typography.body, { color: colors.text.secondary }]}>
+            {memoryCopy.whatAuraKnows.empty}
+          </Text>
+        }
         renderItem={({ item }) => (
-          <View style={styles.row}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: spacing.md,
+            }}
+          >
             {/* `content` only — never category, tier or weight. */}
-            <Text style={styles.content}>{item.content}</Text>
+            <Text style={[typography.body, { flex: 1, color: colors.text.primary }]}>
+              {item.content}
+            </Text>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`${memoryCopy.whatAuraKnows.deleteAction}: ${item.content}`}
               onPress={() => confirmDelete(item)}
             >
-              <Text style={styles.delete}>{memoryCopy.whatAuraKnows.deleteAction}</Text>
+              <Text style={[typography.bodySmall, { color: colors.text.destructive }]}>
+                {memoryCopy.whatAuraKnows.deleteAction}
+              </Text>
             </Pressable>
           </View>
         )}
@@ -79,13 +102,3 @@ export function WhatAuraKnows() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, gap: 12 },
-  title: { fontSize: 24 },
-  contract: { fontSize: 14, opacity: 0.7 },
-  empty: { fontSize: 15, opacity: 0.7 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
-  content: { flex: 1, fontSize: 16 },
-  delete: { fontSize: 14 },
-});

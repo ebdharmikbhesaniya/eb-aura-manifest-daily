@@ -61,7 +61,7 @@ const BREATH_SCALE_MAX = 1.04;
 const CANVAS_OVERSCAN = 1.6;
 
 export function Orb({ state, size = 160, amplitude, testID }: OrbProps) {
-  const { colors } = useTheme();
+  const { colors, durations } = useTheme();
   const { reduceMotion } = useMotion();
 
   // 0..1 breath phase; scale and glow derive from it so they stay in step.
@@ -74,11 +74,11 @@ export function Orb({ state, size = 160, amplitude, testID }: OrbProps) {
     if (reduceMotion) {
       // Still, softly lit. withTiming (not a snap) so turning the setting on
       // mid-animation eases out instead of jumping.
-      breath.value = withTiming(0.5, { duration: 400 });
+      breath.value = withTiming(0.5, { duration: durations.reveal });
       glow.value = withTiming(state === 'generating' || state === 'speaking' ? 0.5 : 0.2, {
-        duration: 400,
+        duration: durations.reveal,
       });
-      shimmer.value = withTiming(0, { duration: 400 });
+      shimmer.value = withTiming(0, { duration: durations.reveal });
       return;
     }
 
@@ -89,13 +89,17 @@ export function Orb({ state, size = 160, amplitude, testID }: OrbProps) {
     );
 
     glow.value = withTiming(state === 'generating' ? 1 : state === 'speaking' ? 0.4 : 0.15, {
-      duration: 600,
+      duration: durations.orbGlow,
     });
 
     shimmer.value =
       state === 'listening'
-        ? withRepeat(withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.ease) }), -1, true)
-        : withTiming(0, { duration: 400 });
+        ? withRepeat(
+            withTiming(1, { duration: durations.orbShimmer, easing: Easing.inOut(Easing.ease) }),
+            -1,
+            true,
+          )
+        : withTiming(0, { duration: durations.reveal });
 
     return () => {
       // Repeating animations outlive unmount unless cancelled — and a leaked

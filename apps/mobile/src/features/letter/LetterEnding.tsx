@@ -12,7 +12,7 @@ import { letterCopy } from '@/copy/letter';
 import { EASE, useMotion } from '@/theme/motion';
 import { useTheme } from '@/theme/ThemeProvider';
 import { durations } from '@/theme/tokens';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 /** The last line hangs alone for two seconds before anything else appears (product 08). */
 const HANG_MS = 2_000;
@@ -52,13 +52,13 @@ export function LetterEnding({ onContinue, testID }: LetterEndingProps) {
     >
       <Animated.Text
         allowFontScaling={false}
-        style={{
-          fontFamily: 'Fraunces_400Regular',
-          fontSize: 20 * scale,
-          lineHeight: 30 * scale,
-          textAlign: 'center',
-          color: colors.text.secondary,
-        }}
+        style={[
+          scaledType('sheetTitle', scale),
+          {
+            textAlign: 'center',
+            color: colors.text.secondary,
+          },
+        ]}
       >
         {letterCopy.ending.more}
       </Animated.Text>

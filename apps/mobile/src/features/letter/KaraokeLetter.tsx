@@ -11,7 +11,7 @@ import Animated, {
 import { FADE_RISE_DISTANCE, useMotion } from '@/theme/motion';
 import { useTheme } from '@/theme/ThemeProvider';
 import { durations } from '@/theme/tokens';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, fonts, typography } from '@/theme/typography';
 
 import type { KaraokeLine } from './karaoke';
 
@@ -134,9 +134,12 @@ function KaraokeLineView({ line, nextStartMs, positionMs, onLayoutY }: KaraokeLi
       style={[
         style,
         {
-          fontFamily: 'Fraunces_400Regular',
-          fontSize: 30 * scale,
-          lineHeight: 44 * scale,
+          // The letter IS the voice — italic serif, metrics from the token so
+          // the karaoke rhythm and the design system never drift apart.
+          fontFamily: fonts.serifItalic,
+          fontStyle: 'italic',
+          fontSize: (typography.letterLine.fontSize ?? 22) * scale,
+          lineHeight: (typography.letterLine.lineHeight ?? 38) * scale,
           color: colors.text.primary,
           marginBottom: spacing.md,
         },

@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 import type { ReactNode } from 'react';
 
 import { memoryCopy } from '@/copy/memory';
+import { ThemeProvider } from '@/theme/ThemeProvider';
 
 import * as api from './api';
 import { WhatAuraKnows } from './WhatAuraKnows';
@@ -46,7 +47,11 @@ const item = (over: Partial<api.MemoryItem> = {}): api.MemoryItem =>
 
 function wrapper({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </ThemeProvider>
+  );
 }
 
 describe('WhatAuraKnows', () => {

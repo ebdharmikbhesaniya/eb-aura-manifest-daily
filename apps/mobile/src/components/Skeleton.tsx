@@ -11,7 +11,7 @@ import Animated, {
 import { EASE, useMotion } from '@/theme/motion';
 import { useTheme } from '@/theme/ThemeProvider';
 
-// "Soft shimmer on Sand" (product 12 §loading) has no duration token — an
+// Soft shimmer on bone (product 12 §loading) has no duration token — an
 // ambient loop, not a transition, so the 500ms cap doesn't govern it. ~1200ms
 // reads as breathing rather than blinking.
 const SHIMMER_MS = 1200;

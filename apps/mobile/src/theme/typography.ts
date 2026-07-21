@@ -1,17 +1,25 @@
 import { PixelRatio, type TextStyle } from 'react-native';
 
 /**
- * Typography (product 12 §type). "Typography is the hero" — affirmations and
- * letters ARE the product, so type gets the budget.
+ * Typography (Aura Design v3 "Ember & Bone"). "Typography is the hero" —
+ * affirmations and letters ARE the product, so type gets the budget.
+ *
+ * Serif when it matters: Newsreader carries display, titles and the voice
+ * (the future self speaks in serif, always — italic, ember). Figtree carries
+ * the interface.
  */
 
 export const fonts = {
-  /** Bundled via @expo-google-fonts/fraunces. Letters, titles, affirmations. */
-  serif: 'Fraunces_400Regular',
-  serifItalic: 'Fraunces_400Regular_Italic',
-  serifSemiBold: 'Fraunces_600SemiBold',
-  /** System SF Pro on iOS — humanist and already familiar. */
-  sans: undefined as string | undefined,
+  /** Bundled via @expo-google-fonts/newsreader. Display, titles, moment names. */
+  serif: 'Newsreader_500Medium',
+  /** The voice — only when the future self speaks. */
+  serifItalic: 'Newsreader_500Medium_Italic',
+  serifSemiBold: 'Newsreader_600SemiBold',
+  /** Bundled via @expo-google-fonts/figtree. All interface text. */
+  sans: 'Figtree_400Regular',
+  sansMedium: 'Figtree_500Medium',
+  sansSemiBold: 'Figtree_600SemiBold',
+  sansBold: 'Figtree_700Bold',
 } as const;
 
 /**
@@ -39,10 +47,13 @@ export function shouldReflowChips(getFontScale: () => number = PixelRatio.getFon
 }
 
 type Variant =
+  | 'display'
   | 'letterLine'
   | 'affirmationHero'
   | 'momentTitle'
   | 'title'
+  | 'sheetTitle'
+  | 'headline'
   | 'body'
   | 'bodySmall'
   | 'label'
@@ -53,32 +64,67 @@ type Variant =
  * their own clamp at render time via `clampedFontScale`.
  */
 export const typography: Record<Variant, TextStyle> = {
-  /** 28–34pt, large and airy (product 12). */
-  letterLine: { fontFamily: fonts.serif, fontSize: 30, lineHeight: 42 },
-  /** 26–30pt. */
-  affirmationHero: { fontFamily: fonts.serif, fontSize: 28, lineHeight: 38 },
-  /** Italic serif — the signature for moment titles. */
-  momentTitle: { fontFamily: fonts.serifItalic, fontStyle: 'italic', fontSize: 22, lineHeight: 30 },
-  title: { fontFamily: fonts.serifSemiBold, fontSize: 24, lineHeight: 32 },
+  /** Hero statements — Newsreader 500 · 34/40 · -1% (v3 display). */
+  display: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 40, letterSpacing: -0.34 },
 
-  body: { fontFamily: fonts.sans, fontSize: 17, lineHeight: 25 },
-  bodySmall: { fontFamily: fonts.sans, fontSize: 15, lineHeight: 22 },
+  /** The voice — italic serif, generous leading for karaoke (v3 voice · 22/38). */
+  letterLine: {
+    fontFamily: fonts.serifItalic,
+    fontStyle: 'italic',
+    fontSize: 22,
+    lineHeight: 38,
+  },
+  /** Affirmation display — the voice at full size (v3 affirmation screen). */
+  affirmationHero: {
+    fontFamily: fonts.serifItalic,
+    fontStyle: 'italic',
+    fontSize: 30,
+    lineHeight: 45,
+  },
+  /** Upright serif — moment names are titles, not speech (v3: italic = voice only). */
+  momentTitle: { fontFamily: fonts.serif, fontSize: 22, lineHeight: 28 },
+  /** Newsreader 500 · 24/30 (v3 title). */
+  title: { fontFamily: fonts.serif, fontSize: 24, lineHeight: 30 },
+  /** Bottom-sheet and ritual headings — a step below `title`. */
+  sheetTitle: { fontFamily: fonts.serif, fontSize: 22, lineHeight: 30 },
+  /** Emphasised sans rows — plan names, prices (v3 headline · Figtree 700 · 16/22). */
+  headline: { fontFamily: fonts.sansBold, fontSize: 16, lineHeight: 22 },
+
+  /** Figtree 400 · 15/24 (v3 body). */
+  body: { fontFamily: fonts.sans, fontSize: 15, lineHeight: 24 },
+  /** Captions — Figtree 500 · 13/19 (v3 caption). */
+  bodySmall: { fontFamily: fonts.sansMedium, fontSize: 13, lineHeight: 19 },
 
   /**
-   * The category's signature wayfinding: uppercase, letter-spaced, 11–12pt, 60%
-   * opacity ("TODAY'S MOMENT"). Opacity is applied by the Label component so the
-   * token stays a pure text style.
+   * The category's signature wayfinding: uppercase, letter-spaced, 11pt
+   * ("TODAY'S MOMENT"). Colour comes from `text.label` (olive); opacity is
+   * applied by the Label component so the token stays a pure text style.
    */
   label: {
-    fontFamily: fonts.sans,
-    fontSize: 12,
-    lineHeight: 16,
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 11,
+    lineHeight: 15,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
 
-  button: { fontFamily: fonts.sans, fontSize: 17, lineHeight: 22, fontWeight: '600' },
+  /** Figtree 600 · 15 — weight lives in the font family, never `fontWeight`. */
+  button: { fontFamily: fonts.sansSemiBold, fontSize: 15, lineHeight: 20 },
 };
 
 /** 60% per product 12 §label style. */
 export const LABEL_OPACITY = 0.6;
+
+/**
+ * A typography variant with its metrics multiplied by a (usually clamped)
+ * font scale — for serif surfaces that manage Dynamic Type themselves via
+ * `allowFontScaling={false}` + `clampedFontScale()`. Keeping the arithmetic
+ * here means no screen ever hardcodes a font size to do its own scaling.
+ */
+export function scaledType(variant: Variant, scale: number): TextStyle {
+  const base = typography[variant];
+  const style: TextStyle = { ...base };
+  if (base.fontSize !== undefined) style.fontSize = base.fontSize * scale;
+  if (base.lineHeight !== undefined) style.lineHeight = base.lineHeight * scale;
+  return style;
+}

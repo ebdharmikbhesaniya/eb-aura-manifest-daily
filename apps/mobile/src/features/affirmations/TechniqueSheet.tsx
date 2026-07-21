@@ -7,7 +7,7 @@ import { Sheet } from '@/components';
 import { affirmationsCopy } from '@/copy/affirmations';
 import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 import {
   increment,
@@ -60,11 +60,7 @@ export const TechniqueSheet = forwardRef<BottomSheetModal, TechniqueSheetProps>(
         >
           <Text
             allowFontScaling={false}
-            style={{
-              fontFamily: 'Fraunces_400Regular',
-              fontSize: 22 * scale,
-              color: colors.text.primary,
-            }}
+            style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
           >
             {copy.label}
           </Text>
@@ -72,7 +68,7 @@ export const TechniqueSheet = forwardRef<BottomSheetModal, TechniqueSheetProps>(
           <Text
             testID="technique-why"
             allowFontScaling={false}
-            style={{ fontSize: 15 * scale, lineHeight: 23 * scale, color: colors.text.secondary }}
+            style={[scaledType('body', scale), { color: colors.text.secondary }]}
           >
             {copy.why}
           </Text>
@@ -92,10 +88,10 @@ export const TechniqueSheet = forwardRef<BottomSheetModal, TechniqueSheetProps>(
                     paddingVertical: spacing.sm,
                   }}
                 >
-                  <Text style={{ fontSize: 15 * scale, color: colors.text.primary }}>
+                  <Text style={[scaledType('body', scale), { color: colors.text.primary }]}>
                     {affirmationsCopy.techniques.three_six_nine[block]}
                   </Text>
-                  <Text style={{ fontSize: 15 * scale, color: colors.cta.background }}>
+                  <Text style={[scaledType('body', scale), { color: colors.cta.link }]}>
                     {practice[block]} / {PRACTICE_TARGETS[block]}
                   </Text>
                 </Pressable>
@@ -113,7 +109,7 @@ export const TechniqueSheet = forwardRef<BottomSheetModal, TechniqueSheetProps>(
             <Text
               testID="technique-scripting-prompt"
               allowFontScaling={false}
-              style={{ fontSize: 15 * scale, color: colors.text.primary }}
+              style={[scaledType('body', scale), { color: colors.text.primary }]}
             >
               {affirmationsCopy.techniques.scripting.prompt}
             </Text>

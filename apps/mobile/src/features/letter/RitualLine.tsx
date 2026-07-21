@@ -9,7 +9,7 @@ import Animated, {
 import { useMotion, EASE, FADE_RISE_DISTANCE } from '@/theme/motion';
 import { useTheme } from '@/theme/ThemeProvider';
 import { durations } from '@/theme/tokens';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 export interface RitualLineProps {
   text: string;
@@ -57,10 +57,8 @@ export function RitualLine({ text, delayMs, testID }: RitualLineProps) {
       allowFontScaling={false}
       style={[
         style,
+        scaledType('sheetTitle', scale),
         {
-          fontFamily: 'Fraunces_400Regular',
-          fontSize: 22 * scale,
-          lineHeight: 32 * scale,
           textAlign: 'center',
           color: colors.text.primary,
           marginTop: spacing.md,

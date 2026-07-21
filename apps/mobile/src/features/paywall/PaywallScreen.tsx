@@ -7,7 +7,7 @@ import { PillButton, TextButton } from '@/components';
 import { paywallCopy } from '@/copy/paywall';
 import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 import { PlanCard } from './PlanCard';
 import type { OfferedPlan } from './purchases';
@@ -52,7 +52,7 @@ export function PaywallScreen({
   busy = false,
   testID,
 }: PaywallScreenProps) {
-  const { colors, spacing, layout } = useTheme();
+  const { colors, spacing, layout, iconSizes } = useTheme();
   const scale = clampedFontScale();
 
   // Annual is pre-selected — the hero, and the honest best value (12 §1).
@@ -90,7 +90,7 @@ export function PaywallScreen({
             }}
             style={{ alignSelf: 'flex-end', padding: spacing.sm }}
           >
-            <Text style={{ fontSize: 22 * scale, color: colors.text.secondary }}>✕</Text>
+            <Text style={{ fontSize: iconSizes.lg * scale, color: colors.text.secondary }}>✕</Text>
           </Pressable>
         )}
 
@@ -100,13 +100,13 @@ export function PaywallScreen({
         >
           <Text
             allowFontScaling={false}
-            style={{
-              fontFamily: 'Fraunces_400Regular',
-              fontSize: 28 * scale,
-              lineHeight: 38 * scale,
-              color: colors.text.primary,
-              marginTop: dismissable ? 0 : spacing.xl,
-            }}
+            style={[
+              scaledType('title', scale),
+              {
+                color: colors.text.primary,
+                marginTop: dismissable ? 0 : spacing.xl,
+              },
+            ]}
           >
             {paywallCopy.headline}
           </Text>
@@ -174,13 +174,13 @@ function ContrastRow({ label, body }: { label: string; body: string }) {
     <View style={{ gap: spacing.xs }}>
       <Text
         allowFontScaling={false}
-        style={{ fontSize: 12 * scale, letterSpacing: 1, color: colors.text.secondary }}
+        style={[scaledType('label', scale), { color: colors.text.label }]}
       >
         {label.toUpperCase()}
       </Text>
       <Text
         allowFontScaling={false}
-        style={{ fontSize: 16 * scale, lineHeight: 24 * scale, color: colors.text.primary }}
+        style={[scaledType('body', scale), { color: colors.text.primary }]}
       >
         {body}
       </Text>

@@ -4,8 +4,10 @@ import { useColorScheme } from 'react-native';
 import {
   colorSchemes,
   durations,
+  iconSizes,
   layout,
   radii,
+  shadows,
   spacing,
   type ColorScheme,
   type ColorTokens,
@@ -18,6 +20,8 @@ export interface Theme {
   spacing: typeof spacing;
   radii: typeof radii;
   layout: typeof layout;
+  shadows: typeof shadows;
+  iconSizes: typeof iconSizes;
   durations: typeof durations;
   typography: typeof typography;
 }
@@ -48,6 +52,8 @@ export function ThemeProvider({
       spacing,
       radii,
       layout,
+      shadows,
+      iconSizes,
       durations,
       typography,
     }),

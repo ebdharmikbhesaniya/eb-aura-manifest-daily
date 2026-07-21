@@ -29,8 +29,8 @@ export interface InputProps {
 }
 
 /**
- * Text input (product 12 §inputs): borderless on the card surface, large 17pt
- * text, soft lavender focus glow. The glow is an overlay so focus never shifts
+ * Text input (v3 §inputs): borderless on the card surface, body-size text,
+ * soft olive focus glow. The glow is an overlay so focus never shifts
  * layout — the field breathes awake rather than snapping a border on.
  */
 export function Input({
@@ -44,7 +44,7 @@ export function Input({
   autoCapitalize = 'sentences',
   testID,
 }: InputProps) {
-  const { colors, durations, radii, spacing, typography } = useTheme();
+  const { colors, durations, radii, shadows, spacing, typography } = useTheme();
   const motion = useMotion();
   const glow = useSharedValue(0);
 
@@ -81,7 +81,7 @@ export function Input({
             typography.body,
             {
               backgroundColor: colors.surface.card,
-              borderRadius: radii.chip,
+              borderRadius: radii.field,
               padding: spacing.md,
               color: colors.text.primary,
             },
@@ -93,13 +93,11 @@ export function Input({
           style={[
             StyleSheet.absoluteFill,
             {
-              borderRadius: radii.chip,
+              ...shadows.focusGlow,
+              borderRadius: radii.field,
               borderWidth: 1,
-              borderColor: colors.accent.lavender,
-              shadowColor: colors.accent.lavender,
-              shadowOpacity: 0.35,
-              shadowRadius: spacing.sm,
-              shadowOffset: { width: 0, height: 0 },
+              borderColor: colors.accent.olive,
+              shadowColor: colors.accent.olive,
             },
             glowStyle,
           ]}

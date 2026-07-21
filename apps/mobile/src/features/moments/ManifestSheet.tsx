@@ -6,7 +6,7 @@ import { Text, View } from 'react-native';
 import { Input, PillButton, Sheet } from '@/components';
 import { momentsCopy } from '@/copy/moments';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 export interface ManifestSheetProps {
   creditsRemaining: number;
@@ -49,11 +49,7 @@ export const ManifestSheet = forwardRef<BottomSheetModal, ManifestSheetProps>(
         >
           <Text
             allowFontScaling={false}
-            style={{
-              fontFamily: 'Fraunces_400Regular',
-              fontSize: 22 * scale,
-              color: colors.text.primary,
-            }}
+            style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
           >
             {momentsCopy.manifest.title}
           </Text>
@@ -75,7 +71,7 @@ export const ManifestSheet = forwardRef<BottomSheetModal, ManifestSheetProps>(
                 <Text
                   key={example}
                   allowFontScaling={false}
-                  style={{ fontSize: 14 * scale, color: colors.text.secondary }}
+                  style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
                 >
                   {example}
                 </Text>
@@ -86,7 +82,7 @@ export const ManifestSheet = forwardRef<BottomSheetModal, ManifestSheetProps>(
           <Text
             testID="manifest-credits"
             allowFontScaling={false}
-            style={{ fontSize: 14 * scale, color: colors.text.secondary }}
+            style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
           >
             {creditLine}
           </Text>
@@ -95,7 +91,7 @@ export const ManifestSheet = forwardRef<BottomSheetModal, ManifestSheetProps>(
             <Text
               testID="manifest-error"
               allowFontScaling={false}
-              style={{ fontSize: 14 * scale, color: colors.text.secondary }}
+              style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
             >
               {error}
             </Text>

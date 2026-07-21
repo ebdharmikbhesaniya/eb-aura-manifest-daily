@@ -2,7 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { momentsCopy } from '@/copy/moments';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, fonts, scaledType } from '@/theme/typography';
 
 import { progressOf, usePlayerStore } from './playerStore';
 
@@ -23,7 +23,7 @@ export interface MiniPlayerProps {
  * and the rarer one (stop it) is deliberate.
  */
 export function MiniPlayer({ onToggle, testID }: MiniPlayerProps) {
-  const { colors, spacing, radii } = useTheme();
+  const { colors, spacing, radii, iconSizes } = useTheme();
   const scale = clampedFontScale();
 
   const moment = usePlayerStore((s) => s.moment);
@@ -60,11 +60,13 @@ export function MiniPlayer({ onToggle, testID }: MiniPlayerProps) {
           <Text
             numberOfLines={1}
             allowFontScaling={false}
-            style={{
-              fontFamily: 'Fraunces_400Regular',
-              fontSize: 15 * scale,
-              color: colors.text.primary,
-            }}
+            style={[
+              scaledType('body', scale),
+              {
+                fontFamily: fonts.serif,
+                color: colors.text.primary,
+              },
+            ]}
           >
             {moment.title ?? momentsCopy.home.todayLabel}
           </Text>
@@ -78,7 +80,7 @@ export function MiniPlayer({ onToggle, testID }: MiniPlayerProps) {
           style={{ paddingHorizontal: spacing.sm }}
           testID="mini-player-toggle"
         >
-          <Text style={{ fontSize: 18 * scale, color: colors.cta.background }}>
+          <Text style={{ fontSize: iconSizes.lg * scale, color: colors.cta.background }}>
             {playing ? '❙❙' : '▶'}
           </Text>
         </Pressable>

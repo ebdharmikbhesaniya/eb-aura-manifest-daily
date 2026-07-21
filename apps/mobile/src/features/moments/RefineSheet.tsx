@@ -6,7 +6,7 @@ import { Text, View } from 'react-native';
 import { Input, PillButton, SelectCard, Sheet } from '@/components';
 import { momentsCopy } from '@/copy/moments';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 export interface RefineSheetProps {
   onSubmit: (direction: RefineDirection, note?: string) => void;
@@ -46,11 +46,7 @@ export const RefineSheet = forwardRef<BottomSheetModal, RefineSheetProps>(functi
       >
         <Text
           allowFontScaling={false}
-          style={{
-            fontFamily: 'Fraunces_400Regular',
-            fontSize: 22 * scale,
-            color: colors.text.primary,
-          }}
+          style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
         >
           {momentsCopy.refine.title}
         </Text>
@@ -80,7 +76,7 @@ export const RefineSheet = forwardRef<BottomSheetModal, RefineSheetProps>(functi
           <Text
             testID="refine-error"
             allowFontScaling={false}
-            style={{ fontSize: 14 * scale, color: colors.text.secondary }}
+            style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
           >
             {error}
           </Text>

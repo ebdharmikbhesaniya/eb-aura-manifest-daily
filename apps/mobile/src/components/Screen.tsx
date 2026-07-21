@@ -17,8 +17,8 @@ export interface ScreenProps {
 /**
  * The full-bleed gradient every screen sits on (product 12 §surfaces): content
  * floats on the gradient, never on a flat background. One gradient family
- * app-wide — the tokens shift it per scheme, so dark mode is the same world at
- * dusk rather than a different app.
+ * app-wide — the tokens shift it per scheme, so dark mode is the same warm
+ * world after sundown rather than a different app.
  */
 export function Screen({ children, edgeToEdge = false, style, testID }: ScreenProps) {
   const { colors, layout } = useTheme();
@@ -26,7 +26,7 @@ export function Screen({ children, edgeToEdge = false, style, testID }: ScreenPr
   return (
     <LinearGradient
       testID={testID}
-      // Vertical, warm-white → lavender → dusk (product 12 §gradients). The
+      // Vertical, bone settling into deeper bone (v3 §surfaces). The
       // library's default axis is already top-centre → bottom-centre.
       colors={[colors.bg.gradientTop, colors.bg.gradientMid, colors.bg.gradientBottom]}
       style={{ flex: 1 }}

@@ -256,9 +256,9 @@ const MONOGRAM_SIZE = 88;
 /**
  * Her initial, set in the same serif the name uses — the page's one ornament.
  *
- * Sand on the gradient rather than periwinkle: the accent is reserved for the
- * active tab and CTAs (product 12 §color), and a full periwinkle disc at the
- * top of a quiet page would outshout everything under it.
+ * A quiet surface tint rather than ink: the action colour is reserved for the
+ * active tab and CTAs (v3 §color), and a full ink disc at the top of a quiet
+ * page would outshout everything under it.
  */
 function Monogram({ name }: { name: string }) {
   const { colors, typography } = useTheme();
@@ -281,15 +281,7 @@ function Monogram({ name }: { name: string }) {
         borderColor: colors.surface.border,
       }}
     >
-      <Text
-        allowFontScaling={false}
-        style={{
-          fontFamily: typography.title.fontFamily,
-          fontSize: 36,
-          lineHeight: 44,
-          color: colors.text.primary,
-        }}
-      >
+      <Text allowFontScaling={false} style={[typography.display, { color: colors.text.primary }]}>
         {initial}
       </Text>
     </View>

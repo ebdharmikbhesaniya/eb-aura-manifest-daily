@@ -14,9 +14,9 @@ export interface PillButtonProps {
 }
 
 /**
- * The primary CTA (product 12 §buttons): filled periwinkle pill, 52pt, white
- * label. Periwinkle is the app's single high-contrast colour — one primary
- * action per screen, and this is it.
+ * The primary CTA (v3 §buttons): filled ink pill, cream label. Ink is the
+ * app's single high-contrast action colour — one primary action per screen,
+ * and this is it.
  */
 export function PillButton({
   title,

@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Card, PillButton, SerifDisplay, TextButton } from '@/components';
 import { momentsCopy } from '@/copy/moments';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 import { greetingFor, type HomeMomentState } from './momentState';
 
@@ -73,7 +73,7 @@ export function HomeScreen({
             <Card key={item.id} variant="solid">
               <Text
                 allowFontScaling={false}
-                style={{ fontSize: 15 * scale, color: colors.text.secondary }}
+                style={[scaledType('body', scale), { color: colors.text.secondary }]}
               >
                 {item.title ?? momentsCopy.states.formingPreview}
               </Text>
@@ -97,7 +97,7 @@ export function HomeScreen({
                 <Text
                   numberOfLines={1}
                   allowFontScaling={false}
-                  style={{ fontSize: 16 * scale, color: colors.text.primary }}
+                  style={[scaledType('body', scale), { color: colors.text.primary }]}
                 >
                   {item.title ?? 'A moment'}
                 </Text>
@@ -111,7 +111,7 @@ export function HomeScreen({
         <Text
           testID="home-notification-hint"
           allowFontScaling={false}
-          style={{ fontSize: 14 * scale, color: colors.text.secondary }}
+          style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
         >
           {notificationHint}
         </Text>
@@ -137,7 +137,7 @@ function TodayCard({
   const body = (text: string) => (
     <Text
       allowFontScaling={false}
-      style={{ fontSize: 15 * scale, lineHeight: 22 * scale, color: colors.text.secondary }}
+      style={[scaledType('body', scale), { color: colors.text.secondary }]}
     >
       {text}
     </Text>
@@ -220,7 +220,7 @@ function SectionLabel({ children }: { children: string }) {
   return (
     <Text
       allowFontScaling={false}
-      style={{ fontSize: 12 * scale, letterSpacing: 1, color: colors.text.secondary }}
+      style={[scaledType('label', scale), { color: colors.text.label }]}
     >
       {children.toUpperCase()}
     </Text>

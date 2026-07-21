@@ -13,7 +13,7 @@ import { useTheme } from '@/theme/ThemeProvider';
  * store, so it works offline exactly as the tab does (product 09 §9.4).
  */
 export default function GratitudeHistoryRoute() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const userId = useAppState((s) => s.userId);
   const { history } = useGratitude(userId ?? undefined);
 
@@ -29,8 +29,10 @@ export default function GratitudeHistoryRoute() {
         ) : (
           history.map((entry) => (
             <Card key={entry.entryDate} variant="solid">
-              <Text style={{ color: colors.text.secondary, fontSize: 12 }}>{entry.entryDate}</Text>
-              <Text style={{ color: colors.text.primary }}>{entry.entry}</Text>
+              <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
+                {entry.entryDate}
+              </Text>
+              <Text style={[typography.body, { color: colors.text.primary }]}>{entry.entry}</Text>
             </Card>
           ))
         )}

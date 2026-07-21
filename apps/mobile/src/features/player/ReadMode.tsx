@@ -2,7 +2,7 @@ import { ScrollView, Text } from 'react-native';
 
 import type { KaraokeLine } from '@/features/letter/karaoke';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, fonts, typography } from '@/theme/typography';
 
 export interface ReadModeProps {
   lines: KaraokeLine[];
@@ -39,9 +39,12 @@ export function ReadMode({ lines, body, positionMs, testID }: ReadModeProps) {
       <Text
         allowFontScaling={false}
         style={{
-          fontFamily: 'Fraunces_400Regular',
-          fontSize: 20 * scale,
-          lineHeight: 32 * scale,
+          // Read mode is still the voice speaking — same italic serif and
+          // metrics as the karaoke, just laid out as prose.
+          fontFamily: fonts.serifItalic,
+          fontStyle: 'italic',
+          fontSize: (typography.letterLine.fontSize ?? 22) * scale,
+          lineHeight: (typography.letterLine.lineHeight ?? 38) * scale,
           color: colors.text.primary,
         }}
       >

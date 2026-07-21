@@ -7,7 +7,7 @@ import { momentsCopy } from '@/copy/moments';
 import { KaraokeLetter } from '@/features/letter/KaraokeLetter';
 import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 import { useSharedValue } from 'react-native-reanimated';
 import { useEffect } from 'react';
 
@@ -46,7 +46,7 @@ export function PlayerScreen({
   canRefine = true,
   testID,
 }: PlayerScreenProps) {
-  const { colors, spacing, layout } = useTheme();
+  const { colors, spacing, layout, iconSizes } = useTheme();
   const scale = clampedFontScale();
 
   const moment = usePlayerStore((s) => s.moment);
@@ -90,7 +90,7 @@ export function PlayerScreen({
             hitSlop={12}
             testID="player-minimize"
           >
-            <Text style={{ fontSize: 20 * scale, color: colors.text.secondary }}>⌄</Text>
+            <Text style={{ fontSize: iconSizes.md * scale, color: colors.text.secondary }}>⌄</Text>
           </Pressable>
 
           <TextButton
@@ -122,10 +122,10 @@ export function PlayerScreen({
 
         <View style={{ paddingHorizontal: layout.screenMargin, gap: spacing.md }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 12 * scale, color: colors.text.secondary }}>
+            <Text style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}>
               {formatTime(positionMs)}
             </Text>
-            <Text style={{ fontSize: 12 * scale, color: colors.text.secondary }}>
+            <Text style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}>
               {formatTime(durationMs)}
             </Text>
           </View>
@@ -162,7 +162,7 @@ export function PlayerScreen({
               hitSlop={12}
               testID="player-toggle"
             >
-              <Text style={{ fontSize: 34 * scale, color: colors.cta.background }}>
+              <Text style={{ fontSize: iconSizes.xl * scale, color: colors.cta.background }}>
                 {playing ? '❙❙' : '▶'}
               </Text>
             </Pressable>
@@ -194,7 +194,9 @@ export function PlayerScreen({
               hitSlop={12}
               testID="player-favorite"
             >
-              <Text style={{ fontSize: 22 * scale }}>{moment.favoritedAt ? '♥' : '♡'}</Text>
+              <Text style={{ fontSize: iconSizes.lg * scale }}>
+                {moment.favoritedAt ? '♥' : '♡'}
+              </Text>
             </Pressable>
 
             {canRefine && (
@@ -222,7 +224,7 @@ function TransportButton({
   onPress: () => void;
   testID: string;
 }) {
-  const { colors } = useTheme();
+  const { colors, iconSizes } = useTheme();
   const scale = clampedFontScale();
 
   return (
@@ -233,7 +235,7 @@ function TransportButton({
       hitSlop={12}
       testID={testID}
     >
-      <Text style={{ fontSize: 22 * scale, color: colors.text.primary }}>{glyph}</Text>
+      <Text style={{ fontSize: iconSizes.lg * scale, color: colors.text.primary }}>{glyph}</Text>
     </Pressable>
   );
 }

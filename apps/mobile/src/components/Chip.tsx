@@ -13,9 +13,9 @@ export interface ChipProps {
 /**
  * Selectable pill — the onboarding and refine vocabulary (product 12).
  *
- * The tint is periwinkle rather than a soft lavender wash: lavender is identical
- * in both schemes, so a wash would leave near-white text on it in dark mode.
- * "Active = periwinkle" (product 12 §navigation) holds contrast in both worlds.
+ * The tint is the CTA ink rather than a soft pastel wash: a wash would leave
+ * near-invisible text in one of the two schemes. "Selected = high-contrast
+ * fill" (v3 §chips) holds contrast in both worlds.
  */
 export function Chip({ label, selected, onPress }: ChipProps) {
   const { colors, radii, spacing, typography } = useTheme();

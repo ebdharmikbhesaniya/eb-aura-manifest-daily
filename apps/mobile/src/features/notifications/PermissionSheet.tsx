@@ -5,7 +5,7 @@ import { Text, View } from 'react-native';
 import { PillButton, Sheet, TextButton } from '@/components';
 import { notificationsCopy } from '@/copy/notifications';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 export interface PermissionSheetProps {
   /** Her arrival time from S11, e.g. "07:00". */
@@ -38,19 +38,14 @@ export const PermissionSheet = forwardRef<BottomSheetModal, PermissionSheetProps
         >
           <Text
             allowFontScaling={false}
-            style={{
-              fontFamily: 'Fraunces_400Regular',
-              fontSize: 22 * scale,
-              lineHeight: 30 * scale,
-              color: colors.text.primary,
-            }}
+            style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
           >
             {notificationsCopy.permission.title.replace('{time}', arrivalTime)}
           </Text>
 
           <Text
             allowFontScaling={false}
-            style={{ fontSize: 15 * scale, lineHeight: 22 * scale, color: colors.text.secondary }}
+            style={[scaledType('body', scale), { color: colors.text.secondary }]}
           >
             {notificationsCopy.permission.body}
           </Text>
