@@ -23,19 +23,18 @@ export function S07DreamHome() {
   return (
     <ConversationScreen
       testID="s07-dream-home"
+      screenId="s07-dream-home"
       question={onboardingCopy.s07DreamHome.question}
       primaryTitle={onboardingCopy.s07DreamHome.primary}
       onPrimary={() => void submit(selected)}
       primaryDisabled={selected === null}
     >
-      <View style={{ gap: spacing.sm }}>
+      {/* V4: a two-column grid — eight homes scan as a spread, not a list. */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
         {Object.entries(onboardingCopy.s07DreamHome.cards).map(([id, title]) => (
-          <SelectCard
-            key={id}
-            title={title}
-            selected={selected === id}
-            onPress={() => setSelected(id)}
-          />
+          <View key={id} style={{ flexBasis: '48%', flexGrow: 1 }}>
+            <SelectCard title={title} selected={selected === id} onPress={() => setSelected(id)} />
+          </View>
         ))}
       </View>
     </ConversationScreen>

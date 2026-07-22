@@ -16,9 +16,27 @@ export const momentsCopy = {
     anonymousGreeting: 'Hello.',
 
     todayLabel: 'Today’s moment',
+    /** One quiet line under the moment title (v4 §home). */
+    todaySecondary: 'From the life you described.',
+    /** Action row when the duration is unknown. */
+    listen: 'Listen',
+    /** `{n}` is whole minutes, rounded up. */
+    listenDuration: 'Listen · {n} min',
     comingLabel: 'Coming for you',
+    collectionsLabel: 'Collections',
     recentLabel: 'Recently played',
     manifest: 'Ask for a moment',
+    /** A moment whose title never arrived — rare, but never blank. */
+    untitled: 'A moment',
+  },
+
+  /** The Home collections grid and `collection/[id]` (v4 §home). */
+  collections: {
+    favorites: 'Favorites',
+    ondemand: 'On demand',
+    /** `{n}` moments on a collection card. */
+    momentCount: '{n} moments',
+    momentCountOne: '1 moment',
   },
 
   states: {
@@ -61,7 +79,9 @@ export const momentsCopy = {
   },
 
   manifest: {
-    title: 'What do you want a moment about?',
+    title: 'Manifest anything.',
+    /** One secondary line under the sheet title (v4 §sheets). */
+    description: 'A moment from your future life, for any situation. Ready in about a minute.',
     placeholder: 'The day I…',
     submit: 'Make it',
     /** `{n}` remaining this week — specialness, not scarcity (product 09 §9.2). */

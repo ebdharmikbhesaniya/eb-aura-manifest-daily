@@ -8,6 +8,7 @@ import { ManifestSheet } from '@/features/moments/ManifestSheet';
 import { resolveHomeMoment } from '@/features/moments/momentState';
 import {
   localDateToday,
+  toPlayable,
   useFormingMoments,
   useRecentMoments,
   useTodaysMoment,
@@ -32,7 +33,13 @@ import { LIMITS } from '@aura/shared';
 import { analytics } from '@/lib/analytics';
 import { api } from '@/lib/api';
 import { errorCopyFor, errorKeyOf } from '@/lib/errorCopy';
+import { supabase } from '@/lib/supabase';
 import { useAppState } from '@/stores/appState';
+
+/** Home's "Recently played" shows this many rows; the rest live in collections. */
+const RECENT_ROWS = 5;
+/** Wide enough to count favourites and on-demand moments for the grid (v4 §home). */
+const COLLECTION_SCAN_LIMIT = 50;
 
 /**
  * Home (product 11). The route stays thin: it resolves which state to show and
@@ -47,7 +54,7 @@ export default function HomeRoute() {
 
   const today = useTodaysMoment(userId ?? undefined);
   const forming = useFormingMoments(userId ?? undefined);
-  const recent = useRecentMoments(userId ?? undefined);
+  const recent = useRecentMoments(userId ?? undefined, COLLECTION_SCAN_LIMIT);
 
   const open = usePlayerStore((s) => s.open);
   const manifestRef = useRef<BottomSheetModal>(null);
@@ -89,9 +96,23 @@ export default function HomeRoute() {
   const play = useCallback(
     (momentId: string) => {
       const moment = today.data;
-      if (moment?.id !== momentId) return;
-      open(moment);
-      router.push('/player');
+      if (moment?.id === momentId) {
+        open(moment);
+        router.push('/player');
+        return;
+      }
+      // A recent row: only the slim listing is in memory, so fetch the full
+      // moment before handing it to the player — same shape as `collection/[id]`.
+      void (async () => {
+        const { data } = await supabase
+          .from('moments')
+          .select('*')
+          .eq('id', momentId)
+          .maybeSingle();
+        if (!data) return;
+        open(await toPlayable(data), 'replay');
+        router.push('/player');
+      })();
     },
     [today.data, open, router],
   );
@@ -122,10 +143,13 @@ export default function HomeRoute() {
         name={profile?.name ?? null}
         state={state}
         forming={forming.data ?? []}
-        recent={recent.data ?? []}
+        recent={(recent.data ?? []).slice(0, RECENT_ROWS)}
+        favoritesCount={(recent.data ?? []).filter((m) => m.favorited_at !== null).length}
+        onDemandCount={(recent.data ?? []).filter((m) => m.type === 'ondemand').length}
         onPlay={play}
         onRetry={() => void retry()}
         onManifest={onManifest}
+        onCollection={(id) => router.push(`/collection/${id}`)}
         notificationHint={
           deniedHint
             ? notificationsCopy.deniedHint.replace('{time}', profile?.arrival_time ?? '07:00')

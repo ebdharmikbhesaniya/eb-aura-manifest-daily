@@ -1,95 +1,79 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import { useRef } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { ScrollView } from 'react-native';
 
-import { Screen } from '@/components';
-import { ClaimSheet } from '@/features/paywall/ClaimSheet';
-import { NotificationPrefsSheet } from '@/features/notifications/NotificationPrefsSheet';
+import { ListRow, RowGroup, Screen } from '@/components';
 import { notificationsCopy } from '@/copy/notifications';
 import { paywallCopy } from '@/copy/paywall';
+import { settingsCopy } from '@/copy/settings';
+import { ClaimSheet } from '@/features/paywall/ClaimSheet';
+import { NotificationPrefsSheet } from '@/features/notifications/NotificationPrefsSheet';
+import { useEntitlement } from '@/features/paywall/useEntitlement';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale, scaledType } from '@/theme/typography';
 
 /**
  * `settings/index` — reached from the gear on Profile (06 §7: the gear lives on
- * Profile, never on Home).
+ * Profile, never on Home). V4 "no mazes": two grouped cards, every row telling
+ * her what's behind it before she taps.
  *
- * Subscription is the first row so that "manage or cancel" is two taps from
- * anywhere in the app (checklist #5). Claiming an account is offered here as its
- * second entry point (03 §89) — the same sheet the purchase flow presents.
- *
- * Notification preferences land here too (11 §4); delete-account is Phase 12.
+ * Group 1 is how the app behaves day to day; group 2 is her account — with
+ * "manage or cancel" still two taps from anywhere (checklist #5), claiming an
+ * account offered here as its second entry point (03 §89), and delete last.
  */
 export default function SettingsRoute() {
   const router = useRouter();
+  const { spacing } = useTheme();
   const claimRef = useRef<BottomSheetModal>(null);
   const prefsRef = useRef<BottomSheetModal>(null);
 
+  const { premium, inTrial } = useEntitlement();
+  const subscriptionSubtitle = premium
+    ? inTrial
+      ? paywallCopy.subscription.trial
+      : paywallCopy.subscription.premium
+    : paywallCopy.subscription.free;
+
   return (
     <Screen testID="settings">
-      <View style={{ flex: 1 }}>
-        <SettingsRow
-          label={paywallCopy.subscription.title}
-          onPress={() => router.push('/settings/subscription')}
-          testID="settings-subscription-row"
-        />
-        <SettingsRow
-          label={notificationsCopy.prefs.title}
-          onPress={() => prefsRef.current?.present()}
-          testID="settings-notifications-row"
-        />
-        <SettingsRow
-          label={paywallCopy.claim.title}
-          onPress={() => claimRef.current?.present()}
-          testID="settings-claim-row"
-        />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: spacing.xl, gap: spacing.md }}
+      >
+        <RowGroup separatorInset="edge">
+          <ListRow
+            title={notificationsCopy.prefs.title}
+            subtitle={settingsCopy.notifications.subtitle}
+            onPress={() => prefsRef.current?.present()}
+            testID="settings-notifications-row"
+          />
+        </RowGroup>
 
-        <SettingsRow
-          label="Delete my account"
-          onPress={() => router.push('/settings/delete-account')}
-          testID="settings-delete-row"
-        />
-      </View>
+        <RowGroup separatorInset="edge">
+          <ListRow
+            title={paywallCopy.subscription.title}
+            subtitle={subscriptionSubtitle}
+            onPress={() => router.push('/settings/subscription')}
+            testID="settings-subscription-row"
+          />
+          <ListRow
+            title={paywallCopy.claim.title}
+            subtitle={settingsCopy.claim.subtitle}
+            onPress={() => claimRef.current?.present()}
+            testID="settings-claim-row"
+          />
+          <ListRow
+            title={settingsCopy.deleteAccount}
+            destructive
+            trailing={null}
+            onPress={() => router.push('/settings/delete-account')}
+            testID="settings-delete-row"
+          />
+        </RowGroup>
+      </ScrollView>
 
       <NotificationPrefsSheet ref={prefsRef} />
       <ClaimSheet ref={claimRef} onDone={() => claimRef.current?.dismiss()} />
     </Screen>
-  );
-}
-
-function SettingsRow({
-  label,
-  onPress,
-  testID,
-}: {
-  label: string;
-  onPress: () => void;
-  testID?: string;
-}) {
-  const { colors, spacing, layout } = useTheme();
-  const scale = clampedFontScale();
-
-  return (
-    <Pressable
-      testID={testID}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={{
-        minHeight: layout.buttonHeight,
-        justifyContent: 'center',
-        paddingVertical: spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.surface.border,
-      }}
-    >
-      <Text
-        allowFontScaling={false}
-        style={[scaledType('body', scale), { color: colors.text.primary }]}
-      >
-        {label}
-      </Text>
-    </Pressable>
   );
 }

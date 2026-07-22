@@ -87,7 +87,8 @@ export function GeneratingRitual({
           paddingHorizontal: layout.screenMargin,
         }}
       >
-        <Orb state="generating" size={140} testID="ritual-orb" />
+        {/* Large and unhurried — the biggest orb in the app (v4 §generating). */}
+        <Orb state="generating" size={170} testID="ritual-orb" />
 
         <View style={{ marginTop: spacing.xl, alignItems: 'center' }}>
           {failed ? (
@@ -108,6 +109,9 @@ export function GeneratingRitual({
                   key={line}
                   text={line}
                   delayMs={index * LINE_INTERVAL_MS}
+                  // Each line lands nearer than the last: .45 → .7 → full ink
+                  // (v4 §generating — the approach, not a list).
+                  prominence={lines.length > 1 ? index / (lines.length - 1) : 1}
                   testID={`ritual-line-${index}`}
                 />
               ))}

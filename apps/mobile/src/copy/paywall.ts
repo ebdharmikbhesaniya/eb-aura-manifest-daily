@@ -29,7 +29,18 @@ export const paywallCopy = {
   },
 
   plans: {
+    annualName: 'Annual',
+    weeklyName: 'Weekly',
+    /** Price-row cadence suffixes; the price itself always comes from the store. */
+    perYear: '/year',
+    perWeek: '/week',
     annualBadge: 'Best value',
+    /**
+     * The honest arithmetic PRINTED under each headline price (checklist #2).
+     * `{monthly}` is the store-derived localized monthly equivalent.
+     */
+    annualEquivalent: 'about {monthly} a month, billed once',
+    weeklyEquivalent: 'about {monthly} a month',
     /** Restated on the card as well as on Apple's sheet — checklist #3. */
     trialNote: 'Includes a 7-day free trial.',
     renewalNote: 'Renews automatically. Cancel anytime in two taps.',
@@ -37,7 +48,10 @@ export const paywallCopy = {
     restoring: 'Restoring…',
   },
 
-  /** Shown after dismissal — the free tier is a first-class outcome. */
+  /**
+   * The paywall's closing line, and what she reads if she declines — the free
+   * tier is a first-class outcome.
+   */
   dismissed: 'The letter is yours either way.',
 
   footer: {

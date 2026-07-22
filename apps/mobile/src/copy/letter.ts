@@ -42,6 +42,8 @@ export const letterCopy = {
   ending: {
     more: 'Your future self has more to tell you.',
     primary: 'Continue',
+    /** The quiet kept-line under the button (v4 §ending) — a promise, not an upsell. */
+    kept: 'The letter is kept. It’s yours forever.',
   },
 
   /**

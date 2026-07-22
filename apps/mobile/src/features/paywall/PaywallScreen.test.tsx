@@ -96,19 +96,32 @@ describe('PaywallScreen', () => {
         true,
       );
     });
+
+    it('closes with the letter-is-hers-either-way line (v4 §paywall)', async () => {
+      await renderPaywall();
+
+      expect(screen.getByText(paywallCopy.dismissed)).toBeTruthy();
+    });
   });
 
   describe('checklist #2 — the monthly equivalent is PRINTED', () => {
-    it('prints it beside the weekly price', async () => {
+    it('prints it under the weekly price', async () => {
       await renderPaywall();
 
-      expect(screen.getByText(/\$6\.99\/week · about \$30\.29\/month/)).toBeTruthy();
+      expect(screen.getByText(/about \$30\.29 a month/)).toBeTruthy();
     });
 
-    it('prints it beside the annual price too', async () => {
+    it('prints it under the annual price too, with the billed-once note', async () => {
       await renderPaywall();
 
-      expect(screen.getByText(/\$39\.99\/year · about \$3\.33\/month/)).toBeTruthy();
+      expect(screen.getByText(/about \$3\.33 a month, billed once/)).toBeTruthy();
+    });
+
+    it('speaks the full one-line honest price to assistive tech', async () => {
+      await renderPaywall();
+
+      expect(screen.getByLabelText(/\$6\.99\/week · about \$30\.29\/month/)).toBeTruthy();
+      expect(screen.getByLabelText(/\$39\.99\/year · about \$3\.33\/month/)).toBeTruthy();
     });
   });
 
@@ -116,13 +129,13 @@ describe('PaywallScreen', () => {
     it('states the trial on the plan that has one', async () => {
       await renderPaywall();
 
-      expect(screen.getByText(paywallCopy.plans.trialNote)).toBeTruthy();
+      expect(screen.getByText(/Includes a 7-day free trial/)).toBeTruthy();
     });
 
-    it('states the renewal terms', async () => {
+    it('states the renewal terms once, for the whole offer', async () => {
       await renderPaywall();
 
-      expect(screen.getAllByText(paywallCopy.plans.renewalNote).length).toBeGreaterThan(0);
+      expect(screen.getByText(paywallCopy.plans.renewalNote)).toBeTruthy();
     });
   });
 

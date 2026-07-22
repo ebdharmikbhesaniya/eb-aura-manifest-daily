@@ -1,0 +1,37 @@
+import { gratitudeCopy } from '@/copy/gratitude';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Same local `YYYY-MM-DD` shape as `useGratitude`'s `localDate`, duplicated
+ * here so this label helper stays pure — importing the hook module would drag
+ * supabase and storage into every screen that only wants a day name.
+ */
+function localDate(now: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}
+
+/**
+ * The small day line above a history entry (v4 §gratitude): "Yesterday", then
+ * the weekday name while the entry is under a week old, then the plain date —
+ * seven "Sunday"s in one list would say nothing.
+ *
+ * `entryDate` is her local `YYYY-MM-DD` (see `localDate`), so parsing it at
+ * local midnight keeps the label in the same "today" the entry was written in.
+ */
+export function dayLabelFor(entryDate: string, now: Date = new Date()): string {
+  if (entryDate === localDate(now)) return gratitudeCopy.dayToday;
+  if (entryDate === localDate(new Date(now.getTime() - DAY_MS))) return gratitudeCopy.dayYesterday;
+
+  const date = new Date(`${entryDate}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return entryDate;
+
+  const withinWeek = entryDate >= localDate(new Date(now.getTime() - 6 * DAY_MS));
+  return withinWeek
+    ? new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date)
+    : new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric' }).format(date);
+}

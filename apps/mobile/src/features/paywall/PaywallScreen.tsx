@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PillButton, TextButton } from '@/components';
+import { Card, Label, PillButton, TextButton } from '@/components';
 import { paywallCopy } from '@/copy/paywall';
 import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale, scaledType } from '@/theme/typography';
+import { clampedFontScale, fonts, scaledType } from '@/theme/typography';
 
 import { PlanCard } from './PlanCard';
 import type { OfferedPlan } from './purchases';
@@ -28,27 +28,34 @@ export interface PaywallScreenProps {
   onPurchase: (plan: OfferedPlan) => void;
   onDismiss: () => void;
   onRestore: () => void;
+  /** Legal links (v4 §paywall footer). Rendered only when a handler exists. */
+  onTerms?: () => void;
+  onPrivacy?: () => void;
   busy?: boolean;
   testID?: string;
 }
 
 /**
- * The post-Letter paywall (product 15 §spec, 12 §3).
+ * The post-Letter paywall (product 15 §spec, v4 §paywall — "same world, honest
+ * numbers").
  *
  * It inherits the Letter's gradient so it reads as the next page of the letter
- * rather than an interruption — the placement is deliberate too: after the
- * emotional resolution, never inside or immediately after a vulnerable
- * disclosure (checklist #4).
+ * rather than an interruption. Top to bottom: the quiet ✕, the serif headline,
+ * the today/every-day contrast cards, the two honest plan cards, one renewal
+ * disclosure, the single ink pill, the footer links, and the italic closing
+ * line that makes dismissal a real outcome: the letter is hers either way.
  *
  * Everything product 01 §10 bans is absent by construction: no countdown, no
  * fake discount, no "quieter price" second offer, no social proof we have not
- * earned yet. Dismissing is a real outcome that leads to a real free tier.
+ * earned yet.
  */
 export function PaywallScreen({
   plans,
   onPurchase,
   onDismiss,
   onRestore,
+  onTerms,
+  onPrivacy,
   busy = false,
   testID,
 }: PaywallScreenProps) {
@@ -90,7 +97,8 @@ export function PaywallScreen({
             }}
             style={{ alignSelf: 'flex-end', padding: spacing.sm }}
           >
-            <Text style={{ fontSize: iconSizes.lg * scale, color: colors.text.secondary }}>✕</Text>
+            {/* Disabled tint, deliberately — leaving must be possible, never loud. */}
+            <Text style={{ fontSize: iconSizes.lg * scale, color: colors.text.disabled }}>✕</Text>
           </Pressable>
         )}
 
@@ -111,18 +119,20 @@ export function PaywallScreen({
             {paywallCopy.headline}
           </Text>
 
-          <View style={{ gap: spacing.md }}>
-            <ContrastRow
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <ContrastCard
               label={paywallCopy.contrast.todayLabel}
               body={paywallCopy.contrast.today}
             />
-            <ContrastRow
+            <ContrastCard
               label={paywallCopy.contrast.everyDayLabel}
               body={paywallCopy.contrast.everyDay}
+              parchment
             />
           </View>
 
-          <View style={{ gap: spacing.sm }}>
+          {/* The annual badge floats above its card, so the gap owes it headroom. */}
+          <View style={{ gap: spacing.md, paddingTop: spacing.xs }}>
             {plans.map((plan) => (
               <PlanCard
                 key={plan.id}
@@ -136,6 +146,13 @@ export function PaywallScreen({
               />
             ))}
           </View>
+
+          <Text
+            allowFontScaling={false}
+            style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
+          >
+            {paywallCopy.plans.renewalNote}
+          </Text>
 
           {selected && (
             <PillButton
@@ -159,31 +176,74 @@ export function PaywallScreen({
               onPress={onRestore}
               testID="paywall-restore"
             />
+            {onTerms && (
+              <TextButton
+                title={paywallCopy.footer.terms}
+                onPress={onTerms}
+                testID="paywall-terms"
+              />
+            )}
+            {onPrivacy && (
+              <TextButton
+                title={paywallCopy.footer.privacy}
+                onPress={onPrivacy}
+                testID="paywall-privacy"
+              />
+            )}
           </View>
+
+          {/* The closing line — dismissal is a real outcome, said in the voice. */}
+          <Text
+            allowFontScaling={false}
+            style={[
+              scaledType('bodySmall', scale),
+              {
+                fontFamily: fonts.serifItalic,
+                fontStyle: 'italic',
+                color: colors.text.secondary,
+                textAlign: 'center',
+              },
+            ]}
+          >
+            {paywallCopy.dismissed}
+          </Text>
         </ScrollView>
       </SafeAreaView>
     </View>
   );
 }
 
-function ContrastRow({ label, body }: { label: string; body: string }) {
+/** One half of the today / every-day contrast row (v4 §paywall). */
+function ContrastCard({
+  label,
+  body,
+  parchment = false,
+}: {
+  label: string;
+  body: string;
+  parchment?: boolean;
+}) {
   const { colors, spacing } = useTheme();
   const scale = clampedFontScale();
 
   return (
-    <View style={{ gap: spacing.xs }}>
+    <Card
+      variant="solid"
+      style={[
+        { padding: spacing.md, gap: spacing.xs },
+        parchment
+          ? // The continuing life sits on parchment and gets the wider column.
+            { flex: 1.4, backgroundColor: colors.accent.parchment }
+          : { flex: 1, borderWidth: 1, borderColor: colors.surface.border },
+      ]}
+    >
+      <Label>{label}</Label>
       <Text
         allowFontScaling={false}
-        style={[scaledType('label', scale), { color: colors.text.label }]}
-      >
-        {label.toUpperCase()}
-      </Text>
-      <Text
-        allowFontScaling={false}
-        style={[scaledType('body', scale), { color: colors.text.primary }]}
+        style={[scaledType('bodySmall', scale), { color: colors.text.body }]}
       >
         {body}
       </Text>
-    </View>
+    </Card>
   );
 }

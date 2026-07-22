@@ -23,6 +23,7 @@ export function S08DreamCity() {
     return (
       <ConversationScreen
         testID="s08-dream-city"
+        screenId="s08-dream-city"
         question={onboardingCopy.s08DreamCity.question}
         showEditGuard={false}
       >
@@ -38,6 +39,7 @@ export function S08DreamCity() {
   return (
     <ConversationScreen
       testID="s08-dream-city"
+      screenId="s08-dream-city"
       question={onboardingCopy.s08DreamCity.question}
       primaryTitle={onboardingCopy.s08DreamCity.primary}
       onPrimary={() => setReflecting(true)}

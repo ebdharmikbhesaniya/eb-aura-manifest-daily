@@ -95,10 +95,21 @@ export function TabBar({ state, descriptors, navigation }: TabBarProps) {
             <TabIcon
               name={route.name}
               // Ink is the action colour (v3: actions are ink pills); the
-              // active tab is one of its few sanctioned uses. With the caption
-              // gone this tint is now the ONLY thing marking the active tab,
-              // so it carries more weight than it did.
+              // active tab is one of its few sanctioned uses.
               color={focused ? colors.cta.background : colors.text.secondary}
+            />
+            {/* The ember underline is v4's active mark — one of ember's few
+                sanctioned appearances outside voice, because the bar IS where
+                the app speaks from. Always rendered so rows don't reflow;
+                transparent when resting. */}
+            <View
+              style={{
+                width: spacing.md,
+                height: 3,
+                marginTop: spacing.xs,
+                borderRadius: radii.pill,
+                backgroundColor: focused ? colors.accent.ember : 'transparent',
+              }}
             />
           </Pressable>
         );

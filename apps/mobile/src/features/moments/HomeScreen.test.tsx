@@ -80,6 +80,27 @@ describe('HomeScreen', () => {
 
       expect(onPlay).toHaveBeenCalledWith('moment-1');
     });
+
+    it('plays from the inline disc too (v4 action row)', async () => {
+      const onPlay = jest.fn();
+      await renderHome({ kind: 'ready', moment: moment() }, { onPlay });
+
+      await fireEvent.press(screen.getByTestId('home-today-play'));
+
+      expect(onPlay).toHaveBeenCalledWith('moment-1');
+    });
+
+    it('says how long listening takes, rounded up', async () => {
+      await renderHome({ kind: 'ready', moment: moment({ durationMs: 90_000 }) });
+
+      expect(screen.getByText(momentsCopy.home.listenDuration.replace('{n}', '2'))).toBeTruthy();
+    });
+
+    it('falls back to a plain "Listen" when the duration is unknown', async () => {
+      await renderHome({ kind: 'ready', moment: moment({ durationMs: null }) });
+
+      expect(screen.getByText(momentsCopy.home.listen)).toBeTruthy();
+    });
   });
 
   describe('forming — the fallback that makes an empty state unnecessary', () => {
@@ -167,6 +188,49 @@ describe('HomeScreen', () => {
       await fireEvent.press(screen.getByTestId('home-recent-r1'));
 
       expect(onPlay).toHaveBeenCalledWith('r1');
+    });
+  });
+
+  describe('collections (v4)', () => {
+    it('shows a card per collection that has something in it', async () => {
+      await renderHome(
+        { kind: 'ready', moment: moment() },
+        { favoritesCount: 3, onDemandCount: 2 },
+      );
+
+      expect(screen.getByTestId('home-collections')).toBeTruthy();
+      expect(screen.getByText(momentsCopy.collections.favorites)).toBeTruthy();
+      expect(screen.getByText(momentsCopy.collections.ondemand)).toBeTruthy();
+    });
+
+    it('hides a collection that is empty', async () => {
+      await renderHome(
+        { kind: 'ready', moment: moment() },
+        { favoritesCount: 1, onDemandCount: 0 },
+      );
+
+      expect(screen.queryByTestId('home-collection-ondemand')).toBeNull();
+    });
+
+    it('hides the whole section when both are empty', async () => {
+      await renderHome(
+        { kind: 'ready', moment: moment() },
+        { favoritesCount: 0, onDemandCount: 0 },
+      );
+
+      expect(screen.queryByTestId('home-collections')).toBeNull();
+    });
+
+    it('opens the collection on tap', async () => {
+      const onCollection = jest.fn();
+      await renderHome(
+        { kind: 'ready', moment: moment() },
+        { favoritesCount: 3, onDemandCount: 0, onCollection },
+      );
+
+      await fireEvent.press(screen.getByTestId('home-collection-favorites'));
+
+      expect(onCollection).toHaveBeenCalledWith('favorites');
     });
   });
 

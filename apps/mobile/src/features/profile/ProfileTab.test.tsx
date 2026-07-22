@@ -73,7 +73,9 @@ describe('ProfileTab (product 11: trust center)', () => {
     const view = await render(<ProfileTab />, { wrapper });
     mockedApi.deactivatePerson.mockResolvedValue(undefined);
 
-    await view.findByText('Ivy — safe');
+    // The v4 row summarises her people; the list itself opens in a sheet.
+    await fireEvent.press(await view.findByLabelText(profileCopy.rows.people));
+    expect(view.getAllByText('Ivy — safe').length).toBeGreaterThan(0);
     await fireEvent.press(view.getByText(profileCopy.people.remove));
 
     expect(mockedApi.deactivatePerson).toHaveBeenCalledWith('p1');
@@ -83,7 +85,7 @@ describe('ProfileTab (product 11: trust center)', () => {
     mockedApi.updateProfileField.mockResolvedValue(undefined);
     const view = await render(<ProfileTab />, { wrapper });
 
-    await fireEvent.press(await view.findByLabelText(profileCopy.fields.dreamCity));
+    await fireEvent.press(await view.findByLabelText(profileCopy.rows.dreamCity));
     await fireEvent.changeText(view.getByDisplayValue('Lisbon'), 'Porto');
     await fireEvent.press(view.getByLabelText(profileCopy.edit.save));
 
@@ -96,7 +98,7 @@ describe('ProfileTab (product 11: trust center)', () => {
     mockedApi.saveFreeTextNote.mockResolvedValue(undefined);
     const view = await render(<ProfileTab />, { wrapper });
 
-    await fireEvent.press(await view.findByLabelText(profileCopy.fields.note));
+    await fireEvent.press(await view.findByLabelText(profileCopy.rows.note));
     await fireEvent.changeText(view.getByDisplayValue(''), 'The bakery downstairs matters');
     await fireEvent.press(view.getByLabelText(profileCopy.edit.save));
 

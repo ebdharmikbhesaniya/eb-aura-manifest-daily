@@ -1,46 +1,86 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { ScrollView, Text } from 'react-native';
 
-import { Card, Screen, SerifDisplay } from '@/components';
+import { Card, ListRow, RowGroup, Screen, SerifDisplay } from '@/components';
 import { momentsCopy } from '@/copy/moments';
-import { useRecentMoments } from '@/features/moments/useMoments';
+import { toPlayable, useRecentMoments } from '@/features/moments/useMoments';
+import { usePlayerStore } from '@/features/player/playerStore';
+import { supabase } from '@/lib/supabase';
 import { useAppState } from '@/stores/appState';
 import { useTheme } from '@/theme/ThemeProvider';
+import { clampedFontScale, scaledType } from '@/theme/typography';
+
+/** Wide enough that a collection sees everything Home's grid counted. */
+const COLLECTION_SCAN_LIMIT = 50;
 
 /**
- * `collection/[id]` (06 §1) — a group of moments.
- *
- * V1 has exactly one real collection — everything she has kept — because
- * collections as a user-authored concept are gated premium and the grouping
- * rules are not designed yet (product 09 §9.5 covers favourites; the grid is a
- * stub in the Phase 7 plan). This route exists so the deep link and the
- * navigation shape are real rather than dangling.
+ * `collection/[id]` (06 §1, v4 §home) — a group of moments. Two collections
+ * exist in v1: `favorites` (everything she has kept) and `ondemand` (what she
+ * asked Manifest for). Rows play on press, exactly as Home's recent rows do.
  */
 export default function CollectionRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { colors, spacing } = useTheme();
+  const scale = clampedFontScale();
   const userId = useAppState((s) => s.userId);
-  const { data: moments } = useRecentMoments(userId ?? undefined, 50);
+  const open = usePlayerStore((s) => s.open);
+  const { data: moments } = useRecentMoments(userId ?? undefined, COLLECTION_SCAN_LIMIT);
 
-  const kept = (moments ?? []).filter((moment) => moment.favorited_at !== null);
+  const ondemand = id === 'ondemand';
+  const title = ondemand ? momentsCopy.collections.ondemand : momentsCopy.collections.favorites;
+  const items = (moments ?? []).filter((moment) =>
+    ondemand ? moment.type === 'ondemand' : moment.favorited_at !== null,
+  );
+
+  // The listing rows are slim; the player needs the full moment, so fetch it on
+  // press — the same shape Home uses for its recent rows.
+  const play = useCallback(
+    (momentId: string) => {
+      void (async () => {
+        const { data } = await supabase
+          .from('moments')
+          .select('*')
+          .eq('id', momentId)
+          .maybeSingle();
+        if (!data) return;
+        open(await toPlayable(data), 'replay');
+        router.push('/player');
+      })();
+    },
+    [open, router],
+  );
 
   return (
     <Screen testID="collection">
-      <ScrollView contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.lg }}>
-        <SerifDisplay variant="title">{momentsCopy.home.recentLabel}</SerifDisplay>
+      <ScrollView
+        contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.lg }}
+        showsVerticalScrollIndicator={false}
+      >
+        <SerifDisplay variant="title">{title}</SerifDisplay>
 
-        {kept.length === 0 ? (
+        {items.length === 0 ? (
           <Card variant="solid">
-            <Text style={{ color: colors.text.secondary }} testID={`collection-empty-${id}`}>
+            <Text
+              testID={`collection-empty-${id}`}
+              allowFontScaling={false}
+              style={[scaledType('body', scale), { color: colors.text.secondary }]}
+            >
               {momentsCopy.states.formingPreview}
             </Text>
           </Card>
         ) : (
-          kept.map((moment) => (
-            <Card key={moment.id} variant="solid">
-              <Text style={{ color: colors.text.primary }}>{moment.title ?? 'A moment'}</Text>
-            </Card>
-          ))
+          <RowGroup>
+            {items.map((moment) => (
+              <ListRow
+                key={moment.id}
+                title={moment.title ?? momentsCopy.home.untitled}
+                onPress={() => play(moment.id)}
+                testID={`collection-row-${moment.id}`}
+              />
+            ))}
+          </RowGroup>
         )}
       </ScrollView>
     </Screen>

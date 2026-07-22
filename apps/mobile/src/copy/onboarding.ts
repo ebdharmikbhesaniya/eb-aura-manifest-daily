@@ -33,6 +33,8 @@ export const onboardingCopy = {
 
   s03Name: {
     question: 'What should I call you?',
+    // Quiet guidance under the field (v4 S3).
+    helper: 'Just your given name is perfect.',
     primary: 'Continue',
     // Gentle trim, never harsh validation (product 07 S3 edge).
     tooLong: 'That’s a lot of name — what do the people closest to you use?',
@@ -60,7 +62,9 @@ export const onboardingCopy = {
   },
 
   s06Values: {
-    question: 'What matters most to you right now? Pick up to two.',
+    // V4 splits the limit off the question: serif asks, a quiet helper guides.
+    question: 'What matters most to you right now?',
+    helper: 'Pick up to two.',
     choices: [
       'Feeling truly fulfilled',
       'Financial freedom',
@@ -99,7 +103,7 @@ export const onboardingCopy = {
     question: 'Who’s in this life with you? A name and one word for each.',
     namePlaceholder: 'Name',
     descriptorPlaceholder: 'One word — “safe”, “fun”…',
-    addAnother: 'Add another',
+    addAnother: '+ Add another',
     justMe: 'Just me for now',
     // Reflection proves listening (product 07 S9); {name} is the last person added.
     reflection: '{name}’s in. Your circle is forming.',
@@ -117,8 +121,18 @@ export const onboardingCopy = {
   s11ArrivalTime: {
     question: 'Your moments will be written for you daily. When should they arrive?',
     morning: 'Morning',
+    // V4 subtitle lines — a time of day with a reason, not a scheduler.
+    morningHint: 'Around 7:30 — before the day starts talking',
     evening: 'Evening',
+    eveningHint: 'Around 21:00 — to close the day',
     pickTime: 'Pick a time',
+    /**
+     * The anti-nag promise (v4 S11 note). The design's literal line ends
+     * "never a streak", but "streak" sits on the shared guilt-vocabulary ban
+     * list (product 14) — the copy lint would fail — so the promise is kept
+     * with a word the voice is allowed to say.
+     */
+    note: 'Only sent when your moment is ready. Never a nudge, never a scorecard.',
     primary: 'Continue',
   },
 

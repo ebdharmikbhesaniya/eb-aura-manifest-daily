@@ -16,7 +16,7 @@ import { useAddNeverInclude, useNeverInclude, useRemoveNeverInclude } from './ho
  * an addition is deliberately payload-free (13 §2).
  */
 export function NeverIncludeScreen() {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, radii, spacing, typography } = useTheme();
   const userId = useAppState((s) => s.userId);
 
   const { data: terms } = useNeverInclude(userId ?? undefined);
@@ -52,21 +52,31 @@ export function NeverIncludeScreen() {
         <FlatList
           data={terms ?? []}
           keyExtractor={(item) => item.id}
+          contentContainerStyle={{ gap: spacing.sm }}
           ListEmptyComponent={
             <Text style={[typography.body, { color: colors.text.secondary }]}>
               {memoryCopy.neverInclude.empty}
             </Text>
           }
           renderItem={({ item }) => (
+            // The v4 row language: each term on its own white bordered row.
             <View
               style={{
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                gap: spacing.md,
                 paddingVertical: spacing.xs,
+                paddingHorizontal: spacing.md,
+                borderRadius: radii.field,
+                backgroundColor: colors.surface.card,
+                borderWidth: 1,
+                borderColor: colors.surface.border,
               }}
             >
-              <Text style={[typography.body, { color: colors.text.primary }]}>{item.term}</Text>
+              <Text style={[typography.body, { flex: 1, color: colors.text.primary }]}>
+                {item.term}
+              </Text>
               <TextButton
                 title={memoryCopy.neverInclude.removeAction}
                 onPress={() => remove.mutate(item.id)}

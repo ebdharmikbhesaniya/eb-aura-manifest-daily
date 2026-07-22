@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Share, ScrollView, Text, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 
-import { Card, PillButton, Screen, SerifDisplay, TextButton } from '@/components';
+import { Card, IconTile, Label, ListRow, RowGroup, Screen, SerifDisplay } from '@/components';
 import { affirmationsCopy } from '@/copy/affirmations';
 import { AffirmationCard } from '@/features/affirmations/AffirmationCard';
 import { GuidedSheet, type GuidedStep } from '@/features/affirmations/GuidedSheet';
@@ -17,22 +17,24 @@ import {
   useTodaysAffirmation,
 } from '@/features/affirmations/useAffirmations';
 import { localDate } from '@/features/gratitude/useGratitude';
+import { OutlinePill } from '@/features/paywall/OutlinePill';
 import { analytics } from '@/lib/analytics';
 import { api } from '@/lib/api';
 import { useAppState } from '@/stores/appState';
 import { haptic } from '@/theme/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 /**
- * The Affirmations tab (product 09 §9.3).
- *
- * Today's card first, then her collection, with the guided studio behind a
- * single CTA. Revealing today's card is one of the three ritual beats, so it
- * records progress here (product 09) — the event fires only when all three
- * happen on the same day.
+ * The Affirmations tab (product 09 §9.3, v4 layout): today's card on the
+ * parchment surface, the guided studio behind a white "Create with Aura" row,
+ * then the saved words. Revealing today's card is one of the three ritual
+ * beats, so it records progress here (product 09) — the event fires only when
+ * all three happen on the same day.
  */
 export default function AffirmationsRoute() {
-  const { spacing } = useTheme();
+  const { colors, spacing, typography } = useTheme();
+  const scale = clampedFontScale();
   const userId = useAppState((s) => s.userId);
 
   const today = useTodaysAffirmation(userId ?? undefined);
@@ -128,10 +130,14 @@ export default function AffirmationsRoute() {
     [kept, candidates],
   );
 
+  // "Today · July 22" — the device's own month-day words, no invented format.
+  const dateLabel = new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+  const keptItems = kept.data ?? [];
+
   return (
     <Screen testID="affirmations" edgeToEdge>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.xl }}>
-        <SerifDisplay variant="title">{affirmationsCopy.todayTitle}</SerifDisplay>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
+        <SerifDisplay variant="title">{affirmationsCopy.title}</SerifDisplay>
 
         {today.data && (
           <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
@@ -142,6 +148,7 @@ export default function AffirmationsRoute() {
               // form the prompt asks for (product 09 §9.3a), so an older row with
               // none still gets a chip rather than silently losing the layer.
               technique={technique}
+              dateLabel={dateLabel}
               revealed={revealed}
               onReveal={reveal}
               onTechnique={() => {
@@ -153,8 +160,9 @@ export default function AffirmationsRoute() {
           </ViewShot>
         )}
 
+        {/* Below the ViewShot, not inside it — the shared image stays only her words. */}
         {revealed && today.data && (
-          <TextButton
+          <OutlinePill
             title={affirmationsCopy.share}
             onPress={() => void share()}
             testID="affirmation-share"
@@ -162,33 +170,51 @@ export default function AffirmationsRoute() {
         )}
 
         {revealed && (
-          <Text testID="affirmation-enough" style={{ textAlign: 'center' }}>
+          <Text
+            testID="affirmation-enough"
+            style={[typography.bodySmall, { color: colors.text.secondary, textAlign: 'center' }]}
+          >
             {affirmationsCopy.enough}
           </Text>
         )}
 
-        <PillButton
-          title={affirmationsCopy.create}
-          onPress={() => {
-            setStep('goal');
-            guidedRef.current?.present();
-          }}
-          testID="affirmations-create"
-        />
+        <RowGroup separatorInset="leading">
+          <ListRow
+            title={affirmationsCopy.create}
+            subtitle={affirmationsCopy.createSubtitle}
+            leading={<IconTile tint="orb" />}
+            trailing={
+              <Text
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+                allowFontScaling={false}
+                style={[scaledType('body', scale), { color: colors.cta.link }]}
+              >
+                ›
+              </Text>
+            }
+            onPress={() => {
+              setStep('goal');
+              guidedRef.current?.present();
+            }}
+            testID="affirmations-create"
+          />
+        </RowGroup>
 
-        <View style={{ gap: spacing.sm }}>
-          <SerifDisplay variant="momentTitle">{affirmationsCopy.collectionTitle}</SerifDisplay>
+        <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+          <Label>{`${affirmationsCopy.savedLabel} · ${keptItems.length}`}</Label>
 
-          {(kept.data ?? []).length === 0 ? (
+          {keptItems.length === 0 ? (
             <Card variant="solid">
-              <Text testID="affirmations-collection-empty">{affirmationsCopy.collectionEmpty}</Text>
+              <Text
+                testID="affirmations-collection-empty"
+                style={[typography.body, { color: colors.text.secondary }]}
+              >
+                {affirmationsCopy.collectionEmpty}
+              </Text>
             </Card>
           ) : (
-            (kept.data ?? []).map((item) => (
-              <Card key={item.id} variant="solid">
-                <Text>{item.text}</Text>
-              </Card>
-            ))
+            keptItems.map((item) => <KeptRow key={item.id} text={item.text} />)
           )}
         </View>
       </ScrollView>
@@ -209,5 +235,30 @@ export default function AffirmationsRoute() {
         onKeep={keep}
       />
     </Screen>
+  );
+}
+
+/** A kept affirmation (v4 §saved): her words in the voice serif, heart-marked. */
+function KeptRow({ text }: { text: string }) {
+  const { colors, spacing } = useTheme();
+  const scale = clampedFontScale();
+
+  return (
+    <Card variant="solid" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+      <Text
+        allowFontScaling={false}
+        style={[scaledType('letterLine', scale), { flex: 1, color: colors.text.body }]}
+      >
+        “{text}”
+      </Text>
+      <Text
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+        allowFontScaling={false}
+        style={[scaledType('bodySmall', scale), { color: colors.accent.heart }]}
+      >
+        ♥
+      </Text>
+    </Card>
   );
 }

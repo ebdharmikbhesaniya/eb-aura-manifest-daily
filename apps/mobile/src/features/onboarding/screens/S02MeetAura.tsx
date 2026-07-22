@@ -7,15 +7,23 @@ import { onboardingCopy } from '@/copy/onboarding';
 import { useMotion } from '@/theme/motion';
 import { useTheme } from '@/theme/ThemeProvider';
 
+import { ChatBubble } from '../ChatBubble';
+import { TypingDots } from '../TypingDots';
 import { useConversation } from '../useConversation';
 
 /** Between bubbles — conversation rhythm, not a wall of text (product 07 S2). */
 const BUBBLE_INTERVAL_MS = 900;
 
+/** V4 S2: the companion sits small, top-centre — the bubbles carry the screen. */
+const MEET_ORB_SIZE = 84;
+
 /**
  * S2: meet the companion. The confidentiality line ("stays between us") is the
  * safe-space framing that unlocks honest answers on S4/S10 — it must land
  * before any question is asked.
+ *
+ * V4 dress: white speech bubbles under a small orb, with a typing indicator as
+ * the final bubble — the conversation visibly continues into S3.
  */
 export function S02MeetAura() {
   const { colors, spacing, typography } = useTheme();
@@ -37,19 +45,28 @@ export function S02MeetAura() {
 
   return (
     <Screen testID="s02-meet-aura">
-      <View style={{ flex: 1, justifyContent: 'center', gap: spacing.lg }}>
-        <View style={{ alignItems: 'center' }}>
-          <Orb state="listening" size={120} />
+      <View style={{ flex: 1, gap: spacing.lg }}>
+        <View style={{ alignItems: 'center', paddingTop: spacing.md }}>
+          <Orb state="listening" size={MEET_ORB_SIZE} />
         </View>
 
-        {lines.slice(0, visibleLines).map((line) => (
-          <Animated.View
-            key={line}
-            entering={reduceMotion ? FadeInUp.duration(0) : FadeInUp.duration(300)}
-          >
-            <Text style={[typography.body, { color: colors.text.primary }]}>{line}</Text>
-          </Animated.View>
-        ))}
+        <View style={{ gap: spacing.sm }}>
+          {lines.slice(0, visibleLines).map((line) => (
+            <Animated.View
+              key={line}
+              entering={reduceMotion ? FadeInUp.duration(0) : FadeInUp.duration(300)}
+            >
+              <ChatBubble>
+                <Text style={[typography.body, { color: colors.text.primary }]}>{line}</Text>
+              </ChatBubble>
+            </Animated.View>
+          ))}
+
+          {/* The final bubble keeps typing — Aura has more to say, on the next screen. */}
+          <ChatBubble>
+            <TypingDots />
+          </ChatBubble>
+        </View>
       </View>
 
       <View style={{ paddingBottom: spacing.lg }}>

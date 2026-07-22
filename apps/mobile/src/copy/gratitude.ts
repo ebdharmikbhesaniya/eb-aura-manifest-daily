@@ -11,7 +11,7 @@
  * — the copy lint would fail this file if any of it appeared.
  */
 export const gratitudeCopy = {
-  title: 'One thing from today.',
+  title: 'Gratitude',
 
   /** Default prompt when we have nothing personal to draw on. */
   prompt: 'What’s one thing you’re glad about today?',
@@ -29,6 +29,13 @@ export const gratitudeCopy = {
   memoryContract: 'What you write here may return in your moments. That’s the point.',
 
   historyTitle: 'Your record',
+  /** The tab's recent slice (v4 §gratitude). */
+  historyMonthTitle: 'This month',
+  /** Day labels above each entry card (v4 §gratitude). */
+  dayToday: 'Today',
+  dayYesterday: 'Yesterday',
+  /** Opens the full record at `gratitude/history`. */
+  allEntries: 'All entries ›',
   /** History empty state — an invitation, never a scold. */
   historyEmpty: 'Your first line starts the record.',
 

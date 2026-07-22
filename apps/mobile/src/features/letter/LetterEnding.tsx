@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -23,12 +23,13 @@ export interface LetterEndingProps {
 }
 
 /**
- * What follows the last word (product 08 §when the audio ends).
+ * What follows the last word (product 08 §when the audio ends, v4 §ending).
  *
  * The two-second hang is the whole design. The letter has just finished saying
- * something intimate; putting a button under it immediately would turn a moment
- * into a funnel step. So the screen holds its silence first, and only then does
- * the next thing arrive — quietly, one line and one button.
+ * something intimate — the covenant line still holding the center of the screen
+ * — so this arrives quietly underneath it: one plain line, the ink pill, and
+ * the kept-line whispered last. The kept-line is a promise, not an upsell: the
+ * letter stays hers on the free tier.
  */
 export function LetterEnding({ onContinue, testID }: LetterEndingProps) {
   const { colors, spacing } = useTheme();
@@ -50,26 +51,30 @@ export function LetterEnding({ onContinue, testID }: LetterEndingProps) {
       testID={testID}
       style={[style, { alignItems: 'center', paddingHorizontal: spacing.lg }]}
     >
-      <Animated.Text
+      <Text
         allowFontScaling={false}
-        style={[
-          scaledType('sheetTitle', scale),
-          {
-            textAlign: 'center',
-            color: colors.text.secondary,
-          },
-        ]}
+        style={[scaledType('body', scale), { textAlign: 'center', color: colors.text.body }]}
       >
         {letterCopy.ending.more}
-      </Animated.Text>
+      </Text>
 
-      <View style={{ marginTop: spacing.lg }}>
+      <View style={{ marginTop: spacing.lg, alignSelf: 'stretch' }}>
         <PillButton
           title={letterCopy.ending.primary}
           onPress={onContinue}
           testID="letter-continue"
         />
       </View>
+
+      <Text
+        allowFontScaling={false}
+        style={[
+          scaledType('bodySmall', scale),
+          { textAlign: 'center', color: colors.text.secondary, marginTop: spacing.md },
+        ]}
+      >
+        {letterCopy.ending.kept}
+      </Text>
     </Animated.View>
   );
 }

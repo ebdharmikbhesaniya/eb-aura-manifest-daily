@@ -8,17 +8,22 @@
  * outright, and the education layer is the wedge.
  */
 export const affirmationsCopy = {
-  todayTitle: 'Today’s affirmation',
+  title: 'Affirmations',
+  /** Today-card header label — rendered as "Today · July 22" (v4). */
+  todayLabel: 'Today',
   reveal: 'Reveal',
   /** After viewing — "one a day, that's enough" (product 09 §9.3). */
   enough: 'One a day. That’s enough.',
   nextIn: 'Next one {time}',
 
   create: 'Create with Aura',
+  createSubtitle: 'A guided one, for what today needs',
   collectionTitle: 'Kept words',
+  /** Saved-section label — rendered as "Saved · 9" (v4). */
+  savedLabel: 'Saved',
   collectionEmpty: 'Your kept words will live here.',
 
-  share: 'Share',
+  share: 'Share as card',
   keep: 'Keep this one',
   kept: 'Kept',
 

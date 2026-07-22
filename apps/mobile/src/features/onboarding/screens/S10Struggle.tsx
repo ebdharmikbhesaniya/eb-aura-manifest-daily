@@ -27,12 +27,15 @@ export function S10Struggle() {
     return (
       <ConversationScreen
         testID="s10-struggle"
+        screenId="s10-struggle"
         question={onboardingCopy.s10Struggle.question}
         showEditGuard={false}
       >
         <ReflectionBeat
           line={onboardingCopy.s10Struggle.reflection}
           holdMs={REFLECTION_READ_MS}
+          // The vulnerable beat sits on blush — held, not filed (v4 S10).
+          tone="blush"
           onDone={() => void submit(text.trim())}
         />
       </ConversationScreen>
@@ -42,6 +45,7 @@ export function S10Struggle() {
   return (
     <ConversationScreen
       testID="s10-struggle"
+      screenId="s10-struggle"
       question={onboardingCopy.s10Struggle.question}
       primaryTitle={onboardingCopy.s10Struggle.primary}
       onPrimary={() => setReflecting(true)}

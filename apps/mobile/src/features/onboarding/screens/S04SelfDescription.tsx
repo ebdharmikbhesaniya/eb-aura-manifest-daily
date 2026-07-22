@@ -42,7 +42,12 @@ export function S04SelfDescription() {
 
   if (reflection !== null) {
     return (
-      <ConversationScreen testID="s04-self-description" question={question} showEditGuard={false}>
+      <ConversationScreen
+        testID="s04-self-description"
+        screenId="s04-self-description"
+        question={question}
+        showEditGuard={false}
+      >
         <ReflectionBeat
           line={reflection.line}
           holdMs={REFLECTION_READ_MS}
@@ -55,6 +60,7 @@ export function S04SelfDescription() {
   return (
     <ConversationScreen
       testID="s04-self-description"
+      screenId="s04-self-description"
       question={question}
       primaryTitle={onboardingCopy.s04SelfDescription.primary}
       onPrimary={reflect}

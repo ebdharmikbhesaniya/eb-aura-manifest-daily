@@ -11,13 +11,34 @@
  */
 export const memoryCopy = {
   whatAuraKnows: {
-    title: 'What I know about you',
+    title: 'What Aura knows',
 
     // The memory contract, stated plainly rather than buried in a policy.
     contract:
-      'Everything here came from you. Remove anything you like — I’ll write differently from now on.',
+      'Everything I remember, in your words. Edit or remove anything — I forget completely.',
 
     empty: 'We haven’t talked much yet. Whatever you tell me, I’ll keep here.',
+
+    /**
+     * Quiet section labels (v4 §what-aura-knows) — the categories in her
+     * language, never the enum's. If it reads like a database, it reads like
+     * surveillance.
+     */
+    groups: {
+      identity: 'About you',
+      dream: 'Your dream',
+      person: 'Your people',
+      place_lifestyle: 'Your life',
+      struggle: 'What feels heavy',
+      phrase: 'In your words',
+      milestone: 'Milestones',
+      preference: 'What you prefer',
+      gratitude_ref: 'From your gratitude',
+      temp_context: 'Right now',
+    },
+
+    /** Centered under the list — the scope of a removal, said once. */
+    footer: 'Removing a memory removes it from every future moment.',
 
     deleteAction: 'Forget this',
     // Confirmation is honest about scope: it takes effect going forward (09 §6).

@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
-import { Chip, Label } from '@/components';
+import { Card, Chip, Label } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
 import { useTheme } from '@/theme/ThemeProvider';
 
+import { ArrivalChoiceCard } from '../ArrivalChoiceCard';
 import { ConversationScreen } from '../ConversationScreen';
 import { useConversation } from '../useConversation';
 
@@ -21,9 +22,12 @@ const HOUR_CHOICES = ['06:00', '07:00', '08:00', '09:00', '12:00', '18:00', '20:
  * The OS notification permission is NOT asked here: it comes after the Letter
  * and paywall with this context banked (Phase 9) — priming without the scary
  * dialog mid-conversation.
+ *
+ * V4 dress: Morning/Evening as choice cards with a reason under each, a
+ * disclosure row for the hour presets, and the anti-nag promise on parchment.
  */
 export function S11ArrivalTime() {
-  const { spacing } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const { submit, existingValue } = useConversation('s11-arrival-time');
 
   const [choice, setChoice] = useState<string | null>(
@@ -34,31 +38,35 @@ export function S11ArrivalTime() {
   return (
     <ConversationScreen
       testID="s11-arrival-time"
+      screenId="s11-arrival-time"
       question={onboardingCopy.s11ArrivalTime.question}
       primaryTitle={onboardingCopy.s11ArrivalTime.primary}
       onPrimary={() => void submit(choice)}
       primaryDisabled={choice === null}
     >
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-        <Chip
-          label={onboardingCopy.s11ArrivalTime.morning}
+      <View style={{ gap: spacing.sm }}>
+        <ArrivalChoiceCard
+          title={onboardingCopy.s11ArrivalTime.morning}
+          subtitle={onboardingCopy.s11ArrivalTime.morningHint}
           selected={choice === 'morning'}
           onPress={() => {
             setChoice('morning');
             setShowHours(false);
           }}
         />
-        <Chip
-          label={onboardingCopy.s11ArrivalTime.evening}
+        <ArrivalChoiceCard
+          title={onboardingCopy.s11ArrivalTime.evening}
+          subtitle={onboardingCopy.s11ArrivalTime.eveningHint}
           selected={choice === 'evening'}
           onPress={() => {
             setChoice('evening');
             setShowHours(false);
           }}
         />
-        <Chip
-          label={onboardingCopy.s11ArrivalTime.pickTime}
+        <ArrivalChoiceCard
+          title={onboardingCopy.s11ArrivalTime.pickTime}
           selected={showHours}
+          chevron
           onPress={() => setShowHours(true)}
         />
       </View>
@@ -78,6 +86,12 @@ export function S11ArrivalTime() {
           </View>
         </View>
       )}
+
+      <Card variant="solid" style={{ backgroundColor: colors.accent.parchment }}>
+        <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
+          {onboardingCopy.s11ArrivalTime.note}
+        </Text>
+      </Card>
     </ConversationScreen>
   );
 }

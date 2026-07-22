@@ -1,18 +1,23 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Orb, TextButton } from '@/components';
-import { momentsCopy } from '@/copy/moments';
+import { Label, Orb } from '@/components';
+import { playerCopy } from '@/copy/player';
 import { KaraokeLetter } from '@/features/letter/KaraokeLetter';
 import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
-import { useSharedValue } from 'react-native-reanimated';
-import { useEffect } from 'react';
 
 import { ReadMode } from './ReadMode';
+import { TransportRow } from './TransportRow';
+import { WaveBars } from './WaveBars';
 import { formatTime, progressOf, usePlayerStore } from './playerStore';
+
+/** The cover orb, when there is no karaoke to BE the cover (v4 §player). */
+const ORB_SIZE = 170;
 
 export interface PlayerScreenProps {
   onToggle: () => void;
@@ -27,14 +32,16 @@ export interface PlayerScreenProps {
 }
 
 /**
- * The full player (product 09 §9.1, 12).
+ * The full player (product 09 §9.1, v4 §player — "full-screen cover, ember is
+ * earned").
  *
  * Unlike the Letter — which has no controls at all, deliberately — this surface
  * is a normal player, because a daily moment is something she returns to rather
- * than a performance she is hearing once. Transport, speed, a favourite heart
- * and a Refine entry all belong here.
+ * than a performance she is hearing once.
  *
- * The orb is present but calm: it reacts to the voice rather than performing.
+ * Layout, top to bottom: header (minimize · label · heart), the cover (karaoke
+ * when timings exist, otherwise the orb with the title under it), the waveform
+ * with its two times, the transport, and a quiet row of option pills.
  */
 export function PlayerScreen({
   onToggle,
@@ -67,6 +74,8 @@ export function PlayerScreen({
 
   if (!moment) return null;
 
+  const minutes = Math.max(1, Math.round(durationMs / 60_000));
+
   return (
     <View testID={testID} style={{ flex: 1, backgroundColor: colors.bg.base }}>
       <LinearGradient
@@ -78,29 +87,44 @@ export function PlayerScreen({
         <View
           style={{
             flexDirection: 'row',
-            justifyContent: 'space-between',
             alignItems: 'center',
             paddingHorizontal: layout.screenMargin,
           }}
         >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={momentsCopy.player.minimize}
-            onPress={onMinimize}
-            hitSlop={12}
-            testID="player-minimize"
-          >
-            <Text style={{ fontSize: iconSizes.md * scale, color: colors.text.secondary }}>⌄</Text>
-          </Pressable>
+          <View style={{ flex: 1, alignItems: 'flex-start' }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={playerCopy.minimize}
+              onPress={onMinimize}
+              hitSlop={12}
+              testID="player-minimize"
+            >
+              <Text style={{ fontSize: iconSizes.md * scale, color: colors.text.secondary }}>
+                ⌄
+              </Text>
+            </Pressable>
+          </View>
 
-          <TextButton
-            title={mode === 'listen' ? momentsCopy.player.readMode : momentsCopy.player.listenMode}
-            onPress={() => {
-              toggleMode();
-              analytics.capture('moment_read_mode_toggled');
-            }}
-            testID="player-mode-toggle"
-          />
+          <Label>{playerCopy.coverLabel}</Label>
+
+          <View style={{ flex: 1, alignItems: 'flex-end' }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={moment.favoritedAt ? playerCopy.unfavorite : playerCopy.favorite}
+              onPress={onFavorite}
+              hitSlop={12}
+              testID="player-favorite"
+            >
+              <Text
+                style={{
+                  fontSize: iconSizes.lg * scale,
+                  color: moment.favoritedAt ? colors.accent.heart : colors.text.secondary,
+                }}
+              >
+                {moment.favoritedAt ? '♥' : '♡'}
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
         {mode === 'read' ? (
@@ -111,16 +135,46 @@ export function PlayerScreen({
             testID="player-read"
           />
         ) : moment.lines.length > 0 ? (
+          // When timings exist the karaoke IS the cover (v4 §player).
           <KaraokeLetter lines={moment.lines} positionMs={position} testID="player-karaoke" />
         ) : (
-          // No timings (audio never synthesized): show the orb rather than an
-          // empty screen. The moment is still hers to listen to.
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Orb state={playing ? 'speaking' : 'idle'} size={160} testID="player-orb" />
+          <View
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingHorizontal: layout.screenMargin,
+            }}
+          >
+            <Orb state={playing ? 'speaking' : 'idle'} size={ORB_SIZE} testID="player-orb" />
+
+            {!!moment.title && (
+              <Text
+                allowFontScaling={false}
+                style={[
+                  scaledType('letterLine', scale),
+                  { color: colors.text.primary, textAlign: 'center', marginTop: spacing.lg },
+                ]}
+              >
+                {moment.title}
+              </Text>
+            )}
+
+            <Text
+              allowFontScaling={false}
+              style={[
+                scaledType('bodySmall', scale),
+                { color: colors.text.secondary, textAlign: 'center', marginTop: spacing.xs },
+              ]}
+            >
+              {playerCopy.fromLine.replace('{minutes}', String(minutes))}
+            </Text>
           </View>
         )}
 
         <View style={{ paddingHorizontal: layout.screenMargin, gap: spacing.md }}>
+          <WaveBars progress={progressOf(positionMs, durationMs)} testID="player-progress" />
+
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <Text style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}>
               {formatTime(positionMs)}
@@ -130,78 +184,37 @@ export function PlayerScreen({
             </Text>
           </View>
 
-          <View style={{ height: 2, backgroundColor: colors.surface.border }}>
-            <View
-              testID="player-progress"
-              style={{
-                height: 2,
-                width: `${progressOf(positionMs, durationMs) * 100}%`,
-                backgroundColor: colors.cta.background,
-              }}
-            />
-          </View>
+          <TransportRow
+            playing={playing}
+            onToggle={onToggle}
+            onBack15={onBack15}
+            onForward15={onForward15}
+          />
 
           <View
             style={{
               flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <TransportButton
-              label={momentsCopy.player.back15}
-              glyph="↺"
-              onPress={onBack15}
-              testID="player-back15"
-            />
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={playing ? momentsCopy.player.pause : momentsCopy.player.play}
-              onPress={onToggle}
-              hitSlop={12}
-              testID="player-toggle"
-            >
-              <Text style={{ fontSize: iconSizes.xl * scale, color: colors.cta.background }}>
-                {playing ? '❙❙' : '▶'}
-              </Text>
-            </Pressable>
-
-            <TransportButton
-              label={momentsCopy.player.forward15}
-              glyph="↻"
-              onPress={onForward15}
-              testID="player-forward15"
-            />
-          </View>
-
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: 'center',
+              gap: spacing.lg,
               paddingBottom: spacing.lg,
+              paddingTop: spacing.xs,
             }}
           >
-            <TextButton title={`${speed}×`} onPress={() => cycleSpeed()} testID="player-speed" />
+            <ControlPill title={`${speed}×`} onPress={() => cycleSpeed()} testID="player-speed" />
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                moment.favoritedAt ? momentsCopy.player.unfavorite : momentsCopy.player.favorite
-              }
-              onPress={onFavorite}
-              hitSlop={12}
-              testID="player-favorite"
-            >
-              <Text style={{ fontSize: iconSizes.lg * scale }}>
-                {moment.favoritedAt ? '♥' : '♡'}
-              </Text>
-            </Pressable>
+            <ControlPill
+              title={mode === 'listen' ? playerCopy.readMode : playerCopy.listenMode}
+              onPress={() => {
+                toggleMode();
+                analytics.capture('moment_read_mode_toggled');
+              }}
+              testID="player-mode-toggle"
+            />
 
             {canRefine && (
-              <TextButton
-                title={momentsCopy.player.refine}
+              <ControlPill
+                title={playerCopy.refine}
+                tint={colors.cta.link}
                 onPress={onRefine}
                 testID="player-refine"
               />
@@ -213,29 +226,45 @@ export function PlayerScreen({
   );
 }
 
-function TransportButton({
-  label,
-  glyph,
+/** The quiet option pills under the transport — white, bordered, lowercase energy. */
+function ControlPill({
+  title,
   onPress,
+  tint,
   testID,
 }: {
-  label: string;
-  glyph: string;
+  title: string;
   onPress: () => void;
+  /** Overrides the resting text colour — the Refine entry uses the link tint. */
+  tint?: string;
   testID: string;
 }) {
-  const { colors, iconSizes } = useTheme();
+  const { colors, spacing, radii } = useTheme();
   const scale = clampedFontScale();
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={title}
       onPress={onPress}
-      hitSlop={12}
+      hitSlop={8}
       testID={testID}
+      style={({ pressed }) => ({
+        backgroundColor: colors.surface.card,
+        borderWidth: 1,
+        borderColor: colors.surface.border,
+        borderRadius: radii.pill,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        opacity: pressed ? 0.85 : 1,
+      })}
     >
-      <Text style={{ fontSize: iconSizes.lg * scale, color: colors.text.primary }}>{glyph}</Text>
+      <Text
+        allowFontScaling={false}
+        style={[scaledType('bodySmall', scale), { color: tint ?? colors.text.secondary }]}
+      >
+        {title}
+      </Text>
     </Pressable>
   );
 }

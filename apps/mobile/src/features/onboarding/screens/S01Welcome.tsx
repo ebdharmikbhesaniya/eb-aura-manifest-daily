@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
-import { Label, Orb, PillButton, Screen, SerifDisplay } from '@/components';
+import { Orb, PillButton, Screen } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
 import { loadPlans } from '@/features/paywall/purchases';
 import { analytics } from '@/lib/analytics';
 import { useOnboardingDraft } from '@/stores/onboardingDraft';
 import { useTheme } from '@/theme/ThemeProvider';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 import { useConversation } from '../useConversation';
+
+/** V4 hero orb — larger than the component default; no token governs orb sizes. */
+const WELCOME_ORB_SIZE = 180;
 
 /**
  * S1 (product 07): tone + consent. Price honesty on the FIRST screen — the
@@ -24,7 +28,7 @@ import { useConversation } from '../useConversation';
  * paywall footer and in Settings, where a returning user actually looks.
  */
 export function S01Welcome() {
-  const { spacing } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const { advance } = useConversation('s01-welcome');
   const start = useOnboardingDraft((s) => s.start);
   const [price, setPrice] = useState<string | null>(null);
@@ -43,9 +47,28 @@ export function S01Welcome() {
   return (
     <Screen testID="s01-welcome">
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.xl }}>
-        <Orb state="idle" />
-        <SerifDisplay variant="title">{onboardingCopy.s01Welcome.title}</SerifDisplay>
-        <Label>{priceLine}</Label>
+        <Orb state="idle" size={WELCOME_ORB_SIZE} />
+        <View style={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
+          <Text
+            allowFontScaling={false}
+            style={[
+              scaledType('display', clampedFontScale()),
+              { color: colors.text.primary, textAlign: 'center' },
+            ]}
+          >
+            {onboardingCopy.s01Welcome.title}
+          </Text>
+          <Text
+            style={[
+              // Price transparency is body copy, not wayfinding — sentence
+              // case, secondary, centred under the headline (v4 S1).
+              typography.body,
+              { color: colors.text.secondary, textAlign: 'center' },
+            ]}
+          >
+            {priceLine}
+          </Text>
+        </View>
       </View>
 
       <View style={{ paddingBottom: spacing.lg }}>

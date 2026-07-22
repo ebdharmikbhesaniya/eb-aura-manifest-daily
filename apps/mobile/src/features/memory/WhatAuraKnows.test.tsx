@@ -83,10 +83,20 @@ describe('WhatAuraKnows', () => {
     expect(await screen.findByText(memoryCopy.whatAuraKnows.empty)).toBeTruthy();
   });
 
-  it('renders a sensitive item exactly like every other item', async () => {
+  it('groups memories under labels in her language and states the removal scope', async () => {
+    mockedApi.fetchMemoryItems.mockResolvedValue([item()]);
+
+    await render(<WhatAuraKnows />, { wrapper });
+
+    expect(await screen.findByText(memoryCopy.whatAuraKnows.groups.dream)).toBeTruthy();
+    expect(screen.getByText(memoryCopy.whatAuraKnows.footer)).toBeTruthy();
+  });
+
+  it("renders a sensitive item's words exactly like every other item's", async () => {
     // Product requirement, not styling (09 §2, product 10): a badge or lock on
     // her struggle would stigmatize the thing she was bravest to tell us. The
-    // tier constrains what generation may spend — it must not change this screen.
+    // v4 layout gives the row a softer blush surface — a held tone, not a
+    // warning — and the text itself must style identically to every other memory.
     mockedApi.fetchMemoryItems.mockResolvedValue([
       item({ id: 'a', category: 'dream', tier: 'permanent', content: 'Your dream city is Lisbon' }),
       item({

@@ -33,7 +33,9 @@ export function S06Values() {
   return (
     <ConversationScreen
       testID="s06-values"
+      screenId="s06-values"
       question={onboardingCopy.s06Values.question}
+      helper={onboardingCopy.s06Values.helper}
       primaryTitle={onboardingCopy.s06Values.primary}
       onPrimary={() => void submit(selected)}
       primaryDisabled={selected.length === 0}

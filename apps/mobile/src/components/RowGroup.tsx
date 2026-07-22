@@ -1,0 +1,65 @@
+import { Children, Fragment, type ReactNode } from 'react';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+
+import { useTheme } from '@/theme/ThemeProvider';
+
+export interface RowGroupProps {
+  children: ReactNode;
+  /**
+   * Where the hairline between rows starts. 'leading' aligns it with row text
+   * past an icon tile (v4 profile); 'edge' runs it from the row padding
+   * (v4 settings, no tiles).
+   */
+  separatorInset?: 'leading' | 'edge';
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+}
+
+/**
+ * The grouped-rows card (v4 §profile/settings): a white bordered surface whose
+ * only job is to stack ListRows with a hairline between each pair. Rows carry
+ * their own padding and press behaviour.
+ */
+export function RowGroup({ children, separatorInset = 'edge', style, testID }: RowGroupProps) {
+  const { colors, radii, spacing } = useTheme();
+
+  const rows = Children.toArray(children).filter(Boolean);
+
+  // Text in a tiled row starts after: row padding + 32pt tile + the row gap.
+  const inset =
+    separatorInset === 'leading' ? spacing.lg + ICON_TILE_SIZE + spacing.md : spacing.lg;
+
+  return (
+    <View
+      testID={testID}
+      style={[
+        {
+          backgroundColor: colors.surface.card,
+          borderRadius: radii.card,
+          borderWidth: 1,
+          borderColor: colors.surface.border,
+          overflow: 'hidden',
+        },
+        style,
+      ]}
+    >
+      {rows.map((row, index) => (
+        <Fragment key={index}>
+          {index > 0 && (
+            <View
+              style={{
+                height: StyleSheet.hairlineWidth,
+                marginLeft: inset,
+                backgroundColor: colors.surface.border,
+              }}
+            />
+          )}
+          {row}
+        </Fragment>
+      ))}
+    </View>
+  );
+}
+
+/** Shared with IconTile so the separator inset stays aligned with tiled rows. */
+export const ICON_TILE_SIZE = 32;

@@ -23,6 +23,7 @@ export function S03Name() {
   return (
     <ConversationScreen
       testID="s03-name"
+      screenId="s03-name"
       question={onboardingCopy.s03Name.question}
       primaryTitle={onboardingCopy.s03Name.primary}
       onPrimary={() => void submit(name.trim())}
@@ -34,7 +35,9 @@ export function S03Name() {
         value={name}
         onChangeText={setName}
         autoFocus
-        {...(tooLong ? { hint: onboardingCopy.s03Name.tooLong } : {})}
+        // The gentle trim replaces the helper when it applies — one line under
+        // the field, never two (v4 S3).
+        hint={tooLong ? onboardingCopy.s03Name.tooLong : onboardingCopy.s03Name.helper}
       />
     </ConversationScreen>
   );

@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { Card, Input, PillButton, SerifDisplay, WeekDots } from '@/components';
+import {
+  Card,
+  Input,
+  Label,
+  PillButton,
+  SerifDisplay,
+  TextButton,
+  WeekDots,
+  TAB_BAR_CLEARANCE,
+} from '@/components';
 import { gratitudeCopy } from '@/copy/gratitude';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
+
+import { dayLabelFor } from './dayLabel';
 
 /** How long the field may sit empty before Aura offers a starter (product 09 §9.4). */
 export const STARTER_DELAY_MS = 5_000;
@@ -17,11 +28,13 @@ export interface GratitudeScreenProps {
   todaysEntry: string | null;
   showContract: boolean;
   onSave: (entry: string) => void;
+  /** Opens the full record at `gratitude/history`. */
+  onHistory?: () => void;
   testID?: string;
 }
 
 /**
- * The Gratitude tab (product 09 §9.4).
+ * The Gratitude tab (product 09 §9.4, v4 §gratitude).
  *
  * There is no loading state and no error state anywhere in here, deliberately:
  * the write is local and the sync is silent, so the only feedback she ever gets
@@ -38,6 +51,7 @@ export function GratitudeScreen({
   todaysEntry,
   showContract,
   onSave,
+  onHistory,
   testID,
 }: GratitudeScreenProps) {
   const { colors, spacing, layout } = useTheme();
@@ -59,39 +73,74 @@ export function GratitudeScreen({
   return (
     <ScrollView
       testID={testID}
-      contentContainerStyle={{ padding: layout.screenMargin, gap: spacing.lg }}
+      contentContainerStyle={{
+        padding: layout.screenMargin,
+        gap: spacing.lg,
+        paddingBottom: TAB_BAR_CLEARANCE,
+      }}
       showsVerticalScrollIndicator={false}
     >
-      <SerifDisplay variant="title">{gratitudeCopy.title}</SerifDisplay>
-
-      <View testID="gratitude-dots">
-        <WeekDots filled={dots.map((dot) => dot.filled)} />
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: spacing.md,
+        }}
+      >
+        <SerifDisplay variant="title">{gratitudeCopy.title}</SerifDisplay>
+        <View testID="gratitude-dots">
+          <WeekDots filled={dots.map((dot) => dot.filled)} />
+        </View>
       </View>
 
-      <Text
-        allowFontScaling={false}
-        style={[scaledType('body', scale), { color: colors.text.secondary }]}
-      >
-        {prompt}
-      </Text>
-
-      <Input
-        value={entry}
-        onChangeText={setEntry}
-        placeholder={gratitudeCopy.placeholder}
-        multiline
-        testID="gratitude-input"
-      />
-
-      {showStarter && entry.trim() === '' && (
+      <Card variant="solid" style={{ gap: spacing.md }}>
         <Text
-          testID="gratitude-starter"
           allowFontScaling={false}
-          style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
+          style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
         >
-          {gratitudeCopy.starter}
+          {prompt}
         </Text>
-      )}
+
+        <Input
+          value={entry}
+          onChangeText={setEntry}
+          placeholder={gratitudeCopy.placeholder}
+          multiline
+          testID="gratitude-input"
+        />
+
+        {showStarter && entry.trim() === '' && (
+          <Text
+            testID="gratitude-starter"
+            allowFontScaling={false}
+            style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
+          >
+            {gratitudeCopy.starter}
+          </Text>
+        )}
+
+        {showContract && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <View
+              style={{
+                // The memory-contract mark: a small blush dot, warmth not warning.
+                width: spacing.sm,
+                height: spacing.sm,
+                borderRadius: spacing.sm / 2,
+                backgroundColor: colors.accent.blush,
+              }}
+            />
+            <Text
+              testID="gratitude-contract"
+              allowFontScaling={false}
+              style={[scaledType('bodySmall', scale), { color: colors.text.secondary, flex: 1 }]}
+            >
+              {gratitudeCopy.memoryContract}
+            </Text>
+          </View>
+        )}
+      </Card>
 
       <PillButton
         title={saved ? gratitudeCopy.saved : gratitudeCopy.save}
@@ -100,23 +149,8 @@ export function GratitudeScreen({
         testID="gratitude-save"
       />
 
-      {showContract && (
-        <Text
-          testID="gratitude-contract"
-          allowFontScaling={false}
-          style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
-        >
-          {gratitudeCopy.memoryContract}
-        </Text>
-      )}
-
       <View style={{ gap: spacing.sm }}>
-        <Text
-          allowFontScaling={false}
-          style={[scaledType('label', scale), { color: colors.text.label }]}
-        >
-          {gratitudeCopy.historyTitle.toUpperCase()}
-        </Text>
+        <Label>{gratitudeCopy.historyMonthTitle}</Label>
 
         {history.length === 0 ? (
           <Card variant="solid">
@@ -130,7 +164,8 @@ export function GratitudeScreen({
           </Card>
         ) : (
           history.map((item) => (
-            <Card key={item.entryDate} variant="solid">
+            <Card key={item.entryDate} variant="solid" style={{ gap: spacing.xs }}>
+              <Label>{dayLabelFor(item.entryDate)}</Label>
               <Text
                 allowFontScaling={false}
                 style={[scaledType('body', scale), { color: colors.text.primary }]}
@@ -141,6 +176,14 @@ export function GratitudeScreen({
           ))
         )}
       </View>
+
+      {history.length > 0 && onHistory && (
+        <TextButton
+          title={gratitudeCopy.allEntries}
+          onPress={onHistory}
+          testID="gratitude-all-entries"
+        />
+      )}
     </ScrollView>
   );
 }

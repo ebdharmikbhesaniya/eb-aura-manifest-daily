@@ -138,6 +138,14 @@ describe('GratitudeScreen', () => {
     });
   });
 
+  /** Local `YYYY-MM-DD` for n days ago — history fixtures relative to the real clock. */
+  const daysAgo = (n: number) =>
+    new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date(Date.now() - n * 24 * 60 * 60 * 1000));
+
   describe('history', () => {
     it('invites rather than scolds when empty', async () => {
       await renderScreen({ history: [] });
@@ -155,6 +163,39 @@ describe('GratitudeScreen', () => {
 
       expect(screen.getByText('Nadia called')).toBeTruthy();
       expect(screen.getByText('the river')).toBeTruthy();
+    });
+
+    it('labels each entry with its day — "Yesterday", then the weekday (v4)', async () => {
+      await renderScreen({
+        history: [
+          { entryDate: daysAgo(1), entry: 'the coffee' },
+          { entryDate: daysAgo(2), entry: 'the river' },
+        ],
+      });
+
+      expect(screen.getByText(gratitudeCopy.dayYesterday)).toBeTruthy();
+      const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(
+        new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      );
+      expect(screen.getByText(weekday)).toBeTruthy();
+    });
+
+    it('offers the full record once there is one', async () => {
+      const onHistory = jest.fn();
+      await renderScreen({
+        history: [{ entryDate: daysAgo(1), entry: 'the coffee' }],
+        onHistory,
+      });
+
+      await fireEvent.press(screen.getByTestId('gratitude-all-entries'));
+
+      expect(onHistory).toHaveBeenCalled();
+    });
+
+    it('keeps the full-record link away while the record is empty', async () => {
+      await renderScreen({ history: [], onHistory: jest.fn() });
+
+      expect(screen.queryByTestId('gratitude-all-entries')).toBeNull();
     });
   });
 

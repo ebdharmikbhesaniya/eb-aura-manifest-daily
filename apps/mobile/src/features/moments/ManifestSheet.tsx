@@ -3,7 +3,7 @@ import { BottomSheetView, type BottomSheetModal } from '@gorhom/bottom-sheet';
 import { forwardRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { Input, PillButton, Sheet } from '@/components';
+import { Chip, Input, PillButton, Sheet } from '@/components';
 import { momentsCopy } from '@/copy/moments';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
@@ -47,12 +47,20 @@ export const ManifestSheet = forwardRef<BottomSheetModal, ManifestSheetProps>(
         <BottomSheetView
           style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md }}
         >
-          <Text
-            allowFontScaling={false}
-            style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
-          >
-            {momentsCopy.manifest.title}
-          </Text>
+          <View style={{ gap: spacing.xs }}>
+            <Text
+              allowFontScaling={false}
+              style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
+            >
+              {momentsCopy.manifest.title}
+            </Text>
+            <Text
+              allowFontScaling={false}
+              style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
+            >
+              {momentsCopy.manifest.description}
+            </Text>
+          </View>
 
           <Input
             value={desire}
@@ -64,28 +72,22 @@ export const ManifestSheet = forwardRef<BottomSheetModal, ManifestSheetProps>(
 
           {/* Inspiration rather than instruction — product 09 §9.2 asks for
               examples drawn from her own goal area; until Phase 8 supplies those
-              signals these are the neutral defaults. */}
+              signals these are the neutral defaults. Tapping one starts her off. */}
           {desire.trim() === '' && (
-            <View style={{ gap: spacing.xs }} testID="manifest-examples">
+            <View
+              style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}
+              testID="manifest-examples"
+            >
               {momentsCopy.manifest.examples.map((example) => (
-                <Text
+                <Chip
                   key={example}
-                  allowFontScaling={false}
-                  style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
-                >
-                  {example}
-                </Text>
+                  label={example}
+                  selected={false}
+                  onPress={() => setDesire(example)}
+                />
               ))}
             </View>
           )}
-
-          <Text
-            testID="manifest-credits"
-            allowFontScaling={false}
-            style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
-          >
-            {creditLine}
-          </Text>
 
           {error && (
             <Text
@@ -104,6 +106,17 @@ export const ManifestSheet = forwardRef<BottomSheetModal, ManifestSheetProps>(
             onPress={() => onSubmit(desire.trim())}
             testID="manifest-submit"
           />
+
+          <Text
+            testID="manifest-credits"
+            allowFontScaling={false}
+            style={[
+              scaledType('bodySmall', scale),
+              { color: colors.text.disabled, textAlign: 'center' },
+            ]}
+          >
+            {creditLine}
+          </Text>
         </BottomSheetView>
       </Sheet>
     );

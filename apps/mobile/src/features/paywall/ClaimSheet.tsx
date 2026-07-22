@@ -7,6 +7,7 @@ import { paywallCopy } from '@/copy/paywall';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
 
+import { OutlinePill } from './OutlinePill';
 import { claimWithApple, claimWithEmail } from './claim';
 
 export interface ClaimSheetProps {
@@ -119,13 +120,12 @@ export const ClaimSheet = forwardRef<BottomSheetModal, ClaimSheetProps>(function
                 testID="claim-apple"
               />
             )}
-            <View style={{ alignItems: 'center' }}>
-              <TextButton
-                title={paywallCopy.claim.email}
-                onPress={() => setShowEmail(true)}
-                testID="claim-use-email"
-              />
-            </View>
+            {/* An equal way in, not a footnote (v4 §claim): the outlined pill. */}
+            <OutlinePill
+              title={paywallCopy.claim.email}
+              onPress={() => setShowEmail(true)}
+              testID="claim-use-email"
+            />
           </View>
         )}
 

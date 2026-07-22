@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 
 import { Screen } from '@/components';
@@ -13,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
  * the save; `GratitudeScreen` is pure presentation.
  */
 export default function GratitudeRoute() {
+  const router = useRouter();
   const userId = useAppState((s) => s.userId);
   const gratitude = useGratitude(userId ?? undefined);
   // Reuses Phase 4's fetcher rather than adding a parallel one — the people
@@ -52,6 +54,7 @@ export default function GratitudeRoute() {
         todaysEntry={gratitude.todaysEntry}
         showContract={gratitude.showContract}
         onSave={(entry) => gratitude.save(entry, prompt, personalized)}
+        onHistory={() => router.push('/gratitude/history')}
       />
     </Screen>
   );

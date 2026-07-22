@@ -1,14 +1,23 @@
 /**
  * Profile tab copy (product 11: "trust center + memory front door").
+ *
+ * V4 layout: the tab is a stack of grouped rows — `rows` names each row, the
+ * matching `fields` string titles the edit sheet it opens. Both stay here so
+ * the banned-phrase lint audits every word she reads.
  */
 export const profileCopy = {
   tagline: 'The more I know, the realer it feels.',
 
-  sections: {
-    basics: 'BASICS',
-    dream: 'YOUR DREAM',
-    people: 'YOUR PEOPLE',
-    note: 'ANYTHING I SHOULD KNOW',
+  /** The gear in the header — Settings lives behind Profile, never on Home. */
+  settings: 'Settings',
+
+  /** Row titles in the memory front door (v4 §profile). */
+  rows: {
+    basics: 'Basics',
+    dreamCity: 'Dream city',
+    dreamHome: 'Dream home',
+    people: 'Your people',
+    note: 'Your note',
   },
 
   fields: {
@@ -34,10 +43,17 @@ export const profileCopy = {
     // it (02 §1). No guilt, no confirmation drama.
     removed: 'Okay. I won’t bring them up.',
     empty: 'Just you for now — and that’s plenty.',
+    done: 'Done',
   },
 
   links: {
-    whatAuraKnows: 'What I know about you',
-    neverInclude: 'Never mention',
+    whatAuraKnows: 'What Aura knows',
+    whatAuraKnowsHint: 'See and edit everything I remember',
+    neverInclude: 'Never include',
+    neverIncludeHint: 'Topics I keep out of everything I write',
   },
+
+  /** The v4 privacy note — the trust centre states the boundary plainly. */
+  privacyNote:
+    'Your words are used only to write to you. They never appear in analytics, ads, or anyone else’s app.',
 } as const;

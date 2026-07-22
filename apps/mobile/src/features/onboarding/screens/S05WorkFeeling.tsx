@@ -26,6 +26,7 @@ export function S05WorkFeeling() {
   return (
     <ConversationScreen
       testID="s05-work-feeling"
+      screenId="s05-work-feeling"
       question={onboardingCopy.s05WorkFeeling.question}
       primaryTitle={onboardingCopy.s05WorkFeeling.primary}
       onPrimary={() => void submit(selected)}
