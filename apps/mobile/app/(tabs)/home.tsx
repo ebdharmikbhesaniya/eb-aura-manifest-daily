@@ -143,7 +143,11 @@ export default function HomeRoute() {
         name={profile?.name ?? null}
         state={state}
         forming={forming.data ?? []}
-        recent={(recent.data ?? []).slice(0, RECENT_ROWS)}
+        recent={(recent.data ?? []).slice(0, RECENT_ROWS).map((m) => ({
+          id: m.id,
+          title: m.title,
+          durationMs: m.duration_ms,
+        }))}
         favoritesCount={(recent.data ?? []).filter((m) => m.favorited_at !== null).length}
         onDemandCount={(recent.data ?? []).filter((m) => m.type === 'ondemand').length}
         onPlay={play}

@@ -78,7 +78,7 @@ export function useRecentMoments(userId: string | undefined, limit = 5) {
     queryFn: async () => {
       const { data } = await supabase
         .from('moments')
-        .select('id, title, type, played_at, favorited_at')
+        .select('id, title, type, duration_ms, played_at, favorited_at')
         .eq('user_id', userId as string)
         .eq('status', 'ready')
         .not('played_at', 'is', null)
