@@ -45,7 +45,7 @@ export const TAB_BAR_CLEARANCE = 88;
  * VoiceOver announces, so nothing is lost for anyone navigating by voice.
  */
 export function TabBar({ state, descriptors, navigation }: TabBarProps) {
-  const { colors, radii, spacing } = useTheme();
+  const { colors, radii, spacing, iconSizes } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -64,7 +64,11 @@ export function TabBar({ state, descriptors, navigation }: TabBarProps) {
         // Same hairline as glassy cards — the bar is a glassy surface, not chrome.
         borderWidth: 1,
         borderColor: colors.surface.border,
-        paddingVertical: spacing.sm,
+        // A slim pill, per v4: the ONLY vertical padding lives on each tab
+        // (below) so it isn't doubled here — a second layer of it is what made
+        // the bar read as a thick block. Horizontal padding keeps the outer
+        // icons off the pill's rounded ends.
+        paddingHorizontal: spacing.sm,
       }}
     >
       {state.routes.map((route, index) => {
@@ -94,6 +98,9 @@ export function TabBar({ state, descriptors, navigation }: TabBarProps) {
           >
             <TabIcon
               name={route.name}
+              // 20pt to match the v4 tab bar (iconSizes.md); the 22pt default
+              // was part of what made the bar sit tall.
+              size={iconSizes.md}
               // Ink is the action colour (v3: actions are ink pills); the
               // active tab is one of its few sanctioned uses.
               color={focused ? colors.cta.background : colors.text.secondary}
