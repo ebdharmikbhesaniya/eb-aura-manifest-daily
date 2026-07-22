@@ -33,7 +33,7 @@ Connection over content · one wow early, pre-paywall · **radical pricing hones
 
 ## Design philosophy
 
-Calm is the brand. Lavender/sky/sage on warm white; one high-contrast periwinkle CTA; elegant serif for letters and affirmations; 8pt grid with generous space; floating 4-tab pill (Home · Affirmations · Gratitude · Profile); the breathing **orb** is the companion's body and the only performer; motion is breath not bounce; haptics are punctuation (≤2/screen); Dark Mode and Dynamic Type from day one; 60fps or it doesn't ship. (→ 11, 12, 13)
+Calm is the brand. Aura Design v3 "Ember & Bone": bone `#ECE9DF` backgrounds, ink `#1B1810` action pills, the ember gradient `#F2A96F→#E2682F` reserved for voice & audio, Newsreader serif for letters and affirmations, Figtree for UI, 4pt grid with generous space; floating 4-tab pill (Home · Affirmations · Gratitude · Profile); the breathing **orb** is the companion's body and the only performer; motion is breath not bounce; haptics are punctuation (≤2/screen); Dark Mode and Dynamic Type from day one; 60fps or it doesn't ship. Tokens live in `apps/mobile/src/theme/`. (→ 11, 12, 13)
 
 ## Companion personality
 

@@ -74,7 +74,7 @@ Scheme `aura://` + universal links (assoc. domain when site exists).
 
 ## 6. Tab bar
 
-Floating pill, 4 tabs (Home · Affirmations · Gratitude · Profile), center-weighted "+" on Home surface (not a 5th tab) → Manifest Anything sheet. Active tint periwinkle; icons SF-Symbols-weight (`expo-symbols` with fallback). Hidden when: any full-screen cover, keyboard open, or onboarding.
+Floating pill, 4 tabs (Home · Affirmations · Gratitude · Profile), center-weighted "+" on Home surface (not a 5th tab) → Manifest Anything sheet. Active tint = the theme's CTA token; icons SF-Symbols-weight (`expo-symbols` with fallback). Hidden when: any full-screen cover, keyboard open, or onboarding.
 
 ## 7. Guardrails (product 11)
 

@@ -35,27 +35,29 @@ Rules: no server data in Zustand; TanStack Query keys namespaced per feature (`[
 - **Audio:** today's moment pre-fetched on app open/notification; favorites + Letter cached permanently (10 §6). Playback of cached audio fully offline.
 - **Read paths:** TanStack Query cache persisted (MMKV persister) → last-known Home renders offline with countdown + cached moment.
 
-## 4. Design system implementation (product doc 12)
+## 4. Design system implementation (product doc 12 — Aura Design v3 "Ember & Bone")
 
-`src/theme/` exports typed tokens; **no raw hex/size literals in feature code** (lint rule).
+`src/theme/` exports typed tokens; **no raw hex/size literals in feature code** (lint rule). `palette.ts` holds the raw hexes (imported only by tokens), `tokens.ts` the semantic mapping per scheme plus spacing/radii/shadows/icon sizes/durations, `typography.ts` the fonts and type scale.
 
 ```ts
-// tokens (from product doc 12)
-colors: lavender #B5A9D6 · sky #A8D0E6 · sage #B7C9A8 · warmWhite #FBF9F6 ·
-        sand #EDE6DD · blush #F3D9DE · periwinkle #6C63B5 (single CTA color) ·
-        dusk #2A2540 · darkBase #1E1B2E
-typography: displaySerif (letters/affirmations/titles — bundled font, e.g. Fraunces or Source Serif)
-            textSans (SF Pro via system, Inter fallback)
-            label (uppercase, letterspaced, 11–12pt, 60% opacity)
-spacing: 8pt grid — margins 24, card padding 20–24, section gaps 32–40
-radii: card 20–24 · button pill 26 (52pt height)
+// tokens (from product doc 12, v3 "Ember & Bone")
+colors: bone #ECE9DF (bg) · white #FFFFFF (surfaces) · ink #1B1810 (text, CTA, FAB) ·
+        inkBody #4A4536 · inkMuted #6F6A58 · olive #8A8265 (labels, selected chips) ·
+        oliveSoft #DAD5BE (borders) · ember #F2A96F→#E2682F (voice & audio ONLY) ·
+        emberDeep #C9531F (links, progress) · blush #F6D3DF · parchment #F4EBD6 (affirmations) ·
+        rust #9E2B12 (errors only) · cream #F5F2E8 (on-ink) · dark bases #171410/#242019
+typography: serif Newsreader 500 (display 34/40 · title 24/30 · voice italic 22/38)
+            sans Figtree 400/500/600/700 (body 15/24 · caption 13/19 · headline 16/22)
+            label (uppercase, letterspaced, Figtree 600 11/15)
+spacing: 4pt grid — margins & card padding 20, gutters 12, section gaps 32, hero 56
+radii: chip 14 · field 16 · card 22 · pill/FAB round · shadow 0 12 32 ink/10
 ```
 
-- **Dark mode from day one:** tokens are semantic (`bg.base`, `text.primary`, `surface.card`…) resolved by scheme; plum-charcoal dark per product 12.
+- **Dark mode from day one:** tokens are semantic (`bg.base`, `text.primary`, `surface.card`…) resolved by scheme; the dark scheme is the same warm world after sundown, derived in `tokens.ts`.
 - **Dynamic Type:** all text uses scaled sizes (`useWindowDimensions` + `PixelRatio.getFontScale` clamps for serif surfaces); chips reflow to lists at accessibility sizes (component-level `fontScale > 1.3` breakpoint).
 - Core components (Phase 1): `Screen` (gradient bg), `Card` (solid/glassy), `PillButton`, `TextButton`, `Chip`, `SelectCard`, `Input`, `Sheet` (detents wrapper), `TabBar` (floating pill), `Label`, `SerifDisplay`, `CountdownChip`, `WeekDots`, `Skeleton`, `EmptyState`, `Orb`.
 
-## 5. The Orb (product 12 §signature)
+## 5. The Orb (signature element)
 
 - **Skia** (`@shopify/react-native-skia`) radial-gradient sphere + noise shimmer; driven by Reanimated shared values.
 - States: `idle` (4s breath cycle: scale 1.0↔1.04) · `listening` (shimmer) · `generating` (3s cycle + inner glow) · `speaking` (amplitude-reactive glow — fed by player's metering callback, 10 §5).
