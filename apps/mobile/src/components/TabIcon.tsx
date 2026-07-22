@@ -7,17 +7,18 @@ export type TabName = 'home' | 'affirmations' | 'gratitude' | 'profile';
 /**
  * SF Symbol per tab, with the Feather glyph that stands in off-iOS.
  *
- * Gratitude is deliberately NOT a heart. The heart is already spoken for as the
- * favorite action across moments, affirmations and the Letter ("Hearts live
- * here" — product 09), so a heart in the tab bar would read as "my favorites"
- * and send her to the wrong place. `sun` keeps the warmth without the collision.
+ * Glyphs match Aura Design v4's tab bar 1:1: Home is a house, Affirmations is
+ * the concentric "orb" disc, Gratitude is a heart, Profile is a person. The
+ * heart doubles as the favorite mark elsewhere — the design accepts the overlap
+ * because the tab's job (the gratitude world) and the mark's job (this is kept)
+ * never appear in the same place.
  */
 // Both halves are typed against their real catalogues, so a symbol that does
 // not exist is a compile error rather than a blank square on a device.
 const GLYPHS: Record<TabName, { sf: SFSymbol; feather: keyof typeof Feather.glyphMap }> = {
   home: { sf: 'house', feather: 'home' },
-  affirmations: { sf: 'sparkles', feather: 'star' },
-  gratitude: { sf: 'sun.max', feather: 'sun' },
+  affirmations: { sf: 'smallcircle.filled.circle', feather: 'disc' },
+  gratitude: { sf: 'heart', feather: 'heart' },
   profile: { sf: 'person', feather: 'user' },
 };
 
