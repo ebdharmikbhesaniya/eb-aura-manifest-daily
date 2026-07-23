@@ -16,7 +16,7 @@ export type PlayerMode = 'listen' | 'read';
 interface PlayerState {
   /** What is loaded. Null means nothing has been played this session. */
   moment: PlayableMoment | null;
-  /** Cover open vs minimized to the mini-player (06 §2). */
+  /** Cover open vs minimized while playback continues (06 §2). */
   minimized: boolean;
   playing: boolean;
   positionMs: number;
@@ -42,7 +42,7 @@ interface PlayerState {
  *
  * State lives in Zustand rather than in the player screen because the audio
  * OUTLIVES the screen: minimizing the cover keeps playback going behind the tab
- * bar, and the mini-player renders from this same store (06 §2). A screen-local
+ * bar, and every playback surface reads from this same store (06 §2). A screen-local
  * hook — which is what Phase 6's Letter uses, correctly, since it is a single
  * self-contained cover — cannot express that.
  *
@@ -109,7 +109,7 @@ export function clampSeek(targetMs: number, durationMs: number): number {
   return Math.min(durationMs, Math.max(0, targetMs));
 }
 
-/** Progress 0–1, for the mini-player's hairline and the scrubber. */
+/** Progress 0–1, for the scrubber. */
 export function progressOf(positionMs: number, durationMs: number): number {
   if (durationMs <= 0) return 0;
   return Math.min(1, Math.max(0, positionMs / durationMs));

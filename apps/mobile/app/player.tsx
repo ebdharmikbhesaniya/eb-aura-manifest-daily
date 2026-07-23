@@ -18,8 +18,9 @@ import { supabase } from '@/lib/supabase';
  * `/player` — the full-screen cover (06 §1, §2).
  *
  * Minimizing goes back rather than closing: the store keeps the moment loaded
- * and the mini-player picks it up above the tab bar, which is what makes audio
- * continue while she moves around the app.
+ * and playback running, which is what makes audio continue while she moves
+ * around the app. Aura Design v3 has no mini-player, so the way back to a
+ * playing moment is its own card rather than a persistent bar.
  */
 export default function PlayerRoute() {
   const router = useRouter();

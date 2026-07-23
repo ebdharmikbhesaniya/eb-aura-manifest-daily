@@ -1,5 +1,5 @@
 /**
- * The full player and the mini-player (product 09 §9.1, 10 §4, v4 §player).
+ * The full-screen player (product 09 §9.1, 10 §4).
  *
  * Split out of `moments.ts` so the player owns its own strings: the v4 cover
  * renamed the visible controls (the refine entry is now a quiet "Refine" pill,
@@ -15,9 +15,6 @@ export const playerCopy = {
    * `{minutes}` comes from the track's real duration.
    */
   fromLine: 'From your future self · {minutes} min',
-
-  /** The mini-player's single line. `{remaining}` is m:ss still to play. */
-  miniLine: '{title} · {remaining} left',
 
   play: 'Play',
   pause: 'Pause',

@@ -23,16 +23,6 @@ export interface TabBarProps {
 }
 
 /**
- * The pill's own height, from the styles below: spacing.sm × 2 vertical padding
- * (16) + a 20pt icon + spacing.xs (4) + the 3pt underline + 1pt border × 2.
- *
- * Exported because the mini-player has to stack ON TOP of the bar and the bar is
- * absolutely positioned, so it contributes no layout height for a sibling to
- * measure against. Keep in step with the padding/icon values below.
- */
-export const TAB_BAR_HEIGHT = 45;
-
-/**
  * Bottom space a scrolling tab screen must leave clear.
  *
  * The bar floats over content instead of docking, so nothing reserves room for

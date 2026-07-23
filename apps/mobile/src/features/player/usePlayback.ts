@@ -14,9 +14,9 @@ import { clampSeek, SKIP_MS, usePlayerStore } from './playerStore';
  * Drives the shared player and keeps the store in step (10 §4).
  *
  * Mounted ONCE, in the tab layout, so the audio survives navigation and the
- * mini-player keeps working while she moves between tabs. The Letter keeps its
+ * playback keeps running while she moves between tabs. The Letter keeps its
  * own screen-scoped hook: it is a single self-contained cover with no
- * mini-player, and giving it the global instance would let a half-finished
+ * global player, and giving it the global instance would let a half-finished
  * letter reappear over Home.
  */
 export function usePlayback() {
