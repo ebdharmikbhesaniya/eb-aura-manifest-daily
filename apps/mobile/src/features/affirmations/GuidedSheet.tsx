@@ -21,6 +21,15 @@ export interface GuidedSheetProps {
   step: GuidedStep;
   candidates: GuidedCandidate[];
   busy?: boolean;
+  /**
+   * An in-voice line when the pass could not produce anything (07 §5).
+   *
+   * A guided generation is accepted asynchronously, so a QA rejection lands
+   * after the sheet has already moved to the candidate step — leaving a title
+   * over an empty panel with nothing to tap. The line is what turns that dead
+   * end back into a step she can act from.
+   */
+  error?: string | null;
   onGenerate: (input: {
     goalArea: string;
     goalText?: string;
@@ -46,7 +55,7 @@ const TONES: AffirmationTone[] = ['gentle', 'bold', 'grounded'];
  * cap, and three candidates is already three generations.
  */
 export const GuidedSheet = forwardRef<BottomSheetModal, GuidedSheetProps>(function GuidedSheet(
-  { step, candidates, busy = false, onGenerate, onKeep, onStep },
+  { step, candidates, busy = false, error = null, onGenerate, onKeep, onStep },
   ref,
 ) {
   const { colors, spacing } = useTheme();
@@ -71,6 +80,18 @@ export const GuidedSheet = forwardRef<BottomSheetModal, GuidedSheetProps>(functi
         }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Above the step, not inside one: the pass can fail from any of them,
+            and she should read why before the question she is being re-asked. */}
+        {error && (
+          <Text
+            testID="guided-error"
+            allowFontScaling={false}
+            style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
+          >
+            {error}
+          </Text>
+        )}
+
         {step === 'goal' && (
           <View style={{ gap: spacing.md }} testID="guided-goal">
             {label(affirmationsCopy.guided.goalTitle)}

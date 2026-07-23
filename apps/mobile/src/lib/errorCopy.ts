@@ -35,6 +35,18 @@ export function errorCopyFor(error: unknown): string {
   return ERROR_COPY.internal;
 }
 
+/**
+ * The line for a key that never arrived as a thrown request error.
+ *
+ * A generation is accepted with a 202 and then fails asynchronously — the
+ * failure shows up as a job STATUS, not as a rejected promise, so there is no
+ * error object to hand `errorCopyFor`. Same words either way; a failure she
+ * caused by tapping and one the poll reported must not read differently.
+ */
+export function errorCopyForKey(key: ApiErrorKey): string {
+  return ERROR_COPY[key];
+}
+
 /** The key, when a caller needs to branch (e.g. offering the paywall on 402). */
 export function errorKeyOf(error: unknown): ApiErrorKey | null {
   return error instanceof ApiRequestError ? error.key : null;

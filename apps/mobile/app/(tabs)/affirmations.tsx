@@ -20,6 +20,7 @@ import { localDate } from '@/features/gratitude/useGratitude';
 import { OutlinePill } from '@/features/paywall/OutlinePill';
 import { analytics } from '@/lib/analytics';
 import { api } from '@/lib/api';
+import { errorCopyFor, errorCopyForKey } from '@/lib/errorCopy';
 import { useAppState } from '@/stores/appState';
 import { haptic } from '@/theme/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -53,6 +54,7 @@ export default function AffirmationsRoute() {
   // an empty set and left the sheet stuck on "Writing them…".
   const [guidedJobId, setGuidedJobId] = useState<string | undefined>();
   const guidedJob = useGenerationJob(guidedJobId);
+  const [guidedError, setGuidedError] = useState<string | null>(null);
 
   // `affirmations.technique` is a free text column the generator fills; anything
   // unrecognised falls back to identity rather than rendering no chip at all.
@@ -73,6 +75,7 @@ export default function AffirmationsRoute() {
   const generate = useCallback(
     (input: Parameters<React.ComponentProps<typeof GuidedSheet>['onGenerate']>[0]) => {
       setBusy(true);
+      setGuidedError(null);
       setStep('candidates');
       void api
         .generateGuidedAffirmation(input)
@@ -84,7 +87,10 @@ export default function AffirmationsRoute() {
           // Hand off to the poll; busy stays true until the job is terminal.
           setGuidedJobId(res.jobId);
         })
-        .catch(() => setBusy(false));
+        .catch((error: unknown) => {
+          setBusy(false);
+          setGuidedError(errorCopyFor(error));
+        });
     },
     [],
   );
@@ -95,6 +101,18 @@ export default function AffirmationsRoute() {
   useEffect(() => {
     if (!guidedStatus) return;
     if (guidedStatus === 'succeeded') void candidates.refetch();
+
+    // A failed pass wrote no candidate rows, so the candidate step would render
+    // its title over an empty panel with nothing to tap — a dead end she can
+    // only escape by dismissing the sheet and starting over. Say what happened
+    // and put her back on the tone step, where one tap retries.
+    if (guidedStatus === 'failed' || guidedStatus === 'qa_failed') {
+      setGuidedError(errorCopyForKey('generation_failed'));
+      setStep('tone');
+      // Clearing the id stops the poll; a retry sets a fresh one.
+      setGuidedJobId(undefined);
+    }
+
     if (guidedStatus === 'succeeded' || guidedStatus === 'failed' || guidedStatus === 'qa_failed') {
       setBusy(false);
     }
@@ -120,12 +138,20 @@ export default function AffirmationsRoute() {
 
   const keep = useCallback(
     (candidateId: string) => {
-      void api.keepAffirmation(candidateId).then(() => {
-        analytics.capture('affirmation_saved');
-        guidedRef.current?.dismiss();
-        void kept.refetch();
-        void candidates.refetch();
-      });
+      setGuidedError(null);
+      api
+        .keepAffirmation(candidateId)
+        .then(() => {
+          analytics.capture('affirmation_saved');
+          guidedRef.current?.dismiss();
+          void kept.refetch();
+          void candidates.refetch();
+        })
+        // Without this the request rejected unhandled and the failure surfaced
+        // as a redbox with a Java stack trace — a technical string reaching the
+        // surface, which 05 §8 forbids. She keeps the sheet and a line she can
+        // act on instead.
+        .catch((error: unknown) => setGuidedError(errorCopyFor(error)));
     },
     [kept, candidates],
   );
@@ -230,6 +256,7 @@ export default function AffirmationsRoute() {
           text: c.text,
           whyLine: c.why_line,
         }))}
+        error={guidedError}
         onStep={setStep}
         onGenerate={generate}
         onKeep={keep}
