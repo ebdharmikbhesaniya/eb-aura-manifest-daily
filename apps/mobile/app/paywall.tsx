@@ -1,9 +1,9 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
-import { Screen } from '@/components';
+import { Screen, TextButton } from '@/components';
 import { ClaimSheet } from '@/features/paywall/ClaimSheet';
 import { PaywallScreen } from '@/features/paywall/PaywallScreen';
 import { appleAuthAvailable } from '@/features/paywall/claim';
@@ -15,7 +15,10 @@ import {
   restorePurchases,
   type OfferedPlan,
 } from '@/features/paywall/purchases';
+import { paywallCopy } from '@/copy/paywall';
 import { analytics } from '@/lib/analytics';
+import { useTheme } from '@/theme/ThemeProvider';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 import { LetterMotionProvider } from '@/theme/motion';
 
 /**
@@ -31,6 +34,15 @@ import { LetterMotionProvider } from '@/theme/motion';
  */
 export default function PaywallRoute() {
   const router = useRouter();
+  const { colors, spacing } = useTheme();
+  const scale = clampedFontScale();
+  /**
+   * How she got here. The first presentation arrives straight from the Letter
+   * with no param; Settings sends `from=settings` because the two want opposite
+   * behaviour when there is no offering — see the effect below.
+   */
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const askedForPlans = from === 'settings';
   const [plans, setPlans] = useState<OfferedPlan[]>([]);
   const [busy, setBusy] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(true);
@@ -58,14 +70,21 @@ export default function PaywallRoute() {
     router.replace('/(tabs)/home');
   }, [router]);
 
-  // No offering (offline, or a build with no RevenueCat key): leave for the free
-  // tier. Without this the cover renders empty and nothing ever moves — no
-  // plans, so no CTA, and the dismiss ✕ lives inside `PaywallScreen`, which this
-  // branch does not render. She would be stranded on a blank screen with no way
-  // out, which is the opposite of what the free-tier fallback intends.
+  /**
+   * No offering — offline, or a build with no RevenueCat key.
+   *
+   * Straight after the Letter that means leaving quietly for the free tier: the
+   * cover would render empty, and its dismiss ✕ lives inside `PaywallScreen`,
+   * which the empty branch never mounts. She would be stranded.
+   *
+   * Reached from Settings it means the opposite. She tapped "See what's
+   * included" ON PURPOSE, and replacing the route sent her back to Home with no
+   * explanation — a tap that looked like it did nothing. That path gets an
+   * honest line and a way back instead.
+   */
   useEffect(() => {
-    if (plansResolved && plans.length === 0) leaveToFreeTier();
-  }, [plansResolved, plans.length, leaveToFreeTier]);
+    if (plansResolved && plans.length === 0 && !askedForPlans) leaveToFreeTier();
+  }, [plansResolved, plans.length, askedForPlans, leaveToFreeTier]);
 
   const onPurchase = useCallback(async (plan: OfferedPlan) => {
     setBusy(true);
@@ -124,7 +143,36 @@ export default function PaywallRoute() {
         // Showing an empty paywall would be worse than not showing one — she
         // can subscribe from Settings later.
         <Screen testID="paywall-unavailable" edgeToEdge>
-          <View style={{ flex: 1 }} />
+          {plansResolved && askedForPlans ? (
+            <View
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                gap: spacing.lg,
+                // The cover is edge-to-edge; this copy still needs the margin.
+                paddingHorizontal: spacing.xl,
+              }}
+            >
+              <Text
+                testID="paywall-unavailable-message"
+                allowFontScaling={false}
+                style={[
+                  scaledType('body', scale),
+                  { color: colors.text.secondary, textAlign: 'center' },
+                ]}
+              >
+                {paywallCopy.subscription.plansUnavailable}
+              </Text>
+              <TextButton
+                title={paywallCopy.subscription.back}
+                onPress={() => router.back()}
+                testID="paywall-unavailable-back"
+              />
+            </View>
+          ) : (
+            // Still in flight, or on its way to the free tier.
+            <View style={{ flex: 1 }} />
+          )}
         </Screen>
       )}
     </LetterMotionProvider>

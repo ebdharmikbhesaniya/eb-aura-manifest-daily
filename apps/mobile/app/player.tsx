@@ -110,7 +110,9 @@ export default function PlayerRoute() {
         feature="refine"
         onSeePlans={() => {
           lockedRef.current?.dismiss();
-          router.push('/paywall');
+          // Same tag Settings uses: she asked for plans, so an absent offering
+          // owes her a line rather than a silent bounce back to Home.
+          router.push('/paywall?from=settings');
         }}
         onDismiss={() => lockedRef.current?.dismiss()}
       />

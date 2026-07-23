@@ -102,5 +102,12 @@ export const paywallCopy = {
     restore: 'Restore purchase',
     /** Checklist #6, said plainly where a lapsing user will look. */
     lapsedKeepsData: 'If you stop, your letter and everything you’ve told me stay yours.',
+    /**
+     * Shown when she asked to see plans and the store had none to give — no
+     * offering configured, or the lookup failed. In voice, and never a code:
+     * this is our problem to fix, not something she did (05 §8).
+     */
+    plansUnavailable: 'I can’t reach the plans right now. Try again in a moment?',
+    back: 'Back',
   },
 } as const;

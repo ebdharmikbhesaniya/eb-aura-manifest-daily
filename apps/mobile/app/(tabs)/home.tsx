@@ -266,7 +266,9 @@ export default function HomeRoute() {
         feature="manifest_anything"
         onSeePlans={() => {
           lockedRef.current?.dismiss();
-          router.push('/paywall');
+          // Same tag Settings uses: she asked for plans, so an absent offering
+          // owes her a line rather than a silent bounce back to Home.
+          router.push('/paywall?from=settings');
         }}
         onDismiss={() => lockedRef.current?.dismiss()}
       />

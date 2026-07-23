@@ -32,7 +32,9 @@ export default function SubscriptionRoute() {
         billingIssue={entitlement?.billingIssueDetectedAt != null}
         onManage={() => void openManageSubscriptions()}
         onRestore={onRestore}
-        onSeePlans={() => router.push('/paywall')}
+        // Tagged so the paywall knows she ASKED for plans: with no offering
+        // it must say so rather than silently replacing the route (12 §3).
+        onSeePlans={() => router.push('/paywall?from=settings')}
       />
     </Screen>
   );
