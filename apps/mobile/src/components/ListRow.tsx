@@ -31,7 +31,7 @@ export function ListRow({
   destructive = false,
   testID,
 }: ListRowProps) {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, spacing } = useTheme();
   const scale = clampedFontScale();
 
   return (
@@ -45,8 +45,10 @@ export function ListRow({
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.md,
-        paddingVertical: spacing.md + spacing.xs,
-        paddingHorizontal: spacing.lg,
+        // v4 §profile/settings. A tiled row runs 1pt tighter than a plain one:
+        // the 32pt tile already gives it the height a bare row needs padding for.
+        paddingVertical: leading ? layout.listRowPaddingV - 1 : layout.listRowPaddingV,
+        paddingHorizontal: layout.listRowPaddingH,
         opacity: pressed ? 0.6 : 1,
       })}
     >
@@ -56,7 +58,7 @@ export function ListRow({
         <Text
           allowFontScaling={false}
           style={[
-            scaledType('button', scale),
+            scaledType('listTitle', scale),
             { color: destructive ? colors.text.destructive : colors.text.primary },
           ]}
         >
@@ -66,7 +68,7 @@ export function ListRow({
           <Text
             allowFontScaling={false}
             numberOfLines={1}
-            style={[scaledType('bodySmall', scale), { color: colors.text.disabled }]}
+            style={[scaledType('listSubtitle', scale), { color: colors.text.disabled }]}
           >
             {subtitle}
           </Text>

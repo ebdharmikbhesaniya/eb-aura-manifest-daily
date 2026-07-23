@@ -12,7 +12,7 @@ import { useTheme } from '@/theme/ThemeProvider';
  */
 export function ProfileTrustLinks() {
   const router = useRouter();
-  const { colors, typography } = useTheme();
+  const { colors, layout, radii, typography } = useTheme();
 
   return (
     <>
@@ -31,9 +31,18 @@ export function ProfileTrustLinks() {
         />
       </RowGroup>
 
-      {/* Parchment, not white: a statement from Aura, not another tappable row. */}
-      <Card variant="solid" style={{ backgroundColor: colors.accent.parchment }}>
-        <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
+      {/* Parchment, not white: a statement from Aura, not another tappable row.
+          v4 gives it the tighter 16pt surface rather than a full card. */}
+      <Card
+        variant="solid"
+        style={{
+          backgroundColor: colors.accent.parchment,
+          borderRadius: radii.field,
+          paddingVertical: layout.tilePaddingV,
+          paddingHorizontal: layout.listRowPaddingH,
+        }}
+      >
+        <Text style={[typography.listSubtitle, { color: colors.text.secondary }]}>
           {profileCopy.privacyNote}
         </Text>
       </Card>

@@ -7,6 +7,26 @@ import { clampedFontScale } from '@/theme/typography';
 export interface SerifDisplayProps {
   variant: 'letterLine' | 'affirmationHero' | 'momentTitle' | 'title';
   children: ReactNode;
+  /**
+   * Draw the closing mark in ember — v4 puts it on every screen title.
+   *
+   * On by default for `title` and off everywhere else: a letter line or a
+   * moment name is prose, and prose does not wear a brand mark. Opt out for a
+   * title that is a piece of DATA rather than a heading (a collection's name).
+   */
+  emberMark?: boolean;
+}
+
+/** Splits a heading's closing mark off so it can be coloured separately. */
+function splitMark(children: ReactNode): { body: ReactNode; mark: string } | null {
+  if (typeof children !== 'string') return null;
+
+  const trimmed = children.trimEnd();
+  if (trimmed === '') return null;
+
+  return /[.!?]$/.test(trimmed)
+    ? { body: trimmed.slice(0, -1), mark: trimmed.slice(-1) }
+    : { body: trimmed, mark: '.' };
 }
 
 /**
@@ -22,14 +42,23 @@ export interface SerifDisplayProps {
  * `allowFontScaling={false}` — otherwise RN would scale the already-scaled size
  * a second time.
  */
-export function SerifDisplay({ variant, children }: SerifDisplayProps) {
+export function SerifDisplay({
+  variant,
+  children,
+  emberMark = variant === 'title',
+}: SerifDisplayProps) {
   const { colors, typography } = useTheme();
   const { fontSize, lineHeight, ...rest } = typography[variant];
   const scale = clampedFontScale();
 
+  const split = emberMark ? splitMark(children) : null;
+
   return (
     <Text
       allowFontScaling={false}
+      // The brand mark is decoration, so it must not reach the spoken label —
+      // VoiceOver should read the heading, not "Maya period".
+      {...(split && typeof children === 'string' ? { accessibilityLabel: children } : {})}
       style={[
         rest,
         { color: colors.text.primary },
@@ -37,7 +66,14 @@ export function SerifDisplay({ variant, children }: SerifDisplayProps) {
         ...(lineHeight !== undefined ? [{ lineHeight: lineHeight * scale }] : []),
       ]}
     >
-      {children}
+      {split ? (
+        <>
+          {split.body}
+          <Text style={{ color: colors.accent.ember }}>{split.mark}</Text>
+        </>
+      ) : (
+        children
+      )}
     </Text>
   );
 }

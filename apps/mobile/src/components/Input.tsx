@@ -9,6 +9,13 @@ export interface InputProps {
   onChangeText: (text: string) => void;
   placeholder?: string;
   /**
+   * Fill the field with the page colour instead of card white (v4 §gratitude).
+   *
+   * For a field that sits INSIDE a white card, where white-on-white leaves
+   * nothing to aim at — the composer on Gratitude is the case v4 draws.
+   */
+  sunken?: boolean;
+  /**
    * Gentle inline copy under the field. This is the ONLY feedback channel by
    * design: product 12 bans harsh validation reds — "never harsh validation
    * reds; gentle inline copy instead" — so there is no error colour prop at
@@ -43,6 +50,7 @@ export function Input({
   keyboardType = 'default',
   autoCapitalize = 'sentences',
   testID,
+  sunken = false,
 }: InputProps) {
   const { colors, durations, radii, shadows, spacing, typography } = useTheme();
   const motion = useMotion();
@@ -80,7 +88,9 @@ export function Input({
           style={[
             typography.body,
             {
-              backgroundColor: colors.surface.card,
+              // v4 §gratitude sinks the field into the page colour so it reads
+              // as somewhere to write rather than another white card.
+              backgroundColor: sunken ? colors.bg.base : colors.surface.card,
               borderRadius: radii.field,
               padding: spacing.md,
               color: colors.text.primary,

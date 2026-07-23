@@ -54,7 +54,7 @@ export function GratitudeScreen({
   onHistory,
   testID,
 }: GratitudeScreenProps) {
-  const { colors, spacing, layout } = useTheme();
+  const { colors, layout, radii, spacing } = useTheme();
   const scale = clampedFontScale();
   const tabBarClearance = useTabBarClearance();
 
@@ -94,6 +94,13 @@ export function GratitudeScreen({
   // either just cleared, or re-seeded with that same line on a later visit.
   const saved = hasTodaysEntry && (draft === '' || draft === todaysEntry.trim());
 
+  // The question's final mark carries the ember, so it is split off the string
+  // rather than baked into the copy — the copy stays a plain sentence.
+  const trimmedPrompt = prompt.trimEnd();
+  const endsInMark = /[?.!]$/.test(trimmedPrompt);
+  const promptBody = endsInMark ? trimmedPrompt.slice(0, -1) : trimmedPrompt;
+  const promptMark = endsInMark ? trimmedPrompt.slice(-1) : '';
+
   return (
     <ScrollView
       testID={testID}
@@ -119,11 +126,14 @@ export function GratitudeScreen({
       </View>
 
       <Card variant="solid" style={{ gap: spacing.md }}>
+        {/* v4 sets the question a step below a sheet title and closes it on an
+            ember mark — the same brand full stop the screen titles wear. */}
         <Text
           allowFontScaling={false}
-          style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
+          style={[scaledType('gratitudePrompt', scale), { color: colors.text.primary }]}
         >
-          {prompt}
+          {promptBody}
+          <Text style={{ color: colors.accent.ember }}>{promptMark}</Text>
         </Text>
 
         <Input
@@ -131,6 +141,7 @@ export function GratitudeScreen({
           onChangeText={setEntry}
           placeholder={gratitudeCopy.placeholder}
           multiline
+          sunken
           testID="gratitude-input"
         />
 
@@ -188,11 +199,29 @@ export function GratitudeScreen({
           </Card>
         ) : (
           history.map((item) => (
-            <Card key={item.entryDate} variant="solid" style={{ gap: spacing.xs }}>
-              <Label>{dayLabelFor(item.entryDate)}</Label>
+            <Card
+              key={item.entryDate}
+              variant="solid"
+              // v4 §gratitude gives an entry its own surface: 16pt radius and
+              // 13/16 padding, tighter than the composer it sits under.
+              style={{
+                gap: spacing.xs - 1,
+                borderRadius: radii.field,
+                paddingVertical: layout.tilePaddingV,
+                paddingHorizontal: layout.listRowPaddingH,
+              }}
+            >
+              {/* Plain, not the tracked uppercase `Label`: a weekday here is a
+                  timestamp on her own words, not section wayfinding. */}
               <Text
                 allowFontScaling={false}
-                style={[scaledType('body', scale), { color: colors.text.primary }]}
+                style={[scaledType('entryDay', scale), { color: colors.text.label }]}
+              >
+                {dayLabelFor(item.entryDate)}
+              </Text>
+              <Text
+                allowFontScaling={false}
+                style={[scaledType('entryBody', scale), { color: colors.text.body }]}
               >
                 {item.entry}
               </Text>

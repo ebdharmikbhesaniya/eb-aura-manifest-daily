@@ -58,7 +58,10 @@ export default function CollectionRoute() {
         contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.lg }}
         showsVerticalScrollIndicator={false}
       >
-        <SerifDisplay variant="title">{title}</SerifDisplay>
+        {/* A collection name is data, not a heading — no ember mark. */}
+        <SerifDisplay variant="title" emberMark={false}>
+          {title}
+        </SerifDisplay>
 
         {items.length === 0 ? (
           <Card variant="solid">

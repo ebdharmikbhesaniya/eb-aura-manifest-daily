@@ -21,13 +21,15 @@ export interface RowGroupProps {
  * their own padding and press behaviour.
  */
 export function RowGroup({ children, separatorInset = 'edge', style, testID }: RowGroupProps) {
-  const { colors, radii, spacing } = useTheme();
+  const { colors, layout, radii, spacing } = useTheme();
 
   const rows = Children.toArray(children).filter(Boolean);
 
   // Text in a tiled row starts after: row padding + 32pt tile + the row gap.
   const inset =
-    separatorInset === 'leading' ? spacing.lg + ICON_TILE_SIZE + spacing.md : spacing.lg;
+    separatorInset === 'leading'
+      ? layout.listRowPaddingH + ICON_TILE_SIZE + spacing.md
+      : layout.listRowPaddingH;
 
   return (
     <View
@@ -35,7 +37,7 @@ export function RowGroup({ children, separatorInset = 'edge', style, testID }: R
       style={[
         {
           backgroundColor: colors.surface.card,
-          borderRadius: radii.card,
+          borderRadius: radii.group,
           borderWidth: 1,
           borderColor: colors.surface.border,
           overflow: 'hidden',

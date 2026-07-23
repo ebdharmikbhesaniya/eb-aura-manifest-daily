@@ -8,9 +8,13 @@ import { useTheme } from '@/theme/ThemeProvider';
 /** Product 13 §catalog: "Gratitude dot fill — 200ms ease. Quiet completion; no fireworks." */
 const DOT_FILL_MS = 200;
 
+/** v4 draws the week's dots at 12 (§gratitude). */
+const WEEK_DOT_SIZE = 12;
+
 export interface WeekDotsProps {
   /** One entry per weekday. */
   filled: boolean[];
+  /** v4 draws them at 12 (§gratitude). */
   size?: number;
 }
 
@@ -57,7 +61,9 @@ function Dot({ filled, size, motion }: { filled: boolean; size: number; motion: 
 export function WeekDots({ filled, size }: WeekDotsProps) {
   const { spacing } = useTheme();
   const motion = useMotion();
-  const dotSize = size ?? spacing.md;
+  // 12 is v4's dot (§gratitude) — spacing.md happens to be the same number,
+  // but naming it here keeps the dot from drifting with the spacing scale.
+  const dotSize = size ?? WEEK_DOT_SIZE;
   const count = filled.filter(Boolean).length;
 
   return (

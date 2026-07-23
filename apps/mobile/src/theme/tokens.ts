@@ -188,6 +188,8 @@ export const radii = {
   /** Inputs, checklist rows. */
   field: 16,
   card: 22,
+  /** Grouped row cards — Profile and Settings sit a step tighter than a card. */
+  group: 20,
   /** Fully-round pills and the FAB (999 in the design; any value ≥ height/2). */
   pill: 999,
   sheet: 28,
@@ -212,6 +214,9 @@ export const layout = {
   /** Compact rows and tiles: 12 vertical, 14 horizontal (v4 §home). */
   rowPaddingV: 12,
   rowPaddingH: 14,
+  /** Grouped list rows (v4 §profile/settings): 14 vertical, 16 horizontal. */
+  listRowPaddingV: 14,
+  listRowPaddingH: 16,
   /** Collection tiles sit a hair taller than a list row (v4 §home grid). */
   tilePaddingV: 13,
   /** v4's affirmation card breathes one step more than a standard card. */

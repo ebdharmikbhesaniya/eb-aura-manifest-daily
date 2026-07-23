@@ -64,7 +64,9 @@ describe('ProfileTab (product 11: trust center)', () => {
   it('shows what Aura currently believes, field by field', async () => {
     const view = await render(<ProfileTab />, { wrapper });
 
-    expect(await view.findByText('Maya')).toBeTruthy();
+    // Regex, not an exact string: v4 closes a title on an ember mark, and the
+    // assertion is about her NAME being shown, not about the brand full stop.
+    expect(await view.findByText(/Maya/)).toBeTruthy();
     expect(view.getByText('restless in a good way')).toBeTruthy();
     expect(view.getByText('Lisbon')).toBeTruthy();
   });

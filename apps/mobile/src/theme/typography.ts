@@ -67,7 +67,12 @@ type Variant =
   | 'cardButton'
   | 'rowTitle'
   | 'rowMeta'
-  | 'subScreenTitle';
+  | 'subScreenTitle'
+  | 'listTitle'
+  | 'listSubtitle'
+  | 'gratitudePrompt'
+  | 'entryDay'
+  | 'entryBody';
 
 /**
  * `allowFontScaling` is left ON everywhere (RN default). Serif variants apply
@@ -155,6 +160,20 @@ export const typography: Record<Variant, TextStyle> = {
    * should feel quieter than arriving somewhere top-level.
    */
   subScreenTitle: { fontFamily: fonts.serif, fontSize: 23, lineHeight: 28 },
+
+  /**
+   * A grouped row's two lines (v4 §profile/settings). Smaller than `button`
+   * and `bodySmall`, which are a control's label and a paragraph — a row names
+   * a destination and says what is behind it, quietly.
+   */
+  listTitle: { fontFamily: fonts.sansSemiBold, fontSize: 14, lineHeight: 20 },
+  listSubtitle: { fontFamily: fonts.sansMedium, fontSize: 12, lineHeight: 16 },
+
+  /** The gratitude question (v4 §gratitude) — serif, a step below a sheet title. */
+  gratitudePrompt: { fontFamily: fonts.serif, fontSize: 19, lineHeight: 27 },
+  /** A saved entry's weekday, and the line she wrote under it. */
+  entryDay: { fontFamily: fonts.sansSemiBold, fontSize: 11, lineHeight: 15 },
+  entryBody: { fontFamily: fonts.sansMedium, fontSize: 14, lineHeight: 21 },
 };
 
 /** 60% per product 12 §label style. */
