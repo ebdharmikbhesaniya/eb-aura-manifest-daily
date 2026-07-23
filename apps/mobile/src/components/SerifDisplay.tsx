@@ -5,16 +5,19 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale } from '@/theme/typography';
 
 export interface SerifDisplayProps {
-  variant: 'letterLine' | 'affirmationHero' | 'momentTitle' | 'title';
+  variant: 'letterLine' | 'affirmationHero' | 'momentTitle' | 'title' | 'sheetTitle';
   children: ReactNode;
   /**
    * Draw the closing mark in ember — v4 puts it on every screen title.
    *
-   * On by default for `title` and off everywhere else: a letter line or a
-   * moment name is prose, and prose does not wear a brand mark. Opt out for a
-   * title that is a piece of DATA rather than a heading (a collection's name).
+   * On by default for `title` and `sheetTitle`, off everywhere else: a letter
+   * line or a moment name is prose, and prose does not wear a brand mark. Opt
+   * out for a title that is DATA rather than a heading (a collection's name),
+   * or for a sheet heading that is already a question to her.
    */
   emberMark?: boolean;
+  /** Some sheets centre their heading over an orb (v4 §locked feature). */
+  center?: boolean;
 }
 
 /** Splits a heading's closing mark off so it can be coloured separately. */
@@ -45,7 +48,8 @@ function splitMark(children: ReactNode): { body: ReactNode; mark: string } | nul
 export function SerifDisplay({
   variant,
   children,
-  emberMark = variant === 'title',
+  emberMark = variant === 'title' || variant === 'sheetTitle',
+  center = false,
 }: SerifDisplayProps) {
   const { colors, typography } = useTheme();
   const { fontSize, lineHeight, ...rest } = typography[variant];
@@ -62,6 +66,7 @@ export function SerifDisplay({
       style={[
         rest,
         { color: colors.text.primary },
+        center && { textAlign: 'center' as const },
         ...(fontSize !== undefined ? [{ fontSize: fontSize * scale }] : []),
         ...(lineHeight !== undefined ? [{ lineHeight: lineHeight * scale }] : []),
       ]}

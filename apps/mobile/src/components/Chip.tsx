@@ -43,7 +43,7 @@ export function Chip({ label, selected, onPress }: ChipProps) {
         style={[
           {
             borderRadius: radii.chip,
-            paddingHorizontal: spacing.md,
+            paddingHorizontal: spacing.md + 2,
             paddingVertical: spacing.sm,
             borderWidth: 1,
             borderColor: selected ? colors.cta.background : colors.surface.border,
@@ -53,10 +53,7 @@ export function Chip({ label, selected, onPress }: ChipProps) {
         ]}
       >
         <Text
-          style={[
-            typography.bodySmall,
-            { color: selected ? colors.text.onCta : colors.text.primary },
-          ]}
+          style={[typography.chipLabel, { color: selected ? colors.text.onCta : colors.text.body }]}
         >
           {label}
         </Text>

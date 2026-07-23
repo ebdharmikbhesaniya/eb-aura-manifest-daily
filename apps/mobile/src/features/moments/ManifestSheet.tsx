@@ -3,7 +3,7 @@ import { BottomSheetView, type BottomSheetModal } from '@gorhom/bottom-sheet';
 import { forwardRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { Chip, Input, PillButton, Sheet } from '@/components';
+import { Chip, Input, PillButton, SerifDisplay, Sheet } from '@/components';
 import { momentsCopy } from '@/copy/moments';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
@@ -48,12 +48,7 @@ export const ManifestSheet = forwardRef<BottomSheetModal, ManifestSheetProps>(
           style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md }}
         >
           <View style={{ gap: spacing.xs }}>
-            <Text
-              allowFontScaling={false}
-              style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
-            >
-              {momentsCopy.manifest.title}
-            </Text>
+            <SerifDisplay variant="sheetTitle">{momentsCopy.manifest.title}</SerifDisplay>
             <Text
               allowFontScaling={false}
               style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
@@ -67,6 +62,7 @@ export const ManifestSheet = forwardRef<BottomSheetModal, ManifestSheetProps>(
             onChangeText={setDesire}
             placeholder={momentsCopy.manifest.placeholder}
             multiline
+            sunken
             testID="manifest-input"
           />
 

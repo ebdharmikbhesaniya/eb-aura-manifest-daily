@@ -3,7 +3,7 @@ import { BottomSheetView, type BottomSheetModal } from '@gorhom/bottom-sheet';
 import { forwardRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { Sheet } from '@/components';
+import { Sheet, SerifDisplay } from '@/components';
 import { affirmationsCopy } from '@/copy/affirmations';
 import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -58,12 +58,7 @@ export const TechniqueSheet = forwardRef<BottomSheetModal, TechniqueSheetProps>(
         <BottomSheetView
           style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md }}
         >
-          <Text
-            allowFontScaling={false}
-            style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
-          >
-            {copy.label}
-          </Text>
+          <SerifDisplay variant="sheetTitle">{copy.label}</SerifDisplay>
 
           <Text
             testID="technique-why"

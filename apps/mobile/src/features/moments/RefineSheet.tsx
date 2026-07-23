@@ -3,7 +3,7 @@ import { BottomSheetView, type BottomSheetModal } from '@gorhom/bottom-sheet';
 import { forwardRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { Input, PillButton, SelectCard, Sheet } from '@/components';
+import { Input, PillButton, SelectCard, Sheet, SerifDisplay } from '@/components';
 import { momentsCopy } from '@/copy/moments';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
@@ -44,12 +44,7 @@ export const RefineSheet = forwardRef<BottomSheetModal, RefineSheetProps>(functi
       <BottomSheetView
         style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md }}
       >
-        <Text
-          allowFontScaling={false}
-          style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
-        >
-          {momentsCopy.refine.title}
-        </Text>
+        <SerifDisplay variant="sheetTitle">{momentsCopy.refine.title}</SerifDisplay>
 
         <View style={{ gap: spacing.sm }}>
           {DIRECTIONS.map((value) => (

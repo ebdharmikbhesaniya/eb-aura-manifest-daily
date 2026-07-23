@@ -2,7 +2,7 @@ import { BottomSheetView, type BottomSheetModal } from '@gorhom/bottom-sheet';
 import { forwardRef } from 'react';
 import { Switch, Text, View } from 'react-native';
 
-import { Chip, Sheet } from '@/components';
+import { Chip, Sheet, SerifDisplay } from '@/components';
 import { notificationsCopy } from '@/copy/notifications';
 import { useAppState } from '@/stores/appState';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -40,12 +40,7 @@ export const NotificationPrefsSheet = forwardRef<BottomSheetModal, NotificationP
         <BottomSheetView
           style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.lg }}
         >
-          <Text
-            allowFontScaling={false}
-            style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
-          >
-            {notificationsCopy.prefs.title}
-          </Text>
+          <SerifDisplay variant="sheetTitle">{notificationsCopy.prefs.title}</SerifDisplay>
 
           <View
             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}

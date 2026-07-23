@@ -2,7 +2,7 @@ import { BottomSheetView, type BottomSheetModal } from '@gorhom/bottom-sheet';
 import { forwardRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { Input, PillButton, Sheet, TextButton } from '@/components';
+import { Input, PillButton, Sheet, TextButton, SerifDisplay } from '@/components';
 import { paywallCopy } from '@/copy/paywall';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
@@ -61,12 +61,7 @@ export const ClaimSheet = forwardRef<BottomSheetModal, ClaimSheetProps>(function
       <BottomSheetView
         style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md }}
       >
-        <Text
-          allowFontScaling={false}
-          style={[scaledType('sheetTitle', scale), { color: colors.text.primary }]}
-        >
-          {paywallCopy.claim.title}
-        </Text>
+        <SerifDisplay variant="sheetTitle">{paywallCopy.claim.title}</SerifDisplay>
 
         <Text
           allowFontScaling={false}

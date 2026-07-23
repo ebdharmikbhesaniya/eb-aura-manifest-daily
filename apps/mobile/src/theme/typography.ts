@@ -76,7 +76,8 @@ type Variant =
   | 'coverTitle'
   | 'coverMeta'
   | 'pillLabel'
-  | 'skipLabel';
+  | 'skipLabel'
+  | 'chipLabel';
 
 /**
  * `allowFontScaling` is left ON everywhere (RN default). Serif variants apply
@@ -116,7 +117,7 @@ export const typography: Record<Variant, TextStyle> = {
    */
   title: { fontFamily: fonts.serif, fontSize: 27, lineHeight: 32 },
   /** Bottom-sheet and ritual headings — a step below `title`. */
-  sheetTitle: { fontFamily: fonts.serif, fontSize: 22, lineHeight: 30 },
+  sheetTitle: { fontFamily: fonts.serif, fontSize: 22, lineHeight: 29 },
   /** Emphasised sans rows — plan names, prices (v3 headline · Figtree 700 · 16/22). */
   headline: { fontFamily: fonts.sansBold, fontSize: 16, lineHeight: 22 },
 
@@ -191,6 +192,8 @@ export const typography: Record<Variant, TextStyle> = {
   pillLabel: { fontFamily: fonts.sansSemiBold, fontSize: 12.5, lineHeight: 17 },
   /** The ±15 skips — a half point tighter than the option pills beside them. */
   skipLabel: { fontFamily: fonts.sansSemiBold, fontSize: 12, lineHeight: 16 },
+  /** Chips inside a sheet (v4 §manifest) — a hair under body small. */
+  chipLabel: { fontFamily: fonts.sansMedium, fontSize: 12.5, lineHeight: 17 },
 };
 
 /** 60% per product 12 §label style. */

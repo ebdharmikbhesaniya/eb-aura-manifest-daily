@@ -3,7 +3,7 @@ import { BottomSheetView, type BottomSheetModal } from '@gorhom/bottom-sheet';
 import { forwardRef, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { Orb, PillButton, Sheet, TextButton } from '@/components';
+import { Orb, PillButton, Sheet, TextButton, SerifDisplay } from '@/components';
 import { paywallCopy } from '@/copy/paywall';
 import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -62,15 +62,9 @@ export const LockedFeatureSheet = forwardRef<BottomSheetModal, LockedFeatureShee
             <Orb state="idle" size={ORB_SIZE} testID="locked-orb" />
           </View>
 
-          <Text
-            allowFontScaling={false}
-            style={[
-              scaledType('sheetTitle', scale),
-              { color: colors.text.primary, textAlign: 'center' },
-            ]}
-          >
+          <SerifDisplay variant="sheetTitle" center>
             {paywallCopy.locked.title}
-          </Text>
+          </SerifDisplay>
 
           {feature && (
             <Text
