@@ -31,6 +31,8 @@ export const palette = {
   oliveMuted: '#C9C3AC',
   /** Dashed "future" outlines, empty checkboxes. */
   oliveFaint: '#B4AE9C',
+  /** Hairline on the player's skip pills — a step softer than oliveFaint. */
+  oliveLine: '#C9C3AC',
   oliveDisabledText: '#A39D89',
   oliveDisabledFill: '#E5E1D2',
 

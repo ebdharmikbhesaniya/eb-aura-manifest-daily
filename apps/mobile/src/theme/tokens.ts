@@ -46,6 +46,8 @@ export interface ColorTokens {
     oliveSoft: string;
     /** Dashed future outlines, empty checkmarks. */
     oliveFaint: string;
+    /** Hairline on the player's skip pills (v4 §player). */
+    oliveLine: string;
     /** Marked days, gratitude fills. */
     blush: string;
     /** Gentle banners. */
@@ -100,6 +102,7 @@ const light: ColorTokens = {
     olive: palette.olive,
     oliveSoft: palette.oliveSoft,
     oliveFaint: palette.oliveFaint,
+    oliveLine: palette.oliveLine,
     blush: palette.blush,
     blushSoft: palette.blushSoft,
     blushDeep: palette.blushDeep,
@@ -154,6 +157,7 @@ const dark: ColorTokens = {
     olive: palette.olive,
     oliveSoft: '#3A362B',
     oliveFaint: '#57523F',
+    oliveLine: '#5F5A46',
     blush: palette.blush,
     blushSoft: '#3B2C33',
     blushDeep: palette.blushDeep,
@@ -217,6 +221,8 @@ export const layout = {
   /** Grouped list rows (v4 §profile/settings): 14 vertical, 16 horizontal. */
   listRowPaddingV: 14,
   listRowPaddingH: 16,
+  /** Full-screen covers breathe wider than a tab screen (v4 §player). */
+  coverMargin: 24,
   /** Collection tiles sit a hair taller than a list row (v4 §home grid). */
   tilePaddingV: 13,
   /** v4's affirmation card breathes one step more than a standard card. */

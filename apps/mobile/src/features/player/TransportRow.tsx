@@ -82,16 +82,16 @@ function SkipPill({
       testID={testID}
       style={({ pressed }) => ({
         borderWidth: 1,
-        borderColor: colors.accent.oliveFaint,
+        borderColor: colors.accent.oliveLine,
         borderRadius: radii.pill,
-        paddingVertical: spacing.sm,
-        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm + 2,
+        paddingHorizontal: spacing.md + 1,
         opacity: pressed ? 0.7 : 1,
       })}
     >
       <Text
         allowFontScaling={false}
-        style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
+        style={[scaledType('skipLabel', scale), { color: colors.text.secondary }]}
       >
         {glyph}
       </Text>

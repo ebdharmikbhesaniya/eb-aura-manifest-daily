@@ -18,6 +18,9 @@ import { formatTime, progressOf, usePlayerStore } from './playerStore';
 
 /** The cover orb, when there is no karaoke to BE the cover (v4 §player). */
 const ORB_SIZE = 170;
+/** The cover's chrome glyphs (v4 §player): a 16pt chevron, a 17pt keep mark. */
+const MINIMIZE_GLYPH = 16;
+const KEEP_GLYPH = 17;
 
 export interface PlayerScreenProps {
   onToggle: () => void;
@@ -53,7 +56,7 @@ export function PlayerScreen({
   canRefine = true,
   testID,
 }: PlayerScreenProps) {
-  const { colors, spacing, layout, iconSizes } = useTheme();
+  const { colors, spacing, layout } = useTheme();
   const scale = clampedFontScale();
 
   const moment = usePlayerStore((s) => s.moment);
@@ -88,7 +91,7 @@ export function PlayerScreen({
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: layout.screenMargin,
+            paddingHorizontal: layout.coverMargin,
           }}
         >
           <View style={{ flex: 1, alignItems: 'flex-start' }}>
@@ -99,7 +102,7 @@ export function PlayerScreen({
               hitSlop={12}
               testID="player-minimize"
             >
-              <Text style={{ fontSize: iconSizes.md * scale, color: colors.text.secondary }}>
+              <Text style={{ fontSize: MINIMIZE_GLYPH * scale, color: colors.text.secondary }}>
                 ⌄
               </Text>
             </Pressable>
@@ -115,12 +118,9 @@ export function PlayerScreen({
               hitSlop={12}
               testID="player-favorite"
             >
-              <Text
-                style={{
-                  fontSize: iconSizes.lg * scale,
-                  color: moment.favoritedAt ? colors.accent.heart : colors.text.secondary,
-                }}
-              >
+              {/* Blush in BOTH states, as on Home: only the fill changes, so an
+                  unkept moment still reads as keepable (v4 §player). */}
+              <Text style={{ fontSize: KEEP_GLYPH * scale, color: colors.accent.heart }}>
                 {moment.favoritedAt ? '♥' : '♡'}
               </Text>
             </Pressable>
@@ -143,7 +143,7 @@ export function PlayerScreen({
               flex: 1,
               alignItems: 'center',
               justifyContent: 'center',
-              paddingHorizontal: layout.screenMargin,
+              paddingHorizontal: layout.coverMargin,
             }}
           >
             <Orb state={playing ? 'speaking' : 'idle'} size={ORB_SIZE} testID="player-orb" />
@@ -152,8 +152,8 @@ export function PlayerScreen({
               <Text
                 allowFontScaling={false}
                 style={[
-                  scaledType('letterLine', scale),
-                  { color: colors.text.primary, textAlign: 'center', marginTop: spacing.lg },
+                  scaledType('coverTitle', scale),
+                  { color: colors.text.primary, textAlign: 'center', marginTop: spacing.lg + 2 },
                 ]}
               >
                 {moment.title}
@@ -163,8 +163,8 @@ export function PlayerScreen({
             <Text
               allowFontScaling={false}
               style={[
-                scaledType('bodySmall', scale),
-                { color: colors.text.secondary, textAlign: 'center', marginTop: spacing.xs },
+                scaledType('coverMeta', scale),
+                { color: colors.text.label, textAlign: 'center', marginTop: spacing.xs + 2 },
               ]}
             >
               {playerCopy.fromLine.replace('{minutes}', String(minutes))}
@@ -172,14 +172,16 @@ export function PlayerScreen({
           </View>
         )}
 
-        <View style={{ paddingHorizontal: layout.screenMargin, gap: spacing.md }}>
+        <View style={{ paddingHorizontal: layout.coverMargin, gap: spacing.md }}>
           <WaveBars progress={progressOf(positionMs, durationMs)} testID="player-progress" />
 
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}>
+            {/* Monospaced: a proportional face makes the elapsed time jitter
+                as its digits change (v4 §player). */}
+            <Text style={[scaledType('rowMeta', scale), { color: colors.text.label }]}>
               {formatTime(positionMs)}
             </Text>
-            <Text style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}>
+            <Text style={[scaledType('rowMeta', scale), { color: colors.text.label }]}>
               {formatTime(durationMs)}
             </Text>
           </View>
@@ -239,7 +241,7 @@ function ControlPill({
   tint?: string;
   testID: string;
 }) {
-  const { colors, spacing, radii } = useTheme();
+  const { colors, layout, spacing, radii } = useTheme();
   const scale = clampedFontScale();
 
   return (
@@ -254,14 +256,14 @@ function ControlPill({
         borderWidth: 1,
         borderColor: colors.surface.border,
         borderRadius: radii.pill,
-        paddingVertical: spacing.sm,
-        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm + 1,
+        paddingHorizontal: layout.listRowPaddingH,
         opacity: pressed ? 0.85 : 1,
       })}
     >
       <Text
         allowFontScaling={false}
-        style={[scaledType('bodySmall', scale), { color: tint ?? colors.text.secondary }]}
+        style={[scaledType('pillLabel', scale), { color: tint ?? colors.text.secondary }]}
       >
         {title}
       </Text>

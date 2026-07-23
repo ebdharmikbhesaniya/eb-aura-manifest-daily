@@ -72,7 +72,11 @@ type Variant =
   | 'listSubtitle'
   | 'gratitudePrompt'
   | 'entryDay'
-  | 'entryBody';
+  | 'entryBody'
+  | 'coverTitle'
+  | 'coverMeta'
+  | 'pillLabel'
+  | 'skipLabel';
 
 /**
  * `allowFontScaling` is left ON everywhere (RN default). Serif variants apply
@@ -174,6 +178,19 @@ export const typography: Record<Variant, TextStyle> = {
   /** A saved entry's weekday, and the line she wrote under it. */
   entryDay: { fontFamily: fonts.sansSemiBold, fontSize: 11, lineHeight: 15 },
   entryBody: { fontFamily: fonts.sansMedium, fontSize: 14, lineHeight: 21 },
+
+  /**
+   * The player's cover (v4 §player). The moment's name is set ITALIC here,
+   * unlike `momentTitle` on Home: on the cover the moment is being spoken, and
+   * italic serif is the voice.
+   */
+  coverTitle: { fontFamily: fonts.serifItalic, fontStyle: 'italic', fontSize: 23, lineHeight: 32 },
+  /** The line under it — provenance and length, never a control. */
+  coverMeta: { fontFamily: fonts.sansMedium, fontSize: 12.5, lineHeight: 17 },
+  /** The quiet option pills under the transport. */
+  pillLabel: { fontFamily: fonts.sansSemiBold, fontSize: 12.5, lineHeight: 17 },
+  /** The ±15 skips — a half point tighter than the option pills beside them. */
+  skipLabel: { fontFamily: fonts.sansSemiBold, fontSize: 12, lineHeight: 16 },
 };
 
 /** 60% per product 12 §label style. */
