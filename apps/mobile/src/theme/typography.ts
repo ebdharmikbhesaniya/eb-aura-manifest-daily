@@ -83,7 +83,9 @@ type Variant =
   | 'rowAction'
   | 'ritualLine'
   | 'ritualLineFinal'
-  | 'endingBody';
+  | 'endingBody'
+  | 'question'
+  | 'progressCounter';
 
 /**
  * `allowFontScaling` is left ON everywhere (RN default). Serif variants apply
@@ -227,6 +229,14 @@ export const typography: Record<Variant, TextStyle> = {
   },
   /** The line under the covenant, and the note under Continue (v4 §ending). */
   endingBody: { fontFamily: fonts.sansMedium, fontSize: 15, lineHeight: 24 },
+
+  /**
+   * An onboarding question (v4 §S3–S11). A step above a screen title: for the
+   * length of that screen the question IS the screen.
+   */
+  question: { fontFamily: fonts.serif, fontSize: 28, lineHeight: 36 },
+  /** "3 / 11" beside the progress track — monospaced so it cannot jump. */
+  progressCounter: { fontFamily: fonts.mono, fontSize: 12, lineHeight: 16 },
 };
 
 /** 60% per product 12 §label style. */

@@ -5,12 +5,20 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale } from '@/theme/typography';
 
 export interface SerifDisplayProps {
-  variant: 'letterLine' | 'affirmationHero' | 'momentTitle' | 'title' | 'sheetTitle';
+  variant:
+    | 'letterLine'
+    | 'affirmationHero'
+    | 'momentTitle'
+    | 'title'
+    | 'sheetTitle'
+    | 'question'
+    | 'display';
   children: ReactNode;
   /**
    * Draw the closing mark in ember — v4 puts it on every screen title.
    *
-   * On by default for `title` and `sheetTitle`, off everywhere else: a letter
+   * On by default for the heading variants — `title`, `sheetTitle`, `question`
+   * and `display` — and off everywhere else: a letter
    * line or a moment name is prose, and prose does not wear a brand mark. Opt
    * out for a title that is DATA rather than a heading (a collection's name),
    * or for a sheet heading that is already a question to her.
@@ -48,7 +56,10 @@ function splitMark(children: ReactNode): { body: ReactNode; mark: string } | nul
 export function SerifDisplay({
   variant,
   children,
-  emberMark = variant === 'title' || variant === 'sheetTitle',
+  emberMark = variant === 'title' ||
+    variant === 'sheetTitle' ||
+    variant === 'question' ||
+    variant === 'display',
   center = false,
 }: SerifDisplayProps) {
   const { colors, typography } = useTheme();

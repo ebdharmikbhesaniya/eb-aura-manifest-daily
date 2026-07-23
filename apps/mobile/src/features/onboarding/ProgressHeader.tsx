@@ -32,7 +32,7 @@ export function ProgressHeader({ step, total, onBack, backLabel, testID }: Progr
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: spacing.md,
+        gap: spacing.md + 2,
         paddingVertical: spacing.md,
       }}
     >
@@ -46,7 +46,8 @@ export function ProgressHeader({ step, total, onBack, backLabel, testID }: Progr
           <Text
             allowFontScaling={false}
             style={[
-              typography.button,
+              // Monospaced: the counter must not shift as it counts up.
+              typography.progressCounter,
               {
                 fontSize: iconSizes.md,
                 lineHeight: iconSizes.md + spacing.xs,

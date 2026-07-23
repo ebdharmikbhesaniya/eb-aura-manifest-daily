@@ -84,7 +84,7 @@ export function ConversationScreen({
           contentContainerStyle={{ flexGrow: 1, paddingVertical: spacing.xl, gap: spacing.xl }}
         >
           <View style={{ gap: spacing.sm }}>
-            <SerifDisplay variant="title">{question}</SerifDisplay>
+            <SerifDisplay variant="question">{question}</SerifDisplay>
             {helper !== undefined && (
               <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>{helper}</Text>
             )}

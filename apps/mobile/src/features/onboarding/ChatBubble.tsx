@@ -44,8 +44,8 @@ export function ChatBubble({ tone = 'card', children, testID }: ChatBubbleProps)
           borderTopRightRadius: softCorner,
           borderBottomLeftRadius: softCorner,
           borderBottomRightRadius: softCorner,
-          paddingVertical: spacing.md,
-          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.md + 2,
+          paddingHorizontal: spacing.lg - 4,
         },
         tone === 'card' && { borderWidth: 1, borderColor: colors.surface.border },
         // Hairline + soft lift in light; in dark the border alone carries depth

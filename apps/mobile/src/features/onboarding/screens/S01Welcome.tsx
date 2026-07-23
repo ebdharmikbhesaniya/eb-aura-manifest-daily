@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { Orb, PillButton, Screen } from '@/components';
+import { Orb, PillButton, Screen, SerifDisplay } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
 import { loadPlans } from '@/features/paywall/purchases';
 import { analytics } from '@/lib/analytics';
 import { useOnboardingDraft } from '@/stores/onboardingDraft';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale, scaledType } from '@/theme/typography';
 
 import { useConversation } from '../useConversation';
 
@@ -49,15 +48,9 @@ export function S01Welcome() {
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.xl }}>
         <Orb state="idle" size={WELCOME_ORB_SIZE} />
         <View style={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
-          <Text
-            allowFontScaling={false}
-            style={[
-              scaledType('display', clampedFontScale()),
-              { color: colors.text.primary, textAlign: 'center' },
-            ]}
-          >
+          <SerifDisplay variant="display" center>
             {onboardingCopy.s01Welcome.title}
-          </Text>
+          </SerifDisplay>
           <Text
             style={[
               // Price transparency is body copy, not wayfinding — sentence
