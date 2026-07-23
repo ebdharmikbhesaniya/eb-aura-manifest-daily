@@ -14,6 +14,13 @@ const envSchema = z.object({
   EXPO_PUBLIC_POSTHOG_KEY: z.string().optional(),
   EXPO_PUBLIC_REVENUECAT_IOS_KEY: z.string().optional(),
   EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: z.string().optional(),
+  /**
+   * Legal links on the paywall footer. Optional here so a dev build runs
+   * without them, but BOTH are required before a subscription build passes
+   * store review — the footer simply omits a link it has no URL for.
+   */
+  EXPO_PUBLIC_TERMS_URL: z.string().url().optional(),
+  EXPO_PUBLIC_PRIVACY_URL: z.string().url().optional(),
 });
 
 const parsed = envSchema.safeParse({
@@ -23,6 +30,8 @@ const parsed = envSchema.safeParse({
   EXPO_PUBLIC_POSTHOG_KEY: process.env.EXPO_PUBLIC_POSTHOG_KEY,
   EXPO_PUBLIC_REVENUECAT_IOS_KEY: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
   EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
+  EXPO_PUBLIC_TERMS_URL: process.env.EXPO_PUBLIC_TERMS_URL,
+  EXPO_PUBLIC_PRIVACY_URL: process.env.EXPO_PUBLIC_PRIVACY_URL,
 });
 
 if (!parsed.success) {

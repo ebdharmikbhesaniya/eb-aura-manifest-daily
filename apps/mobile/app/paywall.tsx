@@ -1,7 +1,7 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Linking, Text, View } from 'react-native';
 
 import { Screen, TextButton } from '@/components';
 import { ClaimSheet } from '@/features/paywall/ClaimSheet';
@@ -9,6 +9,7 @@ import { PaywallScreen } from '@/features/paywall/PaywallScreen';
 import { appleAuthAvailable } from '@/features/paywall/claim';
 import { markPaywallSeen } from '@/features/paywall/paywallSeen';
 import { markPermissionAsked } from '@/features/notifications/permissionGate';
+import { previewPlans } from '@/features/paywall/previewPlans';
 import {
   loadPlans,
   purchasePlan,
@@ -17,6 +18,7 @@ import {
 } from '@/features/paywall/purchases';
 import { paywallCopy } from '@/copy/paywall';
 import { analytics } from '@/lib/analytics';
+import { env } from '@/lib/env';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
 import { LetterMotionProvider } from '@/theme/motion';
@@ -41,8 +43,14 @@ export default function PaywallRoute() {
    * with no param; Settings sends `from=settings` because the two want opposite
    * behaviour when there is no offering — see the effect below.
    */
-  const { from } = useLocalSearchParams<{ from?: string }>();
+  const { from, preview } = useLocalSearchParams<{ from?: string; preview?: string }>();
   const askedForPlans = from === 'settings';
+  /**
+   * Development-only: render the cover with stand-in plans so it can be OPENED
+   * on a machine with no RevenueCat keys. `previewPlans` is empty outside
+   * `__DEV__`, so this collapses to the normal path in any real build.
+   */
+  const isPreview = __DEV__ && preview === '1';
   const [plans, setPlans] = useState<OfferedPlan[]>([]);
   const [busy, setBusy] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(true);
@@ -54,12 +62,17 @@ export default function PaywallRoute() {
   const [plansResolved, setPlansResolved] = useState(false);
 
   useEffect(() => {
+    if (isPreview) {
+      setPlans(previewPlans());
+      setPlansResolved(true);
+      return;
+    }
     void loadPlans().then((offered) => {
       setPlans(offered);
       setPlansResolved(true);
     });
     void appleAuthAvailable().then(setAppleAvailable);
-  }, []);
+  }, [isPreview]);
 
   const leaveToFreeTier = useCallback(() => {
     markPaywallSeen();
@@ -86,23 +99,30 @@ export default function PaywallRoute() {
     if (plansResolved && plans.length === 0 && !askedForPlans) leaveToFreeTier();
   }, [plansResolved, plans.length, askedForPlans, leaveToFreeTier]);
 
-  const onPurchase = useCallback(async (plan: OfferedPlan) => {
-    setBusy(true);
-    const outcome = await purchasePlan(plan);
-    setBusy(false);
+  const onPurchase = useCallback(
+    async (plan: OfferedPlan) => {
+      // A preview plan has no real package behind it — buying one would hand
+      // RevenueCat a fabricated product id.
+      if (isPreview) return;
 
-    if (outcome.status !== 'purchased') {
-      // A cancel is a legitimate answer, and a failure already surfaced through
-      // Apple's own sheet. Neither gets an error state from us (product 14).
-      return;
-    }
+      setBusy(true);
+      const outcome = await purchasePlan(plan);
+      setBusy(false);
 
-    analytics.capture('purchase_completed', { sku: plan.pkg.product.identifier });
-    markPaywallSeen();
-    // Claim now, while the value is freshest — but entitlement is already hers
-    // whether or not she completes it (03 §2.2).
-    claimRef.current?.present();
-  }, []);
+      if (outcome.status !== 'purchased') {
+        // A cancel is a legitimate answer, and a failure already surfaced through
+        // Apple's own sheet. Neither gets an error state from us (product 14).
+        return;
+      }
+
+      analytics.capture('purchase_completed', { sku: plan.pkg.product.identifier });
+      markPaywallSeen();
+      // Claim now, while the value is freshest — but entitlement is already hers
+      // whether or not she completes it (03 §2.2).
+      claimRef.current?.present();
+    },
+    [isPreview],
+  );
 
   const onRestore = useCallback(async () => {
     setBusy(true);
@@ -126,6 +146,15 @@ export default function PaywallRoute() {
             onPurchase={(plan) => void onPurchase(plan)}
             onDismiss={leaveToFreeTier}
             onRestore={() => void onRestore()}
+            // Rendered only when a URL exists. Both are required before a
+            // subscription build passes store review; the footer omits a link
+            // it cannot honour rather than showing a dead one.
+            {...(env.EXPO_PUBLIC_TERMS_URL
+              ? { onTerms: () => void Linking.openURL(env.EXPO_PUBLIC_TERMS_URL as string) }
+              : {})}
+            {...(env.EXPO_PUBLIC_PRIVACY_URL
+              ? { onPrivacy: () => void Linking.openURL(env.EXPO_PUBLIC_PRIVACY_URL as string) }
+              : {})}
           />
           <ClaimSheet
             ref={claimRef}
