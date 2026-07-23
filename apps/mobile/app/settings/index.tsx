@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useRef } from 'react';
 import { ScrollView } from 'react-native';
 
-import { ListRow, RowGroup, Screen } from '@/components';
+import { ListRow, RowGroup, Screen, ScreenHeader } from '@/components';
 import { notificationsCopy } from '@/copy/notifications';
 import { paywallCopy } from '@/copy/paywall';
 import { settingsCopy } from '@/copy/settings';
@@ -40,6 +40,14 @@ export default function SettingsRoute() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: spacing.xl, gap: spacing.md }}
       >
+        {/* Same gap Subscription had: pushed screens draw their own chrome, and
+            nothing was drawing it — no title, no visible way back. */}
+        <ScreenHeader
+          title={settingsCopy.title}
+          onBack={() => router.back()}
+          testID="settings-header"
+        />
+
         <RowGroup separatorInset="edge">
           <ListRow
             title={notificationsCopy.prefs.title}

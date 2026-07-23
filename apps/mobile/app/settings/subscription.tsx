@@ -35,6 +35,7 @@ export default function SubscriptionRoute() {
         // Tagged so the paywall knows she ASKED for plans: with no offering
         // it must say so rather than silently replacing the route (12 §3).
         onSeePlans={() => router.push('/paywall?from=settings')}
+        onBack={() => router.back()}
       />
     </Screen>
   );

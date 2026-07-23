@@ -7,6 +7,8 @@
  * tell her what's behind each row before she taps.
  */
 export const settingsCopy = {
+  /** The screen's own name, beside its back chevron. */
+  title: 'Settings',
   notifications: {
     /** The product's notification promise, restated where she'd look for it. */
     subtitle: 'Arrivals only — never nudges',

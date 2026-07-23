@@ -1,6 +1,6 @@
 import { ScrollView, Text, View } from 'react-native';
 
-import { Card, PillButton, TextButton } from '@/components';
+import { Card, PillButton, ScreenHeader, TextButton } from '@/components';
 import { paywallCopy } from '@/copy/paywall';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, fonts, scaledType } from '@/theme/typography';
@@ -20,6 +20,8 @@ export interface SubscriptionScreenProps {
   onManage: () => void;
   onRestore: () => void;
   onSeePlans: () => void;
+  /** Pops back to Settings. v4 gives this screen a chevron; nothing drew one. */
+  onBack?: () => void;
   testID?: string;
 }
 
@@ -45,9 +47,10 @@ export function SubscriptionScreen({
   onManage,
   onRestore,
   onSeePlans,
+  onBack,
   testID,
 }: SubscriptionScreenProps) {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, radii, spacing } = useTheme();
   const scale = clampedFontScale();
 
   const status = inTrial
@@ -65,7 +68,17 @@ export function SubscriptionScreen({
         );
 
   return (
-    <ScrollView testID={testID} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+    <ScrollView
+      testID={testID}
+      contentContainerStyle={{ padding: spacing.lg, gap: layout.rowPaddingH }}
+    >
+      <ScreenHeader
+        title={paywallCopy.subscription.title}
+        {...(onBack ? { onBack } : {})}
+        backLabel={paywallCopy.subscription.back}
+        testID="subscription-header"
+      />
+
       <Card
         variant="solid"
         style={{ borderWidth: 1, borderColor: colors.surface.border, gap: spacing.sm }}
@@ -89,14 +102,16 @@ export function SubscriptionScreen({
           </Text>
         </View>
 
-        {(premium || inTrial) && (
-          <Text
-            allowFontScaling={false}
-            style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
-          >
-            {paywallCopy.contrast.everyDay}
-          </Text>
-        )}
+        {/* Shown in BOTH states. v4 puts it under the status line either way,
+            and a free reader is exactly the person who needs to know what the
+            plan actually covers before tapping through to the prices. */}
+        <Text
+          testID="subscription-summary"
+          allowFontScaling={false}
+          style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
+        >
+          {paywallCopy.contrast.everyDay}
+        </Text>
 
         {dateLine && (
           <Text
@@ -143,7 +158,15 @@ export function SubscriptionScreen({
         </View>
       </View>
 
-      <Card variant="solid" style={{ backgroundColor: colors.accent.parchment }}>
+      <Card
+        variant="solid"
+        style={{
+          backgroundColor: colors.accent.parchment,
+          borderRadius: radii.field,
+          paddingVertical: layout.rowPaddingH,
+          paddingHorizontal: layout.cardPadding - 4,
+        }}
+      >
         <Text
           allowFontScaling={false}
           style={[

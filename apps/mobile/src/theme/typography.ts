@@ -66,7 +66,8 @@ type Variant =
   | 'cardChip'
   | 'cardButton'
   | 'rowTitle'
-  | 'rowMeta';
+  | 'rowMeta'
+  | 'subScreenTitle';
 
 /**
  * `allowFontScaling` is left ON everywhere (RN default). Serif variants apply
@@ -147,6 +148,13 @@ export const typography: Record<Variant, TextStyle> = {
   rowTitle: { fontFamily: fonts.serif, fontSize: 14, lineHeight: 20 },
   /** The figure beside it — monospaced so a column of durations lines up. */
   rowMeta: { fontFamily: fonts.mono, fontSize: 11, lineHeight: 15 },
+
+  /**
+   * A pushed screen's title, beside its back chevron (v4 §subscription/settings).
+   * A step below the 27pt `title` a TAB screen gets: arriving somewhere deeper
+   * should feel quieter than arriving somewhere top-level.
+   */
+  subScreenTitle: { fontFamily: fonts.serif, fontSize: 23, lineHeight: 28 },
 };
 
 /** 60% per product 12 §label style. */
