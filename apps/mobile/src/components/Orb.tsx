@@ -167,7 +167,7 @@ export function Orb({ state, size = 160, amplitude, testID }: OrbProps) {
             // Light source sits high-left — a sphere, not a flat disc.
             c={vec(center - baseRadius * 0.25, center - baseRadius * 0.3)}
             r={baseRadius * 1.5}
-            colors={[colors.bg.base, colors.orb.core, colors.orb.halo]}
+            colors={[colors.orb.base, colors.orb.core, colors.orb.halo]}
           />
         </Circle>
 
@@ -186,7 +186,7 @@ export function Orb({ state, size = 160, amplitude, testID }: OrbProps) {
           <RadialGradient
             c={vec(center, center - baseRadius * 0.2)}
             r={baseRadius * 0.6}
-            colors={[colors.bg.base, 'transparent']}
+            colors={[colors.orb.base, 'transparent']}
           />
           <BlurMask blur={10} style="normal" />
         </Circle>

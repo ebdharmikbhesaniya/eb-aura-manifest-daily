@@ -58,7 +58,19 @@ export interface ColorTokens {
     /** Affirmation surfaces. */
     parchment: string;
   };
-  orb: { core: string; halo: string; shimmer: string };
+  orb: {
+    /**
+     * The sphere's lit face — the gradient's innermost stop.
+     *
+     * NOT `bg.base`: in dark v4 lights the orb off the CARD colour (#242019),
+     * not off the near-black page, so the sphere still reads as lit rather
+     * than as a hole cut in the background.
+     */
+    base: string;
+    core: string;
+    halo: string;
+    shimmer: string;
+  };
 }
 
 const light: ColorTokens = {
@@ -111,7 +123,12 @@ const light: ColorTokens = {
   },
   // The orb is the one place the full ember range lives: blush highlight,
   // soft-ember body, ember edge (v3 orb gradient).
-  orb: { core: palette.emberSoft, halo: palette.ember, shimmer: palette.blush },
+  orb: {
+    base: palette.bone,
+    core: palette.emberSoft,
+    halo: palette.ember,
+    shimmer: palette.blush,
+  },
 };
 
 /**
@@ -164,7 +181,13 @@ const dark: ColorTokens = {
     heart: palette.heart,
     parchment: '#2E2818',
   },
-  orb: { core: palette.emberSoft, halo: palette.ember, shimmer: palette.blush },
+  orb: {
+    // The card colour, per v4's dark Home and dark Letter.
+    base: '#242019',
+    core: palette.emberSoft,
+    halo: palette.ember,
+    shimmer: palette.blush,
+  },
 };
 
 export const colorSchemes: Record<ColorScheme, ColorTokens> = { light, dark };
