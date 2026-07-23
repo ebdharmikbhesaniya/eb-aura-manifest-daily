@@ -17,13 +17,12 @@ const GLYPH_RATIO = 0.34;
 export interface MiniPlayerProps {
   onToggle: () => void;
   /**
-   * Space to leave below the pill, in points.
+   * How far above the bottom of the window the pill sits, in points.
    *
-   * The bar is the only IN-FLOW child of the tab-bar slot — `TabBar` itself is
-   * absolutely positioned — so without this the pill sits flush against the
-   * bottom of the window and Android's system navigation bar covers it. The
-   * caller owns the number because only it knows the safe-area inset and the
-   * height of the bar this pill has to clear.
+   * The caller owns the number because only it knows the safe-area inset and
+   * the height of the tab bar this pill stacks on top of. Without it the pill
+   * renders flush against the window edge, where Android's system navigation
+   * bar covers it.
    */
   bottomOffset: number;
   testID?: string;
@@ -64,10 +63,18 @@ export function MiniPlayer({ onToggle, bottomOffset, testID }: MiniPlayerProps) 
     <View
       testID={testID}
       style={{
+        // Absolute, like the tab bar it stacks on: the tab-bar slot must
+        // contribute NO layout height, because react-navigation reserves
+        // whatever height it measures there as a bottom inset on every tab
+        // screen. Laying this out in flow added that band of dead space below
+        // the last card — the screens already pad themselves with
+        // TAB_BAR_CLEARANCE, and the bar floats over content by design.
+        position: 'absolute',
+        left: spacing.md,
+        right: spacing.md,
+        bottom: bottomOffset,
         flexDirection: 'row',
         alignItems: 'center',
-        marginHorizontal: spacing.md,
-        marginBottom: bottomOffset,
         borderRadius: radii.pill,
         backgroundColor: colors.cta.background,
         paddingVertical: spacing.sm,

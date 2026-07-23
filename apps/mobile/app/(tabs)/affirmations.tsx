@@ -3,7 +3,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Share, ScrollView, Text, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 
-import { Card, IconTile, Label, ListRow, RowGroup, Screen, SerifDisplay } from '@/components';
+import {
+  Card,
+  IconTile,
+  Label,
+  ListRow,
+  RowGroup,
+  Screen,
+  SerifDisplay,
+  TAB_BAR_CLEARANCE,
+} from '@/components';
 import { affirmationsCopy } from '@/copy/affirmations';
 import { AffirmationCard } from '@/features/affirmations/AffirmationCard';
 import { GuidedSheet, type GuidedStep } from '@/features/affirmations/GuidedSheet';
@@ -162,7 +171,16 @@ export default function AffirmationsRoute() {
 
   return (
     <Screen testID="affirmations" edgeToEdge>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
+      <ScrollView
+        contentContainerStyle={{
+          padding: spacing.lg,
+          gap: spacing.md,
+          // The tab bar floats over this screen and reserves nothing, so the
+          // last kept card ends up underneath it without this. The other three
+          // tab screens already do the same.
+          paddingBottom: TAB_BAR_CLEARANCE,
+        }}
+      >
         <SerifDisplay variant="title">{affirmationsCopy.title}</SerifDisplay>
 
         {today.data && (

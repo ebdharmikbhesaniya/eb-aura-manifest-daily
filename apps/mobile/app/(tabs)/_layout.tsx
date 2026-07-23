@@ -28,11 +28,14 @@ export default function TabsLayout() {
    * Where the mini-player's bottom edge sits, measured from the bottom of the
    * window.
    *
-   * `TabBar` is `position: absolute`, so it occupies no layout height and the
-   * mini-player — the slot's only in-flow child — otherwise renders flush
-   * against the window edge, underneath Android's system navigation bar. The
-   * pill has to clear the inset, the bar's `spacing.lg` float, the bar itself,
-   * and then leave a gap, which is what puts it ABOVE the bar as 06 §1 asks.
+   * Both children are absolutely positioned, so this slot measures zero height.
+   * That is deliberate: react-navigation reserves whatever height it finds here
+   * as a bottom inset on every tab screen, and the bar is supposed to FLOAT
+   * over content — the screens pad themselves with `TAB_BAR_CLEARANCE` instead.
+   *
+   * The pill has to clear the safe-area inset, the bar's `spacing.lg` float,
+   * the bar itself, and then leave a gap, which is what puts it ABOVE the bar
+   * as 06 §1 asks and clear of Android's system navigation bar.
    *
    * Driven by the inset rather than by `Platform`: the home indicator is a
    * bottom inset too, so the same arithmetic is correct on both platforms.
