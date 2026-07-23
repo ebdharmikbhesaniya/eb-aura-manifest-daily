@@ -29,8 +29,10 @@ export interface AffirmationCardProps {
   onReveal?: () => void;
   onTechnique?: () => void;
   onFavorite?: () => void;
-  /** Absent until affirmations have audio — 10 §7 made them text-only at V1. */
+  /** Reads the line aloud. Absent leaves the button inert but in place. */
   onHear?: (() => void) | undefined;
+  /** True while the device voice is reading, so the button offers to stop. */
+  hearing?: boolean;
   onShare?: () => void;
   testID?: string;
 }
@@ -63,6 +65,7 @@ export const AffirmationCard = forwardRef<View, AffirmationCardProps>(function A
     onTechnique,
     onFavorite,
     onHear,
+    hearing = false,
     onShare,
     testID,
   },
@@ -200,7 +203,11 @@ export const AffirmationCard = forwardRef<View, AffirmationCardProps>(function A
 
         {!capturing && (
           <View style={{ flexDirection: 'row', gap: spacing.md - 2, marginTop: spacing.lg - 4 }}>
-            <CardAction title={affirmationsCopy.hear} onPress={onHear} testID="affirmation-hear" />
+            <CardAction
+              title={hearing ? affirmationsCopy.hearStop : affirmationsCopy.hear}
+              onPress={onHear}
+              testID="affirmation-hear"
+            />
             <CardAction
               title={affirmationsCopy.share}
               onPress={onShare}

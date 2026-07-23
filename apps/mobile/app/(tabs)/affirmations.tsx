@@ -20,6 +20,7 @@ import { useGenerationJob } from '@/features/letter/useGenerationJob';
 import { TechniqueSheet } from '@/features/affirmations/TechniqueSheet';
 import { captureShareCard, toShareContent } from '@/features/affirmations/shareCard';
 import { recordBeat, TECHNIQUES } from '@/features/affirmations/practice';
+import { useSpeech } from '@/features/affirmations/useSpeech';
 import {
   useAffirmationCandidates,
   useKeptAffirmations,
@@ -58,6 +59,7 @@ export default function AffirmationsRoute() {
   const [busy, setBusy] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  const speech = useSpeech();
   // The guided pass is async: the POST only enqueues a job, so the candidates
   // are not written until it finishes. We poll the job and refetch the candidate
   // rows only once it succeeds — refetching at enqueue (the old bug) always read
@@ -143,6 +145,7 @@ export default function AffirmationsRoute() {
 
     // v4 puts the actions ON the card, and the capture photographs that view —
     // so they come off for one frame, or they ride into the shared image.
+    speech.stop();
     setCapturing(true);
     try {
       await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -153,7 +156,7 @@ export default function AffirmationsRoute() {
     }
 
     analytics.capture('affirmation_shared', { format: 'image' });
-  }, [today.data]);
+  }, [today.data, speech]);
 
   /**
    * Keep / un-keep today's affirmation.
@@ -234,9 +237,11 @@ export default function AffirmationsRoute() {
                 analytics.capture('technique_chip_opened', { technique });
                 techniqueRef.current?.present();
               }}
-              // No `onHear`: affirmations are text-only at V1 (10 §7), so the
-              // button holds its place in v4's pair but stays inert rather than
-              // promising audio that does not exist.
+              // The DEVICE voice reads it — affirmations have no synthesized
+              // audio (10 §7), and this is the one way to honour v4's button
+              // without a per-card vendor bill.
+              onHear={() => speech.toggle(today.data?.text ?? '')}
+              hearing={speech.speaking}
               onShare={() => void share()}
               testID="affirmation-today"
             />

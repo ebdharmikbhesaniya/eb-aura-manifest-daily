@@ -26,6 +26,8 @@ export const affirmationsCopy = {
   share: 'Share as card',
   /** The other half of v4's paired card actions. */
   hear: 'Hear it read',
+  /** Same button while the device voice is reading — tapping again stops it. */
+  hearStop: 'Stop',
   /** Provenance chip on the card — `{word}` is the goal area she chose. */
   fromYourWords: 'From your words: “{word}”',
   keep: 'Keep this one',
