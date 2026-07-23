@@ -26,6 +26,8 @@ export const palette = {
   // Olive — the quiet workhorse: captions, borders, selected chips.
   olive: '#8A8265',
   oliveSoft: '#DAD5BE',
+  /** Row dividers INSIDE a card — a step lighter than the card's own border. */
+  divider: '#EFECE0',
   oliveMuted: '#C9C3AC',
   /** Dashed "future" outlines, empty checkboxes. */
   oliveFaint: '#B4AE9C',

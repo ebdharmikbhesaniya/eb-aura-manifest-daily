@@ -3,12 +3,11 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import {
   Card,
   Label,
-  ListRow,
   Orb,
   PillButton,
   RowGroup,
   SerifDisplay,
-  TAB_BAR_CLEARANCE,
+  useTabBarClearance,
 } from '@/components';
 import { momentsCopy } from '@/copy/moments';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -85,8 +84,9 @@ export function HomeScreen({
   notificationHint = null,
   testID,
 }: HomeScreenProps) {
-  const { colors, spacing, layout } = useTheme();
+  const { colors, spacing, layout, radii } = useTheme();
   const scale = clampedFontScale();
+  const tabBarClearance = useTabBarClearance();
 
   const greeting = name
     ? momentsCopy.home[greetingFor()].replace('{name}', name)
@@ -97,8 +97,8 @@ export function HomeScreen({
       testID={testID}
       contentContainerStyle={{
         padding: layout.screenMargin,
-        gap: spacing.xl,
-        paddingBottom: TAB_BAR_CLEARANCE,
+        gap: layout.homeSectionGap,
+        paddingBottom: tabBarClearance,
       }}
       showsVerticalScrollIndicator={false}
     >
@@ -129,7 +129,16 @@ export function HomeScreen({
               <Card
                 key={item.id}
                 variant="dashed"
-                style={forming.length === 2 ? { flex: 1 } : undefined}
+                // v4 gives these tiles their own metrics: the 22pt card radius
+                // and 20pt padding belong to heroes, not to a two-line promise.
+                style={[
+                  {
+                    borderRadius: radii.field,
+                    paddingVertical: layout.rowPaddingV,
+                    paddingHorizontal: layout.rowPaddingH,
+                  },
+                  forming.length === 2 ? { flex: 1 } : null,
+                ]}
               >
                 <Text
                   allowFontScaling={false}
@@ -146,7 +155,9 @@ export function HomeScreen({
       {(favoritesCount > 0 || onDemandCount > 0) && (
         <View style={{ gap: spacing.sm }} testID="home-collections">
           <Label>{momentsCopy.home.collectionsLabel}</Label>
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          {/* A wrapping grid, not one row: v4 lays collections out two per
+              line so a third and fourth fall underneath rather than squeezing. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
             {favoritesCount > 0 && (
               <CollectionCard
                 id="favorites"
@@ -173,30 +184,16 @@ export function HomeScreen({
       {recent.length > 0 && (
         <View style={{ gap: spacing.sm }} testID="home-recent">
           <Label>{momentsCopy.home.recentLabel}</Label>
-          <RowGroup>
-            {recent.map((item) => {
-              const trailing = durationText(item.durationMs);
-              return (
-                <ListRow
-                  key={item.id}
-                  title={item.title ?? momentsCopy.home.untitled}
-                  trailing={
-                    trailing ? (
-                      <Text
-                        allowFontScaling={false}
-                        style={[scaledType('bodySmall', scale), { color: colors.text.disabled }]}
-                      >
-                        {trailing}
-                      </Text>
-                    ) : (
-                      'chevron'
-                    )
-                  }
-                  onPress={() => onPlay(item.id)}
-                  testID={`home-recent-${item.id}`}
-                />
-              );
-            })}
+          <RowGroup style={{ borderRadius: radii.field }}>
+            {recent.map((item) => (
+              <RecentRow
+                key={item.id}
+                title={item.title ?? momentsCopy.home.untitled}
+                duration={durationText(item.durationMs)}
+                onPress={() => onPlay(item.id)}
+                testID={`home-recent-${item.id}`}
+              />
+            ))}
           </RowGroup>
         </View>
       )}
@@ -230,7 +227,7 @@ function CollectionCard({
   heart?: boolean;
   onCollection: ((id: CollectionId) => void) | undefined;
 }) {
-  const { colors, radii, spacing } = useTheme();
+  const { colors, layout, radii, spacing } = useTheme();
   const scale = clampedFontScale();
 
   const countLine =
@@ -248,7 +245,8 @@ function CollectionCard({
       style={({ pressed }) => ({
         flex: 1,
         borderRadius: radii.field,
-        padding: spacing.md,
+        paddingVertical: layout.tilePaddingV,
+        paddingHorizontal: layout.rowPaddingH,
         gap: spacing.xs / 2,
         backgroundColor: heart ? colors.accent.blushSoft : colors.accent.parchment,
         opacity: pressed ? 0.85 : 1,
@@ -267,6 +265,62 @@ function CollectionCard({
         {countLine}
         {heart ? <Text style={{ color: colors.accent.heart }}>{' · ♥'}</Text> : null}
       </Text>
+    </Pressable>
+  );
+}
+
+/**
+ * One "Recently played" row (v4 §home).
+ *
+ * Not a `ListRow`: v4 sets a moment's name in SERIF and its duration in
+ * monospace, where `ListRow`'s sans title and 13pt meta are the language of
+ * settings and profile rows. A moment's name is a title, not a control label,
+ * and monospaced figures keep a column of durations aligned.
+ */
+function RecentRow({
+  title,
+  duration,
+  onPress,
+  testID,
+}: {
+  title: string;
+  duration: string | null;
+  onPress: () => void;
+  testID?: string;
+}) {
+  const { colors, layout } = useTheme();
+  const scale = clampedFontScale();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={duration ? `${title}, ${duration}` : title}
+      onPress={onPress}
+      testID={testID}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: layout.rowPaddingV - 2,
+        paddingVertical: layout.rowPaddingV,
+        paddingHorizontal: layout.rowPaddingH,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      <Text
+        allowFontScaling={false}
+        numberOfLines={1}
+        style={[scaledType('rowTitle', scale), { flex: 1, color: colors.text.primary }]}
+      >
+        {title}
+      </Text>
+      {duration && (
+        <Text
+          allowFontScaling={false}
+          style={[scaledType('rowMeta', scale), { color: colors.text.label }]}
+        >
+          {duration}
+        </Text>
+      )}
     </Pressable>
   );
 }

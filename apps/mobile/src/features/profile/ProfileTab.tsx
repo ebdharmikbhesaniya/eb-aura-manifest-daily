@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
 
-import { Screen, TAB_BAR_CLEARANCE } from '@/components';
+import { Screen, useTabBarClearance } from '@/components';
 import { profileCopy } from '@/copy/profile';
 import { profileKeys, useProfile } from '@/hooks/useProfile';
 import { useAppState } from '@/stores/appState';
@@ -31,6 +31,7 @@ export function ProfileTab() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { spacing } = useTheme();
+  const tabBarClearance = useTabBarClearance();
   const userId = useAppState((s) => s.userId);
 
   const { data: profile } = useProfile(userId ?? undefined);
@@ -73,7 +74,7 @@ export function ProfileTab() {
           paddingTop: spacing.xl,
           // The tab bar floats over this screen — without the clearance the last
           // card ends up underneath it.
-          paddingBottom: TAB_BAR_CLEARANCE,
+          paddingBottom: tabBarClearance,
           gap: spacing.md,
         }}
       >

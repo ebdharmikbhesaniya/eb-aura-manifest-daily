@@ -1,4 +1,4 @@
-import { PixelRatio, type TextStyle } from 'react-native';
+import { PixelRatio, Platform, type TextStyle } from 'react-native';
 
 /**
  * Typography (Aura Design v3 "Ember & Bone"). "Typography is the hero" —
@@ -20,6 +20,11 @@ export const fonts = {
   sansMedium: 'Figtree_500Medium',
   sansSemiBold: 'Figtree_600SemiBold',
   sansBold: 'Figtree_700Bold',
+  /**
+   * v4 sets row metadata — durations, counts — in ui-monospace so a column of
+   * times aligns. Nothing is bundled for it; these are the system faces.
+   */
+  mono: Platform.select({ ios: 'Menlo', default: 'monospace' }),
 } as const;
 
 /**
@@ -59,7 +64,9 @@ type Variant =
   | 'label'
   | 'button'
   | 'cardChip'
-  | 'cardButton';
+  | 'cardButton'
+  | 'rowTitle'
+  | 'rowMeta';
 
 /**
  * `allowFontScaling` is left ON everywhere (RN default). Serif variants apply
@@ -88,10 +95,16 @@ export const typography: Record<Variant, TextStyle> = {
     fontSize: 24,
     lineHeight: 36,
   },
-  /** Upright serif — moment names are titles, not speech (v3: italic = voice only). */
-  momentTitle: { fontFamily: fonts.serif, fontSize: 22, lineHeight: 28 },
-  /** Newsreader 500 · 24/30 (v3 title). */
-  title: { fontFamily: fonts.serif, fontSize: 24, lineHeight: 30 },
+  /**
+   * Upright serif — moment names are titles, not speech (v3: italic = voice
+   * only). v4 sets the card's at 21/1.3.
+   */
+  momentTitle: { fontFamily: fonts.serif, fontSize: 21, lineHeight: 27 },
+  /**
+   * Every screen's own title — the greeting, "Affirmations", her name on
+   * Profile. v4 sets all eight of them at 27/1.2, up from v3's 24/30.
+   */
+  title: { fontFamily: fonts.serif, fontSize: 27, lineHeight: 32 },
   /** Bottom-sheet and ritual headings — a step below `title`. */
   sheetTitle: { fontFamily: fonts.serif, fontSize: 22, lineHeight: 30 },
   /** Emphasised sans rows — plan names, prices (v3 headline · Figtree 700 · 16/22). */
@@ -126,6 +139,14 @@ export const typography: Record<Variant, TextStyle> = {
   cardChip: { fontFamily: fonts.sansSemiBold, fontSize: 11.5, lineHeight: 16 },
   /** Paired actions inside a card — a step down from the 15pt primary button. */
   cardButton: { fontFamily: fonts.sansSemiBold, fontSize: 13.5, lineHeight: 18 },
+
+  /**
+   * Rows that name a MOMENT (v4 §home "Recently played"). Serif, because a
+   * moment's name is a title — the sans `button` face is for controls.
+   */
+  rowTitle: { fontFamily: fonts.serif, fontSize: 14, lineHeight: 20 },
+  /** The figure beside it — monospaced so a column of durations lines up. */
+  rowMeta: { fontFamily: fonts.mono, fontSize: 11, lineHeight: 15 },
 };
 
 /** 60% per product 12 §label style. */

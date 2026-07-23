@@ -11,7 +11,7 @@ import {
   RowGroup,
   Screen,
   SerifDisplay,
-  TAB_BAR_CLEARANCE,
+  useTabBarClearance,
 } from '@/components';
 import { affirmationsCopy } from '@/copy/affirmations';
 import { AffirmationCard } from '@/features/affirmations/AffirmationCard';
@@ -46,6 +46,7 @@ import { clampedFontScale, scaledType } from '@/theme/typography';
 export default function AffirmationsRoute() {
   const { colors, spacing, typography } = useTheme();
   const scale = clampedFontScale();
+  const tabBarClearance = useTabBarClearance();
   const userId = useAppState((s) => s.userId);
 
   const today = useTodaysAffirmation(userId ?? undefined);
@@ -211,7 +212,7 @@ export default function AffirmationsRoute() {
           // The tab bar floats over this screen and reserves nothing, so the
           // last kept card ends up underneath it without this. The other three
           // tab screens already do the same.
-          paddingBottom: TAB_BAR_CLEARANCE,
+          paddingBottom: tabBarClearance,
         }}
       >
         <SerifDisplay variant="title">{affirmationsCopy.title}</SerifDisplay>

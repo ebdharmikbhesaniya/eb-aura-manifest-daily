@@ -50,7 +50,9 @@ export function RowGroup({ children, separatorInset = 'edge', style, testID }: R
               style={{
                 height: StyleSheet.hairlineWidth,
                 marginLeft: inset,
-                backgroundColor: colors.surface.border,
+                // Lighter than the card's own border — v4 uses #EFECE0 for every
+                // in-card separator, so a row never looks like a second card.
+                backgroundColor: colors.surface.divider,
               }}
             />
           )}

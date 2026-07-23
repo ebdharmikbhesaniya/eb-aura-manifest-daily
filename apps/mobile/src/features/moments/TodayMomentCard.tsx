@@ -107,12 +107,12 @@ function ReadyCard({
   onPlay: (momentId: string) => void;
   onFavorite: (momentId: string) => void;
 }) {
-  const { colors, iconSizes, spacing } = useTheme();
+  const { colors, layout, spacing } = useTheme();
   const scale = clampedFontScale();
   const favorited = moment.favoritedAt !== null;
 
   return (
-    <Card variant="glassy" style={{ gap: spacing.xs }}>
+    <Card variant="glassy" style={{ gap: spacing.xs, padding: layout.momentCardPadding }}>
       <SerifDisplay variant="momentTitle">
         {moment.title ?? momentsCopy.home.todayLabel}
       </SerifDisplay>
@@ -140,7 +140,7 @@ function ReadyCard({
         />
         <Text
           allowFontScaling={false}
-          style={[scaledType('button', scale), { color: colors.text.primary }]}
+          style={[scaledType('cardButton', scale), { color: colors.text.primary }]}
         >
           {listenLabel(moment.durationMs)}
         </Text>
@@ -161,10 +161,7 @@ function ReadyCard({
         >
           <Text
             allowFontScaling={false}
-            style={{
-              fontSize: iconSizes.lg,
-              color: favorited ? colors.accent.heart : colors.text.disabled,
-            }}
+            style={[scaledType('body', scale), { color: colors.accent.heart }]}
           >
             {favorited ? '♥' : '♡'}
           </Text>

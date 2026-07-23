@@ -12,7 +12,15 @@ export type ColorScheme = 'light' | 'dark';
 
 export interface ColorTokens {
   bg: { base: string; gradientTop: string; gradientMid: string; gradientBottom: string };
-  surface: { card: string; cardGlassy: string; border: string; sheet: string; scrim: string };
+  surface: {
+    card: string;
+    cardGlassy: string;
+    border: string;
+    /** Separator between rows inside a grouped card — lighter than `border`. */
+    divider: string;
+    sheet: string;
+    scrim: string;
+  };
   text: {
     primary: string;
     /** Long-form paragraphs — one step softer than primary. */
@@ -64,6 +72,7 @@ const light: ColorTokens = {
     card: palette.white,
     cardGlassy: 'rgba(255, 255, 255, 0.72)',
     border: palette.oliveSoft,
+    divider: palette.divider,
     sheet: palette.white,
     scrim: 'rgba(27, 24, 16, 0.4)',
   },
@@ -117,6 +126,7 @@ const dark: ColorTokens = {
     card: '#242019',
     cardGlassy: 'rgba(36, 32, 25, 0.72)',
     border: 'rgba(245, 242, 232, 0.14)',
+    divider: 'rgba(245, 242, 232, 0.09)',
     sheet: '#242019',
     scrim: 'rgba(0, 0, 0, 0.5)',
   },
@@ -191,6 +201,19 @@ export const layout = {
   buttonHeight: 54,
   /** Paired actions inside a card sit lower than the primary pill (v4 §affirmation). */
   cardButtonHeight: 44,
+  /**
+   * Home stacks its sections closer than the 32pt section rhythm (v4 §home).
+   * Off the 4pt grid because v4 is: the screen carries five sections and the
+   * grid spacing pushed the last one below the fold.
+   */
+  homeSectionGap: 18,
+  /** Today's-moment card — one step tighter than a standard card (v4 §home). */
+  momentCardPadding: 18,
+  /** Compact rows and tiles: 12 vertical, 14 horizontal (v4 §home). */
+  rowPaddingV: 12,
+  rowPaddingH: 14,
+  /** Collection tiles sit a hair taller than a list row (v4 §home grid). */
+  tilePaddingV: 13,
   /** v4's affirmation card breathes one step more than a standard card. */
   affirmationCardPaddingV: 22,
 } as const;

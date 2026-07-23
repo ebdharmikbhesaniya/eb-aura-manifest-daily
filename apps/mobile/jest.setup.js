@@ -21,6 +21,14 @@ jest.mock('react-native-reanimated', () => {
   };
 });
 
+// The library's own jest mock supplies zeroed insets and frame metrics without
+// the native provider. Global rather than per-file: `useTabBarClearance` reads
+// insets, and every tab screen calls it.
+jest.mock(
+  'react-native-safe-area-context',
+  () => require('react-native-safe-area-context/jest/mock').default,
+);
+
 // Its native view manager doesn't exist under jest; a plain View preserves
 // children and layout, which is all the tests reason about.
 jest.mock('expo-linear-gradient', () => {

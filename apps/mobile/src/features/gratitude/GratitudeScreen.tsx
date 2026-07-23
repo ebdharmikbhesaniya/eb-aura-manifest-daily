@@ -9,7 +9,7 @@ import {
   SerifDisplay,
   TextButton,
   WeekDots,
-  TAB_BAR_CLEARANCE,
+  useTabBarClearance,
 } from '@/components';
 import { gratitudeCopy } from '@/copy/gratitude';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -56,6 +56,7 @@ export function GratitudeScreen({
 }: GratitudeScreenProps) {
   const { colors, spacing, layout } = useTheme();
   const scale = clampedFontScale();
+  const tabBarClearance = useTabBarClearance();
 
   // Seeded from today's line so a LATER visit is an edit rather than a blank
   // field over an entry that already exists. Pressing Keep clears it again —
@@ -99,7 +100,7 @@ export function GratitudeScreen({
       contentContainerStyle={{
         padding: layout.screenMargin,
         gap: spacing.lg,
-        paddingBottom: TAB_BAR_CLEARANCE,
+        paddingBottom: tabBarClearance,
       }}
       showsVerticalScrollIndicator={false}
     >

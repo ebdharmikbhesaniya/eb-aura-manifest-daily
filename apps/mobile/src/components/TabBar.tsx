@@ -23,6 +23,28 @@ export interface TabBarProps {
 }
 
 /**
+ * The pill's own height, from the styles below: spacing.sm × 2 vertical padding
+ * (16) + a 20pt icon + spacing.xs (4) + the 3pt underline + 1pt border × 2.
+ * Keep in step with the padding and icon size used further down.
+ */
+const TAB_BAR_HEIGHT = 45;
+
+/**
+ * Bottom space a scrolling tab screen must leave clear, for THIS device.
+ *
+ * The static `TAB_BAR_CLEARANCE` guesses; this measures. The bar floats
+ * `spacing.lg` above the safe-area inset, so the space it actually occupies is
+ * inset + float + its own height — on a phone with a tall navigation bar that
+ * comes to well over the old constant, which is how Home's last control ended
+ * up underneath the pill.
+ */
+export function useTabBarClearance(): number {
+  const insets = useSafeAreaInsets();
+  const { spacing } = useTheme();
+  return insets.bottom + spacing.lg + TAB_BAR_HEIGHT + spacing.lg;
+}
+
+/**
  * Bottom space a scrolling tab screen must leave clear.
  *
  * The bar floats over content instead of docking, so nothing reserves room for
