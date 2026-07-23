@@ -76,6 +76,15 @@ describe('GratitudeScreen', () => {
       expect(onSave).toHaveBeenCalledWith('the coffee');
     });
 
+    it('empties the field once she keeps it — the words move down to TODAY', async () => {
+      await renderScreen();
+
+      await fireEvent.changeText(screen.getByTestId('gratitude-input'), 'the coffee');
+      await fireEvent.press(screen.getByTestId('gratitude-save'));
+
+      expect(screen.getByTestId('gratitude-input').props.value).toBe('');
+    });
+
     it('pre-fills today’s line so a second visit is an EDIT, not a blank field', async () => {
       await renderScreen({ todaysEntry: 'the coffee on the balcony' });
 

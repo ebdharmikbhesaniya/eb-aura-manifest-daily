@@ -57,18 +57,41 @@ export function GratitudeScreen({
   const { colors, spacing, layout } = useTheme();
   const scale = clampedFontScale();
 
+  // Seeded from today's line so a LATER visit is an edit rather than a blank
+  // field over an entry that already exists. Pressing Keep clears it again —
+  // see `keep` below.
   const [entry, setEntry] = useState(todaysEntry ?? '');
   const [showStarter, setShowStarter] = useState(false);
 
+  const draft = entry.trim();
+  const hasTodaysEntry = todaysEntry !== null && todaysEntry.trim() !== '';
+
   // The starter is an offer after a pause, not a nag: it appears once, only if
   // the field is still empty, and never re-triggers once she starts typing.
+  // Suppressed once today's line exists — clearing the field on Keep would
+  // otherwise restart this timer and offer her a prompt she has already answered.
   useEffect(() => {
-    if (entry.trim() !== '') return;
+    if (draft !== '' || hasTodaysEntry) return;
     const timer = setTimeout(() => setShowStarter(true), STARTER_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [entry]);
+  }, [draft, hasTodaysEntry]);
 
-  const saved = todaysEntry !== null && entry.trim() === todaysEntry.trim();
+  /**
+   * Kept means kept: the words leave the composer and reappear under TODAY.
+   *
+   * Leaving them in the field showed the same line twice — once in an editable
+   * box still offering to save it, once in the list below — which reads as "it
+   * didn't take". An empty composer plus "Kept." is the whole confirmation.
+   */
+  const keep = () => {
+    onSave(draft);
+    setEntry('');
+    setShowStarter(false);
+  };
+
+  // Kept when today's line exists and the composer is not proposing a change —
+  // either just cleared, or re-seeded with that same line on a later visit.
+  const saved = hasTodaysEntry && (draft === '' || draft === todaysEntry.trim());
 
   return (
     <ScrollView
@@ -110,7 +133,7 @@ export function GratitudeScreen({
           testID="gratitude-input"
         />
 
-        {showStarter && entry.trim() === '' && (
+        {showStarter && draft === '' && !hasTodaysEntry && (
           <Text
             testID="gratitude-starter"
             allowFontScaling={false}
@@ -144,8 +167,8 @@ export function GratitudeScreen({
 
       <PillButton
         title={saved ? gratitudeCopy.saved : gratitudeCopy.save}
-        disabled={entry.trim() === '' || saved}
-        onPress={() => onSave(entry.trim())}
+        disabled={draft === '' || saved}
+        onPress={keep}
         testID="gratitude-save"
       />
 
