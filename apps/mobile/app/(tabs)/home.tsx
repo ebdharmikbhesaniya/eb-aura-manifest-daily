@@ -22,6 +22,7 @@ import {
   shouldShowDeniedHint,
 } from '@/features/notifications/permissionGate';
 import { requestPermissionAndRegister } from '@/features/notifications/useNotifications';
+import { formatArrivalTime } from '@/features/notifications/arrivalTime';
 import { hasSeenPaywall } from '@/features/paywall/paywallSeen';
 import { LockedFeatureSheet } from '@/features/paywall/LockedFeatureSheet';
 import { canUse } from '@/features/paywall/gating';
@@ -187,7 +188,10 @@ export default function HomeRoute() {
         onCollection={(id) => router.push(`/collection/${id}`)}
         notificationHint={
           deniedHint
-            ? notificationsCopy.deniedHint.replace('{time}', profile?.arrival_time ?? '07:00')
+            ? notificationsCopy.deniedHint.replace(
+                '{time}',
+                formatArrivalTime(profile?.arrival_time),
+              )
             : null
         }
       />
@@ -226,11 +230,26 @@ export default function HomeRoute() {
 
       <PermissionSheet
         ref={permissionRef}
-        arrivalTime={profile?.arrival_time ?? '07:00'}
+        arrivalTime={formatArrivalTime(profile?.arrival_time)}
         onAllow={() => {
           markPermissionAsked(true);
           permissionRef.current?.dismiss();
-          if (userId) void requestPermissionAndRegister(userId);
+          if (!userId) return;
+
+          void (async () => {
+            const { granted, registered } = await requestPermissionAndRegister(userId);
+
+            // "Turn them on" used to end here regardless of what happened, so a
+            // grant that never produced a push token looked exactly like one
+            // that did. Below Android 13 the OS shows no dialog at all, which
+            // made the button appear inert even on the happy path. Anything
+            // short of a registered token now falls back to the same quiet
+            // weekly line a decline gets — never a claim we cannot keep.
+            if (granted && registered) return;
+
+            setDeniedHint(true);
+            markDeniedHintShown();
+          })();
         }}
         onLater={() => {
           // Asked and declined is still asked: the dialog never returns

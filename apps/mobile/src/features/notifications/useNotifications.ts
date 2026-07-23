@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useState } from 'react';
@@ -14,8 +15,21 @@ import { supabase } from '@/lib/supabase';
  * backend an address and to report back when she opens one.
  */
 
+/**
+ * The outcome of the whole ask, not just the OS answer.
+ *
+ * `granted` alone was never enough to promise she will hear from us: below
+ * Android 13 notifications are granted at install, so `granted` is true before
+ * anything has been asked or registered. Only a token in `notification_tokens`
+ * means a moment can actually reach her, so the caller gets both.
+ */
+export interface PermissionOutcome {
+  granted: boolean;
+  registered: boolean;
+}
+
 /** Asks the OS, records the answer, and registers the device on success. */
-export async function requestPermissionAndRegister(userId: string): Promise<{ granted: boolean }> {
+export async function requestPermissionAndRegister(userId: string): Promise<PermissionOutcome> {
   const existing = await Notifications.getPermissionsAsync();
   const status =
     existing.status === 'granted' ? existing : await Notifications.requestPermissionsAsync();
@@ -23,27 +37,35 @@ export async function requestPermissionAndRegister(userId: string): Promise<{ gr
   const granted = status.status === 'granted';
   analytics.capture('notification_permission_result', { granted });
 
-  if (granted) await registerToken(userId);
-  return { granted };
+  if (!granted) return { granted, registered: false };
+
+  return { granted, registered: await registerToken(userId) };
 }
 
 /**
- * Writes this device's Expo push token (11 §1).
+ * Writes this device's Expo push token (11 §1). Returns whether it landed.
  *
  * Upserted on the token itself, so reinstalling or re-granting does not
  * accumulate duplicate rows — and re-activates a token the backend previously
  * retired as `DeviceNotRegistered`.
+ *
+ * Failures are REPORTED, not swallowed. This used to end in a bare `catch {}`
+ * on the reasoning that notifications are a bonus surface — but the common
+ * failure here is not transient: `getExpoPushTokenAsync` throws outright when
+ * `extra.eas.projectId` is missing, so an unset `EAS_PROJECT_ID` left every
+ * install permanently unreachable with no token row, no log line and a
+ * permission sheet that looked like it had worked.
  */
-export async function registerToken(userId: string): Promise<void> {
+export async function registerToken(userId: string): Promise<boolean> {
   // A simulator has no push token; asking for one throws rather than returning
   // null, and a failed registration must never break a launch.
-  if (!Device.isDevice) return;
+  if (!Device.isDevice) return false;
 
   try {
     const { data: token } = await Notifications.getExpoPushTokenAsync();
-    if (!token) return;
+    if (!token) return false;
 
-    await supabase.from('notification_tokens').upsert(
+    const { error } = await supabase.from('notification_tokens').upsert(
       {
         user_id: userId,
         expo_push_token: token,
@@ -52,8 +74,16 @@ export async function registerToken(userId: string): Promise<void> {
       },
       { onConflict: 'expo_push_token' },
     );
-  } catch {
-    // Silent: notifications are a bonus surface, not a launch dependency.
+
+    if (error) {
+      Sentry.captureMessage(`Push token upsert failed: ${error.message}`, 'warning');
+      return false;
+    }
+    return true;
+  } catch (error) {
+    // Still non-fatal to the launch, but no longer invisible.
+    Sentry.captureException(error);
+    return false;
   }
 }
 
