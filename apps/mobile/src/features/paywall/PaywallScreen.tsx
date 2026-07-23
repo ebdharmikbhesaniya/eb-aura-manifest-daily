@@ -28,6 +28,8 @@ export interface PaywallScreenProps {
   onPurchase: (plan: OfferedPlan) => void;
   onDismiss: () => void;
   onRestore: () => void;
+  /** An honest line under the CTA — e.g. this build cannot take a purchase. */
+  notice?: string | null;
   /** Legal links (v4 §paywall footer). Rendered only when a handler exists. */
   onTerms?: () => void;
   onPrivacy?: () => void;
@@ -54,6 +56,7 @@ export function PaywallScreen({
   onPurchase,
   onDismiss,
   onRestore,
+  notice = null,
   onTerms,
   onPrivacy,
   busy = false,
@@ -141,7 +144,9 @@ export function PaywallScreen({
                 testID={`paywall-plan-${plan.id}`}
                 onSelect={() => {
                   setSelectedId(plan.id);
-                  analytics.capture('paywall_plan_selected', { sku: plan.pkg.product.identifier });
+                  analytics.capture('paywall_plan_selected', {
+                    sku: plan.pkg?.product.identifier ?? plan.id,
+                  });
                 }}
               />
             ))}
@@ -161,6 +166,19 @@ export function PaywallScreen({
               onPress={() => onPurchase(selected)}
               testID="paywall-continue"
             />
+          )}
+
+          {notice && (
+            <Text
+              testID="paywall-notice"
+              allowFontScaling={false}
+              style={[
+                scaledType('bodySmall', scale),
+                { color: colors.text.secondary, textAlign: 'center' },
+              ]}
+            >
+              {notice}
+            </Text>
           )}
 
           <View

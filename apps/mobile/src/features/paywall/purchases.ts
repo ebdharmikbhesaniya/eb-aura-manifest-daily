@@ -1,4 +1,4 @@
-import { PREMIUM_ENTITLEMENT_ID, PRODUCT_IDS, type PlanId } from '@aura/shared';
+import { FALLBACK_PRICING, PREMIUM_ENTITLEMENT_ID, PRODUCT_IDS, type PlanId } from '@aura/shared';
 import { Platform } from 'react-native';
 import Purchases, { type CustomerInfo, type PurchasesPackage } from 'react-native-purchases';
 
@@ -63,12 +63,41 @@ export function isInTrial(info: CustomerInfo | null | undefined): boolean {
 
 export interface OfferedPlan {
   id: PlanId;
-  pkg: PurchasesPackage;
+  /** Absent on a fallback plan — there is no store package behind one. */
+  pkg: PurchasesPackage | null;
   /** Localized, straight from the store — never constructed by us. */
   price: string;
   /** Localized monthly equivalent, PRINTED not hidden (checklist #2). */
   monthlyEquivalent: string | null;
   hasTrial: boolean;
+  /**
+   * False when the figures came from `FALLBACK_PRICING` rather than the store.
+   * The paywall renders these so she can read the offer, but nothing may be
+   * charged against them — there is no package to charge.
+   */
+  purchasable: boolean;
+}
+
+/**
+ * The offer as we can state it with no store behind us (12 §1 fallback).
+ *
+ * Display only. Sorted like the real thing so the cover looks the same either
+ * way: annual is the hero and is pre-selected.
+ */
+export function fallbackPlans(): OfferedPlan[] {
+  return (Object.keys(PRODUCT_IDS) as PlanId[])
+    .map((id) => {
+      const { amount, currency, hasTrial } = FALLBACK_PRICING[id];
+      return {
+        id,
+        pkg: null,
+        price: new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(amount),
+        monthlyEquivalent: monthlyEquivalent(id, amount, currency),
+        hasTrial,
+        purchasable: false,
+      };
+    })
+    .sort((a, b) => (a.id === 'annual' ? -1 : b.id === 'annual' ? 1 : 0));
 }
 
 /**
@@ -80,11 +109,13 @@ export interface OfferedPlan {
  * (product 15 §user sentiment).
  */
 export async function loadPlans(): Promise<OfferedPlan[]> {
-  if (!configured) return [];
+  // No RevenueCat project in this build: state the offer from the fallback
+  // table rather than rendering an empty cover.
+  if (!configured) return fallbackPlans();
 
   const offerings = await Purchases.getOfferings();
   const current = offerings.current;
-  if (!current) return [];
+  if (!current) return fallbackPlans();
 
   const plans: OfferedPlan[] = [];
 
@@ -98,15 +129,23 @@ export async function loadPlans(): Promise<OfferedPlan[]> {
       price: pkg.product.priceString,
       monthlyEquivalent: monthlyEquivalent(id, pkg.product.price, pkg.product.currencyCode),
       hasTrial: Boolean(pkg.product.introPrice && pkg.product.introPrice.price === 0),
+      purchasable: true,
     });
   }
+
+  // An offering that named none of our products is no offering at all.
+  if (plans.length === 0) return fallbackPlans();
 
   // Annual first: it is the hero and is pre-selected (12 §1).
   return plans.sort((a, b) => (a.id === 'annual' ? -1 : b.id === 'annual' ? 1 : 0));
 }
 
 export type PurchaseOutcome =
-  { status: 'purchased'; premium: boolean } | { status: 'cancelled' } | { status: 'failed' };
+  | { status: 'purchased'; premium: boolean }
+  | { status: 'cancelled' }
+  | { status: 'failed' }
+  /** No store package behind the plan — the build has no RevenueCat offering. */
+  | { status: 'unavailable' };
 
 /**
  * Runs a purchase through Apple's sheet.
@@ -117,6 +156,9 @@ export type PurchaseOutcome =
  * render an error state for it.
  */
 export async function purchasePlan(plan: OfferedPlan): Promise<PurchaseOutcome> {
+  // A fallback plan carries figures, not a package. Nothing to charge.
+  if (!plan.pkg) return { status: 'unavailable' };
+
   try {
     const { customerInfo } = await Purchases.purchasePackage(plan.pkg);
     return { status: 'purchased', premium: hasPremium(customerInfo) };

@@ -70,17 +70,6 @@ export default function SettingsRoute() {
             onPress={() => claimRef.current?.present()}
             testID="settings-claim-row"
           />
-          {/* Development only. The paywall cannot open without a RevenueCat
-              offering, which leaves it undesignable on a machine with no keys —
-              this is the door in. `__DEV__` keeps it out of every real build. */}
-          {__DEV__ && (
-            <ListRow
-              title={settingsCopy.previewPaywall.title}
-              subtitle={settingsCopy.previewPaywall.subtitle}
-              onPress={() => router.push('/paywall?preview=1')}
-              testID="settings-preview-paywall-row"
-            />
-          )}
           <ListRow
             title={settingsCopy.deleteAccount}
             destructive

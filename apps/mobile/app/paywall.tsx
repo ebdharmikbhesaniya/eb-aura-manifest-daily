@@ -9,7 +9,6 @@ import { PaywallScreen } from '@/features/paywall/PaywallScreen';
 import { appleAuthAvailable } from '@/features/paywall/claim';
 import { markPaywallSeen } from '@/features/paywall/paywallSeen';
 import { markPermissionAsked } from '@/features/notifications/permissionGate';
-import { previewPlans } from '@/features/paywall/previewPlans';
 import {
   loadPlans,
   purchasePlan,
@@ -43,16 +42,11 @@ export default function PaywallRoute() {
    * with no param; Settings sends `from=settings` because the two want opposite
    * behaviour when there is no offering — see the effect below.
    */
-  const { from, preview } = useLocalSearchParams<{ from?: string; preview?: string }>();
+  const { from } = useLocalSearchParams<{ from?: string }>();
   const askedForPlans = from === 'settings';
-  /**
-   * Development-only: render the cover with stand-in plans so it can be OPENED
-   * on a machine with no RevenueCat keys. `previewPlans` is empty outside
-   * `__DEV__`, so this collapses to the normal path in any real build.
-   */
-  const isPreview = __DEV__ && preview === '1';
   const [plans, setPlans] = useState<OfferedPlan[]>([]);
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [appleAvailable, setAppleAvailable] = useState(true);
   const claimRef = useRef<BottomSheetModal>(null);
 
@@ -62,17 +56,12 @@ export default function PaywallRoute() {
   const [plansResolved, setPlansResolved] = useState(false);
 
   useEffect(() => {
-    if (isPreview) {
-      setPlans(previewPlans());
-      setPlansResolved(true);
-      return;
-    }
     void loadPlans().then((offered) => {
       setPlans(offered);
       setPlansResolved(true);
     });
     void appleAuthAvailable().then(setAppleAvailable);
-  }, [isPreview]);
+  }, []);
 
   const leaveToFreeTier = useCallback(() => {
     markPaywallSeen();
@@ -99,30 +88,33 @@ export default function PaywallRoute() {
     if (plansResolved && plans.length === 0 && !askedForPlans) leaveToFreeTier();
   }, [plansResolved, plans.length, askedForPlans, leaveToFreeTier]);
 
-  const onPurchase = useCallback(
-    async (plan: OfferedPlan) => {
-      // A preview plan has no real package behind it — buying one would hand
-      // RevenueCat a fabricated product id.
-      if (isPreview) return;
+  const onPurchase = useCallback(async (plan: OfferedPlan) => {
+    setNotice(null);
+    setBusy(true);
+    const outcome = await purchasePlan(plan);
+    setBusy(false);
 
-      setBusy(true);
-      const outcome = await purchasePlan(plan);
-      setBusy(false);
+    if (outcome.status === 'unavailable') {
+      // The figures came from the fallback table, so there is no package behind
+      // them to charge. Say so rather than letting Continue look broken.
+      setNotice(paywallCopy.purchaseUnavailableNote);
+      return;
+    }
 
-      if (outcome.status !== 'purchased') {
-        // A cancel is a legitimate answer, and a failure already surfaced through
-        // Apple's own sheet. Neither gets an error state from us (product 14).
-        return;
-      }
+    if (outcome.status !== 'purchased') {
+      // A cancel is a legitimate answer, and a failure already surfaced through
+      // Apple's own sheet. Neither gets an error state from us (product 14).
+      return;
+    }
 
-      analytics.capture('purchase_completed', { sku: plan.pkg.product.identifier });
-      markPaywallSeen();
-      // Claim now, while the value is freshest — but entitlement is already hers
-      // whether or not she completes it (03 §2.2).
-      claimRef.current?.present();
-    },
-    [isPreview],
-  );
+    analytics.capture('purchase_completed', {
+      sku: plan.pkg?.product.identifier ?? plan.id,
+    });
+    markPaywallSeen();
+    // Claim now, while the value is freshest — but entitlement is already hers
+    // whether or not she completes it (03 §2.2).
+    claimRef.current?.present();
+  }, []);
 
   const onRestore = useCallback(async () => {
     setBusy(true);
@@ -146,6 +138,7 @@ export default function PaywallRoute() {
             onPurchase={(plan) => void onPurchase(plan)}
             onDismiss={leaveToFreeTier}
             onRestore={() => void onRestore()}
+            notice={notice}
             // Rendered only when a URL exists. Both are required before a
             // subscription build passes store review; the footer omits a link
             // it cannot honour rather than showing a dead one.

@@ -1,3 +1,5 @@
+import type * as PurchasesModuleShape from './purchases';
+
 /**
  * The store key is selected per platform (12 §2).
  *
@@ -70,5 +72,55 @@ describe('configurePurchases', () => {
     const configure = await configureOn('ios', {});
 
     expect(configure).not.toHaveBeenCalled();
+  });
+});
+
+type PurchasesModule = typeof PurchasesModuleShape;
+
+/**
+ * The fallback offer (12 §1).
+ *
+ * A build with no RevenueCat project used to render the paywall with nothing on
+ * it — no plans, so no CTA, so no offer to read. These stand-ins exist so the
+ * cover can still state the offer, and the thing that MUST hold is that they
+ * are never charged against: they carry no store package.
+ */
+describe('fallback plans', () => {
+  const load = () => {
+    let mod!: PurchasesModule;
+    jest.isolateModules(() => {
+      jest.doMock('@/lib/env', () => ({ env: {} }));
+      mod = require('./purchases') as PurchasesModule;
+    });
+    return mod;
+  };
+
+  it('states the offer even with no store behind it', () => {
+    const plans = load().fallbackPlans();
+
+    expect(plans).toHaveLength(2);
+    expect(plans.every((p) => p.price.length > 0)).toBe(true);
+  });
+
+  it('leads with annual — it is the hero and is pre-selected', () => {
+    expect(load().fallbackPlans()[0]?.id).toBe('annual');
+  });
+
+  it('marks every one unpurchasable, with no package to charge', () => {
+    const plans = load().fallbackPlans();
+
+    expect(plans.every((p) => p.purchasable === false)).toBe(true);
+    expect(plans.every((p) => p.pkg === null)).toBe(true);
+  });
+
+  it('refuses to buy one rather than reporting a failure', async () => {
+    const mod = load();
+    const [annual] = mod.fallbackPlans();
+
+    await expect(mod.purchasePlan(annual!)).resolves.toEqual({ status: 'unavailable' });
+  });
+
+  it('falls back rather than returning nothing when RevenueCat is unconfigured', async () => {
+    await expect(load().loadPlans()).resolves.toHaveLength(2);
   });
 });

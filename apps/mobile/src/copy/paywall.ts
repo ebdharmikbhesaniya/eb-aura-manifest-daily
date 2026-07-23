@@ -54,6 +54,9 @@ export const paywallCopy = {
    */
   dismissed: 'The letter is yours either way.',
 
+  /** Continue tapped on a plan the store cannot sell — see FALLBACK_PRICING. */
+  purchaseUnavailableNote: 'Purchases aren’t set up on this build yet.',
+
   footer: {
     restore: 'Restore purchase',
     terms: 'Terms',
