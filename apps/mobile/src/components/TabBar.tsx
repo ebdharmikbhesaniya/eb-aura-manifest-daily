@@ -32,28 +32,16 @@ const TAB_BAR_HEIGHT = 45;
 /**
  * Bottom space a scrolling tab screen must leave clear, for THIS device.
  *
- * The static `TAB_BAR_CLEARANCE` guesses; this measures. The bar floats
- * `spacing.lg` above the safe-area inset, so the space it actually occupies is
- * inset + float + its own height — on a phone with a tall navigation bar that
- * comes to well over the old constant, which is how Home's last control ended
- * up underneath the pill.
+ * Measured, not guessed. The bar floats `spacing.lg` above the safe-area
+ * inset, so the space it actually occupies is inset + float + its own height —
+ * on a phone with a tall navigation bar that comes to well over the flat 88pt
+ * this replaced, which is how Home's last control ended up underneath the pill.
  */
 export function useTabBarClearance(): number {
   const insets = useSafeAreaInsets();
   const { spacing } = useTheme();
   return insets.bottom + spacing.lg + TAB_BAR_HEIGHT + spacing.lg;
 }
-
-/**
- * Bottom space a scrolling tab screen must leave clear.
- *
- * The bar floats over content instead of docking, so nothing reserves room for
- * it: a list that ends at the safe-area edge ends up underneath it. The number
- * is the bar itself (spacing.sm × 2 outer + spacing.sm × 2 inner + a 22pt icon
- * ≈ 54) plus its spacing.lg gap from the edge, rounded up for breathing room.
- * Screens sit inside `Screen`'s safe area, so the inset is already handled.
- */
-export const TAB_BAR_CLEARANCE = 88;
 
 /**
  * The floating pill tab bar (product 12 §navigation, 06 §6): four tabs, no

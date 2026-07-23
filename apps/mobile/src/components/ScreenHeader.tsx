@@ -12,6 +12,8 @@ export interface ScreenHeaderProps {
   onBack?: () => void;
   /** Spoken label for the chevron — the glyph itself announces nothing. */
   backLabel?: string;
+  /** Off when the title is DATA — a collection's name, not a heading. */
+  emberMark?: boolean;
   testID?: string;
 }
 
@@ -30,7 +32,13 @@ export interface ScreenHeaderProps {
  * ember's few sanctioned appearances outside voice, and it is why the title is
  * assembled here rather than passed through `SerifDisplay`.
  */
-export function ScreenHeader({ title, onBack, backLabel = 'Back', testID }: ScreenHeaderProps) {
+export function ScreenHeader({
+  title,
+  onBack,
+  backLabel = 'Back',
+  emberMark = true,
+  testID,
+}: ScreenHeaderProps) {
   const { colors, spacing } = useTheme();
   const scale = clampedFontScale();
 
@@ -62,7 +70,7 @@ export function ScreenHeader({ title, onBack, backLabel = 'Back', testID }: Scre
         style={[scaledType('subScreenTitle', scale), { flex: 1, color: colors.text.primary }]}
       >
         {title}
-        <Text style={{ color: colors.accent.ember }}>.</Text>
+        {emberMark && <Text style={{ color: colors.accent.ember }}>.</Text>}
       </Text>
     </View>
   );

@@ -1,6 +1,7 @@
+import { useRouter } from 'expo-router';
 import { ScrollView, Text } from 'react-native';
 
-import { Card, Screen, SerifDisplay } from '@/components';
+import { Card, Screen, ScreenHeader } from '@/components';
 import { affirmationsCopy } from '@/copy/affirmations';
 import { useKeptAffirmations } from '@/features/affirmations/useAffirmations';
 import { useAppState } from '@/stores/appState';
@@ -13,6 +14,7 @@ import { useTheme } from '@/theme/ThemeProvider';
  * outgrows a card list. Empty copy is an invitation, never a scold (product 09).
  */
 export default function SavedAffirmationsRoute() {
+  const router = useRouter();
   const { colors, spacing } = useTheme();
   const userId = useAppState((s) => s.userId);
   const { data: kept } = useKeptAffirmations(userId ?? undefined);
@@ -20,7 +22,7 @@ export default function SavedAffirmationsRoute() {
   return (
     <Screen testID="affirmations-saved">
       <ScrollView contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.lg }}>
-        <SerifDisplay variant="title">{affirmationsCopy.collectionTitle}</SerifDisplay>
+        <ScreenHeader title={affirmationsCopy.collectionTitle} onBack={() => router.back()} />
 
         {(kept ?? []).length === 0 ? (
           <Card variant="solid">

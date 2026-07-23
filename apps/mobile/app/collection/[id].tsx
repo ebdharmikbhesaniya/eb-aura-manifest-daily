@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { ScrollView, Text } from 'react-native';
 
-import { Card, ListRow, RowGroup, Screen, SerifDisplay } from '@/components';
+import { Card, ListRow, RowGroup, Screen, ScreenHeader } from '@/components';
 import { momentsCopy } from '@/copy/moments';
 import { toPlayable, useRecentMoments } from '@/features/moments/useMoments';
 import { usePlayerStore } from '@/features/player/playerStore';
@@ -59,9 +59,8 @@ export default function CollectionRoute() {
         showsVerticalScrollIndicator={false}
       >
         {/* A collection name is data, not a heading — no ember mark. */}
-        <SerifDisplay variant="title" emberMark={false}>
-          {title}
-        </SerifDisplay>
+        {/* A collection's name is DATA, so the header carries no ember mark. */}
+        <ScreenHeader title={title} onBack={() => router.back()} emberMark={false} />
 
         {items.length === 0 ? (
           <Card variant="solid">

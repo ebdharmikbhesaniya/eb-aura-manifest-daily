@@ -7,9 +7,11 @@ import { usePlayback } from '@/features/player/usePlayback';
  * Four tabs, exactly as product 11 / 06 §1 specify: Home · Affirmations ·
  * Gratitude · Profile. No hamburger, no "More" tab — that is a product rule.
  *
- * The floating pill TabBar is the design system's (Phase 1). Aura Design v3
- * carries no mini-player on any screen, so nothing rides above the bar: the
- * tab-bar slot is the bar alone.
+ * The floating pill TabBar is the design system's (Phase 1). Nothing rides
+ * above it: the mini-player was removed by product decision, so the tab-bar
+ * slot is the bar alone. Note this DEPARTS from Aura Design v4, which draws a
+ * playback pill at `bottom:74` on Home — restoring it means putting that pill
+ * back here and giving it an offset clear of the bar and the safe-area inset.
  *
  * `usePlayback` is still mounted HERE, once, rather than inside the player
  * screen — that is what lets audio outlive the cover and keep going while she

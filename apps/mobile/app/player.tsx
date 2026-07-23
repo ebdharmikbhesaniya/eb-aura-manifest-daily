@@ -19,8 +19,9 @@ import { supabase } from '@/lib/supabase';
  *
  * Minimizing goes back rather than closing: the store keeps the moment loaded
  * and playback running, which is what makes audio continue while she moves
- * around the app. Aura Design v3 has no mini-player, so the way back to a
- * playing moment is its own card rather than a persistent bar.
+ * around the app. There is no mini-player — removed by product decision, a
+ * departure from v4 — so the way back to a playing moment is its own card on
+ * Home rather than a persistent bar.
  */
 export default function PlayerRoute() {
   const router = useRouter();

@@ -1,6 +1,7 @@
+import { useRouter } from 'expo-router';
 import { ScrollView, Text } from 'react-native';
 
-import { Card, Label, Screen, SerifDisplay } from '@/components';
+import { Card, Label, Screen, ScreenHeader } from '@/components';
 import { gratitudeCopy } from '@/copy/gratitude';
 import { dayLabelFor } from '@/features/gratitude/dayLabel';
 import { useGratitude } from '@/features/gratitude/useGratitude';
@@ -16,6 +17,7 @@ import { clampedFontScale, scaledType } from '@/theme/typography';
  * store, so it works offline exactly as the tab does (product 09 §9.4).
  */
 export default function GratitudeHistoryRoute() {
+  const router = useRouter();
   const { colors, spacing } = useTheme();
   const scale = clampedFontScale();
   const userId = useAppState((s) => s.userId);
@@ -27,7 +29,7 @@ export default function GratitudeHistoryRoute() {
         contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.lg }}
         showsVerticalScrollIndicator={false}
       >
-        <SerifDisplay variant="title">{gratitudeCopy.historyTitle}</SerifDisplay>
+        <ScreenHeader title={gratitudeCopy.historyTitle} onBack={() => router.back()} />
 
         {history.length === 0 ? (
           <Card variant="solid">
