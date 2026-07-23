@@ -63,14 +63,37 @@ export default function PaywallRoute() {
     void appleAuthAvailable().then(setAppleAvailable);
   }, []);
 
+  /**
+   * The FIRST presentation's dismissal, straight after the Letter.
+   *
+   * A real outcome, not a cancel: it marks the paywall seen, sends her on to
+   * the free tier, and arms the notification ask for that first Home landing
+   * (11 §2) — product 08 forbids anything between the letter and the paywall,
+   * and this is the first moment that rule stops applying.
+   */
   const leaveToFreeTier = useCallback(() => {
     markPaywallSeen();
-    // The notification ask is due on the first Home landing AFTER this (11 §2)
-    // — never here. Product 08 forbids anything between the letter and the
-    // paywall, and this is the first moment that rule stops applying.
     markPermissionAsked(false);
     router.replace('/(tabs)/home');
   }, [router]);
+
+  /**
+   * Closing the cover.
+   *
+   * Opened deliberately — from Settings, or a locked-feature sheet — ✕ means
+   * "take me back where I was", so it pops. It ran `leaveToFreeTier` before,
+   * which did two wrong things at once on that path: replaced the route to Home
+   * instead of returning her, and re-armed the notification ask, so the
+   * permission sheet ambushed her on arrival. Neither is a dismissal; both
+   * belong to the post-Letter presentation alone.
+   */
+  const onDismissCover = useCallback(() => {
+    if (askedForPlans) {
+      router.back();
+      return;
+    }
+    leaveToFreeTier();
+  }, [askedForPlans, router, leaveToFreeTier]);
 
   /**
    * No offering — offline, or a build with no RevenueCat key.
@@ -136,7 +159,7 @@ export default function PaywallRoute() {
             plans={plans}
             busy={busy}
             onPurchase={(plan) => void onPurchase(plan)}
-            onDismiss={leaveToFreeTier}
+            onDismiss={onDismissCover}
             onRestore={() => void onRestore()}
             notice={notice}
             // Rendered only when a URL exists. Both are required before a
