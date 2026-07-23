@@ -24,6 +24,10 @@ export const affirmationsCopy = {
   collectionEmpty: 'Your kept words will live here.',
 
   share: 'Share as card',
+  /** The other half of v4's paired card actions. */
+  hear: 'Hear it read',
+  /** Provenance chip on the card — `{word}` is the goal area she chose. */
+  fromYourWords: 'From your words: “{word}”',
   keep: 'Keep this one',
   kept: 'Kept',
 

@@ -12,7 +12,7 @@
  *   node scripts/seed-demo.mjs "Jemy" --clean  # remove previously seeded rows
  *
  * Additive tables are tagged so --clean removes exactly what this added:
- *   moments.desire_text / affirmations.goal_area / gratitude.prompt_shown = SEED_TAG,
+ *   moments.desire_text / affirmations.feeling / gratitude.prompt_shown = SEED_TAG,
  *   memory_items.source_id = SEED_UUID, never_include/people by seeded values.
  * Profile text fields are filled ONLY when empty (never overwriting real
  * onboarding answers) and are left untouched by --clean.
@@ -111,7 +111,10 @@ function momentRows(userId) {
 }
 
 function affirmationRows(userId) {
-  const tag = { user_id: userId, goal_area: SEED_TAG };
+  // The marker rides `feeling`, NOT `goal_area`: v4's card renders goal_area
+  // back to her as "From your words: …", so a tag parked there showed up on the
+  // affirmation card as `From your words: "seed:home-demo"`.
+  const tag = { user_id: userId, feeling: SEED_TAG, goal_area: 'Home' };
   const kept = (text, agoDays) => ({ ...tag, kind: 'guided', status: 'kept', technique: 'identity', text, saved_at: iso(agoDays * DAY), created_at: iso(agoDays * DAY) });
   return [
     // Today's daily card (reveal ceremony is client-side; status stays candidate).
@@ -151,7 +154,7 @@ function memoryRows(userId) {
 async function clear(userId) {
   const results = await Promise.all([
     db.from('moments').delete({ count: 'exact' }).eq('user_id', userId).eq('desire_text', SEED_TAG),
-    db.from('affirmations').delete({ count: 'exact' }).eq('user_id', userId).eq('goal_area', SEED_TAG),
+    db.from('affirmations').delete({ count: 'exact' }).eq('user_id', userId).eq('feeling', SEED_TAG),
     db.from('gratitude_entries').delete({ count: 'exact' }).eq('user_id', userId).eq('prompt_shown', SEED_TAG),
     db.from('memory_items').delete({ count: 'exact' }).eq('user_id', userId).eq('source_id', SEED_UUID),
     db.from('never_include').delete({ count: 'exact' }).eq('user_id', userId).in('term', NEVER_TERMS),

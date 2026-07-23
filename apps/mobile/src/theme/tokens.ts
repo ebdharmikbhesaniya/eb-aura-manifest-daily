@@ -189,6 +189,10 @@ export const layout = {
   sectionGap: spacing.xl,
   /** Primary ink pill. Secondary outline is 50, text link 44 (v3 buttons). */
   buttonHeight: 54,
+  /** Paired actions inside a card sit lower than the primary pill (v4 §affirmation). */
+  cardButtonHeight: 44,
+  /** v4's affirmation card breathes one step more than a standard card. */
+  affirmationCardPaddingV: 22,
 } as const;
 
 /**

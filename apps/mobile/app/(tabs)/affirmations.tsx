@@ -26,10 +26,10 @@ import {
   useTodaysAffirmation,
 } from '@/features/affirmations/useAffirmations';
 import { localDate } from '@/features/gratitude/useGratitude';
-import { OutlinePill } from '@/features/paywall/OutlinePill';
 import { analytics } from '@/lib/analytics';
 import { api } from '@/lib/api';
 import { errorCopyFor, errorCopyForKey } from '@/lib/errorCopy';
+import { supabase } from '@/lib/supabase';
 import { useAppState } from '@/stores/appState';
 import { haptic } from '@/theme/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -57,6 +57,7 @@ export default function AffirmationsRoute() {
   const [step, setStep] = useState<GuidedStep>('goal');
   const [busy, setBusy] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [capturing, setCapturing] = useState(false);
   // The guided pass is async: the POST only enqueues a job, so the candidates
   // are not written until it finishes. We poll the job and refetch the candidate
   // rows only once it succeeds — refetching at enqueue (the old bug) always read
@@ -139,11 +140,40 @@ export default function AffirmationsRoute() {
     if (!today.data || !shareRef.current) return;
 
     const content = toShareContent({ affirmation: today.data.text });
-    const uri = await captureShareCard(shareRef.current as never);
 
-    await Share.share({ url: uri, message: content.affirmation });
+    // v4 puts the actions ON the card, and the capture photographs that view —
+    // so they come off for one frame, or they ride into the shared image.
+    setCapturing(true);
+    try {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const uri = await captureShareCard(shareRef.current as never);
+      await Share.share({ url: uri, message: content.affirmation });
+    } finally {
+      setCapturing(false);
+    }
+
     analytics.capture('affirmation_shared', { format: 'image' });
   }, [today.data]);
+
+  /**
+   * Keep / un-keep today's affirmation.
+   *
+   * `saved_at` is one of the columns her own JWT may update on `affirmations`
+   * (02 §5 grants), so this is a direct write like the moment's keep mark.
+   */
+  const favorite = useCallback(async () => {
+    const row = today.data;
+    if (!row) return;
+
+    await supabase
+      .from('affirmations')
+      .update({ saved_at: row.saved_at ? null : new Date().toISOString() })
+      .eq('id', row.id);
+
+    void haptic('favorite');
+    await today.refetch();
+    await kept.refetch();
+  }, [today, kept]);
 
   const keep = useCallback(
     (candidateId: string) => {
@@ -187,30 +217,30 @@ export default function AffirmationsRoute() {
           <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
             <AffirmationCard
               text={today.data.text}
-              whyLine={today.data.why_line}
               // The generator stores a technique per card; identity is the default
               // form the prompt asks for (product 09 §9.3a), so an older row with
               // none still gets a chip rather than silently losing the layer.
               technique={technique}
+              // v4's second chip. Only rendered when the row actually carries a
+              // goal area — a fabricated provenance would be worse than none.
+              sourceWord={today.data.goal_area}
               dateLabel={dateLabel}
               revealed={revealed}
+              favorited={today.data.saved_at !== null}
+              capturing={capturing}
               onReveal={reveal}
+              onFavorite={() => void favorite()}
               onTechnique={() => {
                 analytics.capture('technique_chip_opened', { technique });
                 techniqueRef.current?.present();
               }}
+              // No `onHear`: affirmations are text-only at V1 (10 §7), so the
+              // button holds its place in v4's pair but stays inert rather than
+              // promising audio that does not exist.
+              onShare={() => void share()}
               testID="affirmation-today"
             />
           </ViewShot>
-        )}
-
-        {/* Below the ViewShot, not inside it — the shared image stays only her words. */}
-        {revealed && today.data && (
-          <OutlinePill
-            title={affirmationsCopy.share}
-            onPress={() => void share()}
-            testID="affirmation-share"
-          />
         )}
 
         {revealed && (

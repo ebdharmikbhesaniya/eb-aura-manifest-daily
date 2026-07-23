@@ -57,7 +57,9 @@ type Variant =
   | 'body'
   | 'bodySmall'
   | 'label'
-  | 'button';
+  | 'button'
+  | 'cardChip'
+  | 'cardButton';
 
 /**
  * `allowFontScaling` is left ON everywhere (RN default). Serif variants apply
@@ -74,12 +76,17 @@ export const typography: Record<Variant, TextStyle> = {
     fontSize: 22,
     lineHeight: 38,
   },
-  /** Affirmation display — the voice at full size (v3 affirmation screen). */
+  /**
+   * Affirmation display — the voice at full size.
+   *
+   * v4's card sets it at 24/1.5 rather than v3's 30/45: the card gained chips
+   * and a pair of actions, and the old size pushed all of it off the surface.
+   */
   affirmationHero: {
     fontFamily: fonts.serifItalic,
     fontStyle: 'italic',
-    fontSize: 30,
-    lineHeight: 45,
+    fontSize: 24,
+    lineHeight: 36,
   },
   /** Upright serif — moment names are titles, not speech (v3: italic = voice only). */
   momentTitle: { fontFamily: fonts.serif, fontSize: 22, lineHeight: 28 },
@@ -110,6 +117,15 @@ export const typography: Record<Variant, TextStyle> = {
 
   /** Figtree 600 · 15 — weight lives in the font family, never `fontWeight`. */
   button: { fontFamily: fonts.sansSemiBold, fontSize: 15, lineHeight: 20 },
+
+  /**
+   * Chips that sit ON a card rather than in a selection row (v4 affirmation
+   * card). Smaller and untracked — the tracked, uppercase `label` is wayfinding,
+   * these are annotations.
+   */
+  cardChip: { fontFamily: fonts.sansSemiBold, fontSize: 11.5, lineHeight: 16 },
+  /** Paired actions inside a card — a step down from the 15pt primary button. */
+  cardButton: { fontFamily: fonts.sansSemiBold, fontSize: 13.5, lineHeight: 18 },
 };
 
 /** 60% per product 12 §label style. */
