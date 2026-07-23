@@ -28,10 +28,13 @@ export function TodayMomentCard({
   state,
   onPlay,
   onRetry,
+  onFavorite,
 }: {
   state: HomeMomentState;
   onPlay: (momentId: string) => void;
   onRetry: () => void;
+  /** Toggles the keep mark. Premium beyond the Letter, gated by the caller (12 §4). */
+  onFavorite: (momentId: string) => void;
 }) {
   const { colors, spacing } = useTheme();
   const scale = clampedFontScale();
@@ -53,7 +56,7 @@ export function TodayMomentCard({
         onPress={() => onPlay(state.moment.id)}
         testID="home-today"
       >
-        <ReadyCard moment={state.moment} onPlay={onPlay} />
+        <ReadyCard moment={state.moment} onPlay={onPlay} onFavorite={onFavorite} />
       </Pressable>
     );
   }
@@ -98,9 +101,11 @@ export function TodayMomentCard({
 function ReadyCard({
   moment,
   onPlay,
+  onFavorite,
 }: {
   moment: PlayableMoment;
   onPlay: (momentId: string) => void;
+  onFavorite: (momentId: string) => void;
 }) {
   const { colors, iconSizes, spacing } = useTheme();
   const scale = clampedFontScale();
@@ -140,17 +145,30 @@ function ReadyCard({
           {listenLabel(moment.durationMs)}
         </Text>
         <View style={{ flex: 1 }} />
-        <Text
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-          allowFontScaling={false}
-          style={{
-            fontSize: iconSizes.lg,
-            color: favorited ? colors.accent.heart : colors.text.disabled,
-          }}
+        {/* A real control, not an ornament. The glyph rendered the moment's
+            `favorited_at` from the start but was never pressable, so the only
+            working keep-mark in the app was the one on the player cover — this
+            one read as broken because it looked identical and did nothing. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            favorited ? momentsCopy.player.unfavorite : momentsCopy.player.favorite
+          }
+          accessibilityState={{ selected: favorited }}
+          hitSlop={12}
+          onPress={() => onFavorite(moment.id)}
+          testID="home-today-favorite"
         >
-          {favorited ? '♥' : '♡'}
-        </Text>
+          <Text
+            allowFontScaling={false}
+            style={{
+              fontSize: iconSizes.lg,
+              color: favorited ? colors.accent.heart : colors.text.disabled,
+            }}
+          >
+            {favorited ? '♥' : '♡'}
+          </Text>
+        </Pressable>
       </View>
     </Card>
   );

@@ -44,6 +44,7 @@ describe('HomeScreen', () => {
             recent={[]}
             onPlay={jest.fn()}
             onRetry={jest.fn()}
+            onFavorite={jest.fn()}
             onManifest={jest.fn()}
             {...props}
           />
@@ -88,6 +89,24 @@ describe('HomeScreen', () => {
       await fireEvent.press(screen.getByTestId('home-today-play'));
 
       expect(onPlay).toHaveBeenCalledWith('moment-1');
+    });
+
+    it('keeps the moment from the heart — it is a control, not an ornament', async () => {
+      const onFavorite = jest.fn();
+      await renderHome({ kind: 'ready', moment: moment() }, { onFavorite });
+
+      await fireEvent.press(screen.getByTestId('home-today-favorite'));
+
+      expect(onFavorite).toHaveBeenCalledWith('moment-1');
+    });
+
+    it('does not start playback when she only meant to keep it', async () => {
+      const onPlay = jest.fn();
+      await renderHome({ kind: 'ready', moment: moment() }, { onPlay });
+
+      await fireEvent.press(screen.getByTestId('home-today-favorite'));
+
+      expect(onPlay).not.toHaveBeenCalled();
     });
 
     it('says how long listening takes, rounded up', async () => {

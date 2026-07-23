@@ -32,6 +32,8 @@ export interface HomeScreenProps {
   onDemandCount?: number;
   onPlay: (momentId: string) => void;
   onRetry: () => void;
+  /** Toggles today's keep mark. Premium beyond the Letter (12 §4). */
+  onFavorite: (momentId: string) => void;
   onManifest: () => void;
   onCollection?: (id: CollectionId) => void;
   /** One quiet line a week when notifications were declined (11 §2). */
@@ -77,6 +79,7 @@ export function HomeScreen({
   onDemandCount = 0,
   onPlay,
   onRetry,
+  onFavorite,
   onManifest,
   onCollection,
   notificationHint = null,
@@ -109,7 +112,7 @@ export function HomeScreen({
 
       <View style={{ gap: spacing.sm }}>
         <Label>{momentsCopy.home.todayLabel}</Label>
-        <TodayMomentCard state={state} onPlay={onPlay} onRetry={onRetry} />
+        <TodayMomentCard state={state} onPlay={onPlay} onRetry={onRetry} onFavorite={onFavorite} />
       </View>
 
       {forming.length > 0 && (

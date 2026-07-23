@@ -35,6 +35,7 @@ import { api } from '@/lib/api';
 import { errorCopyFor, errorKeyOf } from '@/lib/errorCopy';
 import { supabase } from '@/lib/supabase';
 import { useAppState } from '@/stores/appState';
+import { haptic } from '@/theme/haptics';
 
 /** Home's "Recently played" shows this many rows; the rest live in collections. */
 const RECENT_ROWS = 5;
@@ -127,6 +128,35 @@ export default function HomeRoute() {
     }
   }, [today]);
 
+  /**
+   * Keep / un-keep today's moment (12 §4).
+   *
+   * The same write the player cover does — `favorited_at` is one of the three
+   * engagement columns her own JWT may update, so this needs no endpoint. Home's
+   * heart rendered that column from the start but was never pressable, which is
+   * why keeping only worked from inside the player.
+   */
+  const onFavorite = useCallback(
+    async (momentId: string) => {
+      if (!canUse('favorites', entitlement)) {
+        lockedRef.current?.present();
+        return;
+      }
+
+      const current = today.data?.favoritedAt ?? null;
+      await supabase
+        .from('moments')
+        .update({ favorited_at: current ? null : new Date().toISOString() })
+        .eq('id', momentId);
+
+      void haptic('favorite');
+      await today.refetch();
+      // The Collections count reads the same column, so it has to re-read too.
+      await recent.refetch();
+    },
+    [entitlement, today, recent],
+  );
+
   const onManifest = useCallback(() => {
     // Manifest is premium (12 §4). The locked sheet is calm and never a
     // full-screen interrupt.
@@ -152,6 +182,7 @@ export default function HomeRoute() {
         onDemandCount={(recent.data ?? []).filter((m) => m.type === 'ondemand').length}
         onPlay={play}
         onRetry={() => void retry()}
+        onFavorite={(id) => void onFavorite(id)}
         onManifest={onManifest}
         onCollection={(id) => router.push(`/collection/${id}`)}
         notificationHint={
