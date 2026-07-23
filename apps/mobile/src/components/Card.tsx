@@ -1,4 +1,4 @@
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { ReactNode } from 'react';
 
 import { useTheme } from '@/theme/ThemeProvider';
@@ -40,7 +40,16 @@ export function Card({ variant, children, style }: CardProps) {
         },
         // Shadow in light only. In dark, elevation comes from the border — an ink
         // shadow is invisible against the warm dark base, and a light one would glow.
+        //
+        // Android's `elevation` is dropped here, and only here. It draws its
+        // shadow from an opaque backing layer, which a TRANSLUCENT surface then
+        // shows straight through — the glassy card was rendering as a pale inner
+        // rectangle inside a darker one, which is the double-card people saw on
+        // Today's Moment. The iOS shadow props composite against alpha correctly
+        // and stay; on Android the hairline border carries the lift, and v4 only
+        // asks for ink at 10% here anyway.
         glassy && scheme === 'light' && shadows.card,
+        glassy && Platform.OS === 'android' && { elevation: 0 },
         style,
       ]}
     >
