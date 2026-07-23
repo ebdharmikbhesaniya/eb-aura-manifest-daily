@@ -12,6 +12,9 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { RitualLine } from './RitualLine';
 
 /** Gap between the three sequenced lines (product 08 §2). Unhurried, not slow. */
+/** The ritual's orb is the largest in the app — here it IS the content (v4). */
+const RITUAL_ORB_SIZE = 200;
+
 const LINE_INTERVAL_MS = 2_600;
 /** How long the gradient takes to travel from light to dusk. */
 const DUSK_MS = 12_000;
@@ -88,7 +91,8 @@ export function GeneratingRitual({
         }}
       >
         {/* Large and unhurried — the biggest orb in the app (v4 §generating). */}
-        <Orb state="generating" size={170} testID="ritual-orb" />
+        {/* Larger than the player's: on this screen the orb IS the content (v4). */}
+        <Orb state="generating" size={RITUAL_ORB_SIZE} testID="ritual-orb" />
 
         <View style={{ marginTop: spacing.xl, alignItems: 'center' }}>
           {failed ? (

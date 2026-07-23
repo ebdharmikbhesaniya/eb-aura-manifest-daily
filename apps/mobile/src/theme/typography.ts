@@ -80,7 +80,10 @@ type Variant =
   | 'chipLabel'
   | 'memoryContract'
   | 'memoryLine'
-  | 'rowAction';
+  | 'rowAction'
+  | 'ritualLine'
+  | 'ritualLineFinal'
+  | 'endingBody';
 
 /**
  * `allowFontScaling` is left ON everywhere (RN default). Serif variants apply
@@ -91,11 +94,16 @@ export const typography: Record<Variant, TextStyle> = {
   display: { fontFamily: fonts.serif, fontSize: 34, lineHeight: 40, letterSpacing: -0.34 },
 
   /** The voice — italic serif, generous leading for karaoke (v3 voice · 22/38). */
+  /**
+   * The Letter's voice, spoken word by word (v4 §letter): 24/1.72. The
+   * generous leading is the karaoke rhythm — words land one at a time and the
+   * line has to hold still around them.
+   */
   letterLine: {
     fontFamily: fonts.serifItalic,
     fontStyle: 'italic',
-    fontSize: 22,
-    lineHeight: 38,
+    fontSize: 24,
+    lineHeight: 41,
   },
   /**
    * Affirmation display — the voice at full size.
@@ -204,6 +212,21 @@ export const typography: Record<Variant, TextStyle> = {
   memoryLine: { fontFamily: fonts.sansMedium, fontSize: 14, lineHeight: 20 },
   /** The quiet verb beside it — Edit, Remove. */
   rowAction: { fontFamily: fonts.sansSemiBold, fontSize: 12, lineHeight: 16 },
+
+  /**
+   * The generating ritual's stacked lines (v4 §generating). The last one steps
+   * up: it is the sentence she is meant to still be holding when the Letter
+   * arrives, and the two above it are already receding.
+   */
+  ritualLine: { fontFamily: fonts.serifItalic, fontStyle: 'italic', fontSize: 20, lineHeight: 30 },
+  ritualLineFinal: {
+    fontFamily: fonts.serifItalic,
+    fontStyle: 'italic',
+    fontSize: 22,
+    lineHeight: 33,
+  },
+  /** The line under the covenant, and the note under Continue (v4 §ending). */
+  endingBody: { fontFamily: fonts.sansMedium, fontSize: 15, lineHeight: 24 },
 };
 
 /** 60% per product 12 §label style. */

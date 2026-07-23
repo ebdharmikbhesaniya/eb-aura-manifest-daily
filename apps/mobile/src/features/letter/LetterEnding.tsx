@@ -53,7 +53,7 @@ export function LetterEnding({ onContinue, testID }: LetterEndingProps) {
     >
       <Text
         allowFontScaling={false}
-        style={[scaledType('body', scale), { textAlign: 'center', color: colors.text.body }]}
+        style={[scaledType('endingBody', scale), { textAlign: 'center', color: colors.text.body }]}
       >
         {letterCopy.ending.more}
       </Text>
@@ -69,8 +69,8 @@ export function LetterEnding({ onContinue, testID }: LetterEndingProps) {
       <Text
         allowFontScaling={false}
         style={[
-          scaledType('bodySmall', scale),
-          { textAlign: 'center', color: colors.text.secondary, marginTop: spacing.md },
+          scaledType('coverMeta', scale),
+          { textAlign: 'center', color: colors.text.secondary, marginTop: spacing.md + 2 },
         ]}
       >
         {letterCopy.ending.kept}

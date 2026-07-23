@@ -68,7 +68,9 @@ export function RitualLine({ text, delayMs, prominence = 1, testID }: RitualLine
       allowFontScaling={false}
       style={[
         style,
-        scaledType('letterLine', scale),
+        // The nearest line is a size up: v4 lets it carry the moment while the
+        // ones behind it recede in both weight and scale.
+        scaledType(prominence < 1 ? 'ritualLine' : 'ritualLineFinal', scale),
         {
           textAlign: 'center',
           // Only the final, nearest line speaks in full ink.
