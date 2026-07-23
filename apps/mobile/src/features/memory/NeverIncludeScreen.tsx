@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
-import { Input, Screen, SerifDisplay, TextButton } from '@/components';
+import { Input, Screen, ScreenHeader, TextButton } from '@/components';
 import { memoryCopy } from '@/copy/memory';
 import { useAppState } from '@/stores/appState';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -15,7 +15,12 @@ import { useAddNeverInclude, useNeverInclude, useRemoveNeverInclude } from './ho
  * The term itself never leaves the device as analytics; the event that records
  * an addition is deliberately payload-free (13 §2).
  */
-export function NeverIncludeScreen() {
+export interface NeverIncludeScreenProps {
+  /** Pops back to Profile. v4 gives every pushed screen a chevron. */
+  onBack?: () => void;
+}
+
+export function NeverIncludeScreen({ onBack }: NeverIncludeScreenProps = {}) {
   const { colors, radii, spacing, typography } = useTheme();
   const userId = useAppState((s) => s.userId);
 
@@ -35,7 +40,11 @@ export function NeverIncludeScreen() {
   return (
     <Screen testID="never-include">
       <View style={{ flex: 1, gap: spacing.lg, paddingVertical: spacing.xl }}>
-        <SerifDisplay variant="title">{memoryCopy.neverInclude.title}</SerifDisplay>
+        <ScreenHeader
+          title={memoryCopy.neverInclude.title}
+          {...(onBack ? { onBack } : {})}
+          testID="never-include-header"
+        />
         <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
           {memoryCopy.neverInclude.description}
         </Text>

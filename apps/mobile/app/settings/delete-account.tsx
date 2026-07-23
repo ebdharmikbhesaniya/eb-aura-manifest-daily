@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { Input, PillButton, Screen, SerifDisplay, TextButton } from '@/components';
+import { Input, PillButton, Screen, TextButton, ScreenHeader } from '@/components';
 import { api } from '@/lib/api';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -30,7 +30,11 @@ export default function DeleteAccountRoute() {
   return (
     <Screen testID="delete-account">
       <View style={{ flex: 1, gap: spacing.lg, paddingVertical: spacing.lg }}>
-        <SerifDisplay variant="title">Delete everything?</SerifDisplay>
+        <ScreenHeader
+          title="Delete everything?"
+          onBack={() => router.back()}
+          testID="delete-account-header"
+        />
 
         <Text style={[typography.body, { color: colors.text.secondary }]}>
           Your letter, your moments and everything you’ve told me. This can’t be undone, and I won’t

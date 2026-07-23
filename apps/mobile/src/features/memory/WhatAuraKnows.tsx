@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { Label, SerifDisplay } from '@/components';
+import { Label, ScreenHeader } from '@/components';
 import { memoryCopy } from '@/copy/memory';
 import { analytics } from '@/lib/analytics';
 import { useAppState } from '@/stores/appState';
@@ -29,7 +29,12 @@ const GROUP_ORDER = Object.keys(memoryCopy.whatAuraKnows.groups) as MemoryItem['
  *    the section labels are her words ("What feels heavy"), never the enum's.
  *    If it reads like a database row, it reads like surveillance.
  */
-export function WhatAuraKnows() {
+export interface WhatAuraKnowsProps {
+  /** Pops back to Profile. v4 gives this screen a chevron. */
+  onBack?: () => void;
+}
+
+export function WhatAuraKnows({ onBack }: WhatAuraKnowsProps = {}) {
   const { colors, spacing, typography } = useTheme();
   const userId = useAppState((s) => s.userId);
   const { data: items, isLoading } = useMemoryItems(userId ?? undefined);
@@ -66,8 +71,12 @@ export function WhatAuraKnows() {
 
   return (
     <View style={container}>
-      <SerifDisplay variant="title">{memoryCopy.whatAuraKnows.title}</SerifDisplay>
-      <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
+      <ScreenHeader
+        title={memoryCopy.whatAuraKnows.title}
+        {...(onBack ? { onBack } : {})}
+        testID="memory-header"
+      />
+      <Text style={[typography.memoryContract, { color: colors.text.secondary }]}>
         {memoryCopy.whatAuraKnows.contract}
       </Text>
 
@@ -113,9 +122,9 @@ function MemoryRow({ item, onForget }: { item: MemoryItem; onForget: (i: MemoryI
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: spacing.md,
+        gap: spacing.md - 2,
         paddingVertical: spacing.md,
-        paddingHorizontal: spacing.md,
+        paddingHorizontal: spacing.md + 3,
         borderRadius: radii.field,
         backgroundColor: sensitive ? colors.accent.blushSoft : colors.surface.card,
         borderWidth: sensitive ? 0 : 1,
@@ -123,14 +132,17 @@ function MemoryRow({ item, onForget }: { item: MemoryItem; onForget: (i: MemoryI
       }}
     >
       {/* `content` only — never category, tier or weight. */}
-      <Text style={[typography.body, { flex: 1, color: colors.text.primary }]}>{item.content}</Text>
+      <Text style={[typography.memoryLine, { flex: 1, color: colors.text.body }]}>
+        {item.content}
+      </Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${memoryCopy.whatAuraKnows.deleteAction}: ${item.content}`}
         onPress={() => onForget(item)}
         style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
       >
-        <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
+        {/* Olive, not ember: removing is hers to do, not something to invite. */}
+        <Text style={[typography.rowAction, { color: colors.text.label }]}>
           {memoryCopy.whatAuraKnows.deleteAction}
         </Text>
       </Pressable>

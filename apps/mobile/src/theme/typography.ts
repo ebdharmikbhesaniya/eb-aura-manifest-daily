@@ -77,7 +77,10 @@ type Variant =
   | 'coverMeta'
   | 'pillLabel'
   | 'skipLabel'
-  | 'chipLabel';
+  | 'chipLabel'
+  | 'memoryContract'
+  | 'memoryLine'
+  | 'rowAction';
 
 /**
  * `allowFontScaling` is left ON everywhere (RN default). Serif variants apply
@@ -194,6 +197,13 @@ export const typography: Record<Variant, TextStyle> = {
   skipLabel: { fontFamily: fonts.sansSemiBold, fontSize: 12, lineHeight: 16 },
   /** Chips inside a sheet (v4 §manifest) — a hair under body small. */
   chipLabel: { fontFamily: fonts.sansMedium, fontSize: 12.5, lineHeight: 17 },
+
+  /** The memory contract under "What Aura knows" (v4 §memory). */
+  memoryContract: { fontFamily: fonts.sansMedium, fontSize: 13, lineHeight: 20 },
+  /** One remembered line, in her own words. */
+  memoryLine: { fontFamily: fonts.sansMedium, fontSize: 14, lineHeight: 20 },
+  /** The quiet verb beside it — Edit, Remove. */
+  rowAction: { fontFamily: fonts.sansSemiBold, fontSize: 12, lineHeight: 16 },
 };
 
 /** 60% per product 12 §label style. */
