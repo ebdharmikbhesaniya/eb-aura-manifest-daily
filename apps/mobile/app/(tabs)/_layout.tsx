@@ -1,9 +1,11 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { TabBar } from '@/components/TabBar';
+import { TabBar, TAB_BAR_HEIGHT } from '@/components/TabBar';
 import { MiniPlayer } from '@/features/player/MiniPlayer';
 import { usePlayback } from '@/features/player/usePlayback';
+import { useTheme } from '@/theme/ThemeProvider';
 
 /**
  * Four tabs, exactly as product 11 / 06 §1 specify: Home · Affirmations ·
@@ -19,13 +21,36 @@ import { usePlayback } from '@/features/player/usePlayback';
  */
 export default function TabsLayout() {
   const playback = usePlayback();
+  const insets = useSafeAreaInsets();
+  const { spacing } = useTheme();
+
+  /**
+   * Where the mini-player's bottom edge sits, measured from the bottom of the
+   * window.
+   *
+   * `TabBar` is `position: absolute`, so it occupies no layout height and the
+   * mini-player — the slot's only in-flow child — otherwise renders flush
+   * against the window edge, underneath Android's system navigation bar. The
+   * pill has to clear the inset, the bar's `spacing.lg` float, the bar itself,
+   * and then leave a gap, which is what puts it ABOVE the bar as 06 §1 asks.
+   *
+   * Driven by the inset rather than by `Platform`: the home indicator is a
+   * bottom inset too, so the same arithmetic is correct on both platforms.
+   */
+  const miniPlayerOffset = insets.bottom + spacing.lg + TAB_BAR_HEIGHT + spacing.sm;
 
   return (
     <Tabs
       screenOptions={{ headerShown: false }}
       tabBar={(props) => (
-        <View>
-          <MiniPlayer onToggle={playback.toggle} testID="mini-player" />
+        // `box-none` so the transparent area beside the floating pill stays
+        // tappable by the screen underneath rather than swallowing the touch.
+        <View pointerEvents="box-none">
+          <MiniPlayer
+            onToggle={playback.toggle}
+            bottomOffset={miniPlayerOffset}
+            testID="mini-player"
+          />
           <TabBar {...props} />
         </View>
       )}

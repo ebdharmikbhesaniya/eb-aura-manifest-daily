@@ -16,6 +16,16 @@ const GLYPH_RATIO = 0.34;
 
 export interface MiniPlayerProps {
   onToggle: () => void;
+  /**
+   * Space to leave below the pill, in points.
+   *
+   * The bar is the only IN-FLOW child of the tab-bar slot — `TabBar` itself is
+   * absolutely positioned — so without this the pill sits flush against the
+   * bottom of the window and Android's system navigation bar covers it. The
+   * caller owns the number because only it knows the safe-area inset and the
+   * height of the bar this pill has to clear.
+   */
+  bottomOffset: number;
   testID?: string;
 }
 
@@ -31,7 +41,7 @@ export interface MiniPlayerProps {
  * smaller target so the common intent (get back to the moment) is the whole bar
  * and the rarer one (stop it) is deliberate.
  */
-export function MiniPlayer({ onToggle, testID }: MiniPlayerProps) {
+export function MiniPlayer({ onToggle, bottomOffset, testID }: MiniPlayerProps) {
   const { colors, spacing, radii, shadows } = useTheme();
   const scale = clampedFontScale();
 
@@ -57,7 +67,7 @@ export function MiniPlayer({ onToggle, testID }: MiniPlayerProps) {
         flexDirection: 'row',
         alignItems: 'center',
         marginHorizontal: spacing.md,
-        marginBottom: spacing.sm,
+        marginBottom: bottomOffset,
         borderRadius: radii.pill,
         backgroundColor: colors.cta.background,
         paddingVertical: spacing.sm,
