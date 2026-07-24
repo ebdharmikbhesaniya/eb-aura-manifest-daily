@@ -12,7 +12,7 @@ _Supabase Auth. Sign-in is required before the app can be used (founder decision
 
 1. **An identity before any content.** Nothing she writes is reachable until an account exists to own it. The sign-in gate is the first route the boot gate resolves, ahead of onboarding, the letter and the paywall.
 2. **An account exists from second one.** Anonymous Supabase sessions are real users: real `user_id`, real rows, real RLS. The gate does not replace that — it **links** a credential to it, so the id never changes.
-3. **No passwords.** Google, Apple and emailed links only. Nothing to breach, nothing to reset (§6).
+3. **Email + password is the front door** (founder decision, 2026-07-25), with Google, Apple and the emailed link alongside it. This REVERSES the "no passwords" rule this doc shipped with: the link round-trip through an inbox cost more sign-ups than the rule saved. The security cost is stated plainly in §6 rather than hidden.
 4. **Purchase forces durability.** Money must never be attached to an unrecoverable identity. Now trivially satisfied: everyone is durable before they can spend.
 
 ## 2. Lifecycle
@@ -37,7 +37,14 @@ stateDiagram-v2
 
 ### 2.2 The gate (`app/(auth)/sign-in.tsx`)
 
-Offers, in order: **Google** (Android's half), **Apple** (iOS's half, and required by App Store review when any third-party login is offered), **emailed link** (fallback, and the only option on a build with neither configured). No password field anywhere.
+Offers, in order: **Google** (Android's half), **Apple** (iOS's half, and required by App Store review when any third-party login is offered), then **Create account** and **Sign in** — email + password, the primary path since 2026-07-25 and the only one that works on a build with no provider configured.
+
+The password form has two modes and one rule between them, which is the same claim-vs-adopt split `authenticateWithProvider` follows (`features/auth/password.ts`):
+
+1. **Create account → `updateUser({ email, password })`**, converting the anonymous user in place. `user_id` does not change, so a part-way conversation survives. `signUp` is deliberately NOT used here: it mints a new user and orphans the draft behind a new session.
+2. **Sign in → `signInWithPassword`**, which adopts an existing account and therefore wipes local device state (§5 step 5), exactly as the Apple path does.
+
+A sign-up that comes back "already registered" moves her to the Sign in mode rather than failing — she is on the wrong tab, not in trouble. There is **no password-reset form**: "forgot your password" sends the magic link, which already exists and is already trusted.
 
 `features/auth/session.ts#authenticateWithProvider` decides what a chosen identity means, and the order is load-bearing:
 
@@ -97,7 +104,8 @@ Settings → Delete account & data → typed confirmation → `POST /v1/account/
 ## 6. Sessions & security posture
 
 - Access token TTL: Supabase default (1h) with refresh rotation; refresh token reuse detection on (Supabase default).
-- No passwords (Google + Apple + emailed link only) — nothing to breach, nothing to reset. The 2026-07-24 gate did NOT introduce passwords; it only made choosing one of these mandatory rather than optional.
+- **Passwords exist as of 2026-07-25** (founder decision), reversing this doc's original "nothing to breach, nothing to reset" posture. What that costs, stated rather than glossed: there is now a credential worth stealing, so password strength is Supabase's policy (6 characters minimum at the default setting — worth raising before launch), and reuse across sites becomes this app's problem too. Recovery is deliberately the existing magic link rather than a reset form, so no new token type was introduced.
+- Supabase's leaked-password protection (HaveIBeenPwned) is **off by default** and should be enabled in the project's Auth settings now that passwords are a path — it is the cheapest mitigation available for the risk above.
 - Deep links for magic links: `aura://auth/callback` registered in `app.config.ts`; Expo Router handles the callback route (06).
 - Anonymous sign-in abuse: Supabase anonymous rate limits + Turnstile-free (mobile-only app; App Attest can be added if abuse appears — deferred, noted in 14 §8).
 

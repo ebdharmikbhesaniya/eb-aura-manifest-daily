@@ -32,6 +32,22 @@ export interface InputProps {
    */
   keyboardType?: 'default' | 'email-address';
   autoCapitalize?: 'none' | 'sentences';
+  /**
+   * Masks the field. Kept as narrow as `keyboardType` above and for the same
+   * reason: the sign-in gate needs a password field (founder decision,
+   * 2026-07-25) and a bare `TextInput` there would be the one screen in the app
+   * not wearing the design system.
+   */
+  secureTextEntry?: boolean;
+  /**
+   * Lets the OS keychain offer to save and fill credentials. Without it a
+   * password field is a field she has to remember unaided, which is how a
+   * password account becomes a locked-out account.
+   */
+  autoComplete?: 'email' | 'new-password' | 'current-password' | 'off';
+  /** Submit behaviour, so the keyboard's action key advances rather than dead-ends. */
+  returnKeyType?: 'next' | 'done' | 'go';
+  onSubmitEditing?: () => void;
   testID?: string;
 }
 
@@ -49,6 +65,10 @@ export function Input({
   autoFocus = false,
   keyboardType = 'default',
   autoCapitalize = 'sentences',
+  secureTextEntry = false,
+  autoComplete,
+  returnKeyType,
+  onSubmitEditing,
   testID,
   sunken = false,
 }: InputProps) {
@@ -81,6 +101,10 @@ export function Input({
           autoFocus={autoFocus}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
+          secureTextEntry={secureTextEntry}
+          {...(autoComplete !== undefined && { autoComplete })}
+          {...(returnKeyType !== undefined && { returnKeyType })}
+          {...(onSubmitEditing !== undefined && { onSubmitEditing })}
           onFocus={() => animateGlow(true)}
           onBlur={() => animateGlow(false)}
           placeholderTextColor={colors.text.secondary}

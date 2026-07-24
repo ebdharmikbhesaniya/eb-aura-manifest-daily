@@ -280,7 +280,13 @@ export type PaywallSurface = 'post_letter' | 'locked_feature' | 'settings';
 export type GatedFeature =
   'manifest_anything' | 'refine' | 'favorites' | 'collections' | 'share_export';
 
-export type ClaimMethod = 'apple' | 'email' | 'google';
+/**
+ * `email` is the magic link; `password` is the email+password pair added when
+ * the gate gained direct sign-up (founder decision, 2026-07-25). They stay
+ * distinct because conflating them would hide which front door actually
+ * converts — the whole reason the second one was added.
+ */
+export type ClaimMethod = 'apple' | 'email' | 'google' | 'password';
 
 export type EventName = keyof EventCatalog;
 export type EventPayload<E extends EventName> = EventCatalog[E];

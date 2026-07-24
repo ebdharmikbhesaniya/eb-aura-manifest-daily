@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, Text, View } from 'react-native';
 
 import { Input, Orb, PillButton, Screen, SerifDisplay, TextButton } from '@/components';
 import { authCopy } from '@/copy/auth';
 import { googleAuthAvailable, getGoogleIdToken } from '@/features/auth/google';
+import { signInWithPassword, signUpWithPassword } from '@/features/auth/password';
 import { authenticateWithProvider, sendSignInLink } from '@/features/auth/session';
 import { OutlinePill } from '@/features/paywall/OutlinePill';
 import { appleAuthAvailable } from '@/features/paywall/claim';
@@ -18,6 +19,13 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 const GATE_ORB_SIZE = 140;
 
 /**
+ * The orb shrinks once the keyboard is up. At full size the form is pushed off
+ * a short screen entirely, which is the bug this replaced: she tapped into the
+ * password field and could no longer see it.
+ */
+const GATE_ORB_SIZE_COMPACT = 84;
+
+/**
  * `(auth)/sign-in` — the gate (founder decision, 2026-07-24).
  *
  * This REVERSES the anonymous-first position the product shipped with (03 §2.1:
@@ -25,13 +33,16 @@ const GATE_ORB_SIZE = 140;
  * than left contradicting the code.
  *
  * The anonymous session still exists underneath: boot mints one so she has a
- * real user and real RLS from the first frame, and `authenticateWithProvider`
- * LINKS her chosen identity to it. That is what lets anyone who was part-way
- * through the conversation before this screen existed keep everything.
+ * real user and real RLS from the first frame, and both `signUpWithPassword`
+ * and `authenticateWithProvider` LINK her chosen identity to it. That is what
+ * lets anyone part-way through the conversation keep everything.
  *
- * No password field anywhere, which is doc 03 §6's rule and worth keeping:
- * nothing to breach, nothing to reset.
+ * Email + password is the primary path (founder decision, 2026-07-25),
+ * reversing doc 03 §6's no-password rule. The magic link stays as the way back
+ * in for a forgotten password, which is why there is no reset form.
  */
+type Mode = 'choose' | 'create' | 'signin';
+
 export default function SignInRoute() {
   const router = useRouter();
   const { colors, spacing } = useTheme();
@@ -40,11 +51,12 @@ export default function SignInRoute() {
 
   const [google, setGoogle] = useState(false);
   const [apple, setApple] = useState(false);
-  const [showEmail, setShowEmail] = useState(false);
+  const [mode, setMode] = useState<Mode>('choose');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setGoogle(googleAuthAvailable());
@@ -59,23 +71,23 @@ export default function SignInRoute() {
 
   const runGoogle = useCallback(async () => {
     setBusy(true);
-    setFailed(false);
+    setNotice(null);
     const token = await getGoogleIdToken();
     if (token.status !== 'ok') {
       setBusy(false);
-      if (token.status === 'failed') setFailed(true);
+      if (token.status === 'failed') setNotice(authCopy.gate.failed);
       return;
     }
 
     const outcome = await authenticateWithProvider('google', token.idToken);
     setBusy(false);
     if (outcome.status === 'linked' || outcome.status === 'signed_in') proceed();
-    else if (outcome.status === 'failed') setFailed(true);
+    else if (outcome.status === 'failed') setNotice(authCopy.gate.failed);
   }, [proceed]);
 
   const runApple = useCallback(async () => {
     setBusy(true);
-    setFailed(false);
+    setNotice(null);
     try {
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [AppleAuthentication.AppleAuthenticationScope.EMAIL],
@@ -83,142 +95,272 @@ export default function SignInRoute() {
 
       if (!credential.identityToken) {
         setBusy(false);
-        setFailed(true);
+        setNotice(authCopy.gate.failed);
         return;
       }
 
       const outcome = await authenticateWithProvider('apple', credential.identityToken);
       setBusy(false);
       if (outcome.status === 'linked' || outcome.status === 'signed_in') proceed();
-      else if (outcome.status === 'failed') setFailed(true);
+      else if (outcome.status === 'failed') setNotice(authCopy.gate.failed);
     } catch (error) {
       setBusy(false);
       // A dismissed Apple sheet is a decision, not an error to apologise for.
-      if ((error as { code?: string })?.code !== 'ERR_REQUEST_CANCELED') setFailed(true);
+      if ((error as { code?: string })?.code !== 'ERR_REQUEST_CANCELED') {
+        setNotice(authCopy.gate.failed);
+      }
     }
   }, [proceed]);
 
-  const runEmail = useCallback(async () => {
+  /** The magic link, now reached only from "forgot your password". */
+  const runEmailLink = useCallback(async () => {
     setBusy(true);
-    setFailed(false);
+    setNotice(null);
     const { sent: ok } = await sendSignInLink(email.trim());
     setBusy(false);
     if (ok) setSent(true);
-    else setFailed(true);
+    else setNotice(authCopy.gate.failed);
   }, [email]);
+
+  const runCreate = useCallback(async () => {
+    setBusy(true);
+    setNotice(null);
+    const outcome = await signUpWithPassword(email.trim(), password);
+    setBusy(false);
+
+    switch (outcome.status) {
+      case 'created':
+        proceed();
+        return;
+      case 'confirm_email':
+        setNotice(authCopy.gate.password.confirmEmail);
+        return;
+      case 'email_taken':
+        // Move her to the door that will actually open, carrying the address.
+        setMode('signin');
+        setNotice(authCopy.gate.password.emailTaken);
+        return;
+      case 'weak_password':
+        setNotice(outcome.reason);
+        return;
+      default:
+        setNotice(authCopy.gate.failed);
+    }
+  }, [email, password, proceed]);
+
+  const runSignIn = useCallback(async () => {
+    setBusy(true);
+    setNotice(null);
+    const outcome = await signInWithPassword(email.trim(), password);
+    setBusy(false);
+
+    switch (outcome.status) {
+      case 'signed_in':
+        proceed();
+        return;
+      case 'wrong_credentials':
+        setNotice(authCopy.gate.password.wrongCredentials);
+        return;
+      case 'unconfirmed':
+        setNotice(authCopy.gate.password.unconfirmed);
+        return;
+      default:
+        setNotice(authCopy.gate.failed);
+    }
+  }, [email, password, proceed]);
 
   // The buttons act on the anonymous session boot creates, so they cannot run
   // before it exists. The gate is only reachable once boot is ready, so this is
   // a guard rather than a state she will sit in.
   const ready = userId !== null;
+  const formMode = mode === 'create' || mode === 'signin';
+  const canSubmit = ready && email.trim() !== '' && password !== '' && !busy;
+
+  // The choose screen keeps the welcome; the forms name what she is doing.
+  const title =
+    mode === 'choose'
+      ? authCopy.gate.title
+      : mode === 'signin'
+        ? authCopy.gate.password.signInTitle
+        : authCopy.gate.password.createTitle;
+  const body =
+    mode === 'choose'
+      ? authCopy.gate.body
+      : mode === 'signin'
+        ? authCopy.gate.password.signInBody
+        : authCopy.gate.password.createBody;
 
   return (
     <Screen testID="auth-sign-in">
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.xl }}>
-        <Orb state="idle" size={GATE_ORB_SIZE} />
-        <View style={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
-          <SerifDisplay variant="display" center>
-            {authCopy.gate.title}
-          </SerifDisplay>
-          <Text
-            allowFontScaling={false}
-            style={[
-              scaledType('body', scale),
-              { color: colors.text.secondary, textAlign: 'center' },
-            ]}
+      {/*
+        `behavior="padding"` on BOTH platforms, deliberately. Android normally
+        gets by on `adjustResize`, but this app sets `edgeToEdgeEnabled=true`
+        (android/gradle.properties), and under edge-to-edge Android stops
+        resizing the window for the IME — which is exactly why the password
+        field sat underneath the keyboard with no way to see it.
+      */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          showsVerticalScrollIndicator={false}
+        >
+          <View
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: formMode ? spacing.md : spacing.xl,
+              paddingVertical: spacing.lg,
+            }}
           >
-            {authCopy.gate.body}
-          </Text>
-        </View>
-      </View>
-
-      <View style={{ paddingBottom: spacing.lg, gap: spacing.sm }}>
-        {failed && (
-          <Text
-            testID="auth-sign-in-failed"
-            allowFontScaling={false}
-            style={[
-              scaledType('bodySmall', scale),
-              { color: colors.text.secondary, textAlign: 'center' },
-            ]}
-          >
-            {authCopy.gate.failed}
-          </Text>
-        )}
-
-        {sent ? (
-          <Text
-            testID="auth-sign-in-sent"
-            allowFontScaling={false}
-            style={[scaledType('body', scale), { color: colors.text.primary, textAlign: 'center' }]}
-          >
-            {authCopy.gate.emailSent}
-          </Text>
-        ) : showEmail ? (
-          <View style={{ gap: spacing.sm }}>
-            <Input
-              value={email}
-              onChangeText={setEmail}
-              placeholder={authCopy.gate.emailPlaceholder}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              testID="auth-email-input"
-            />
-            <PillButton
-              title={authCopy.gate.emailSend}
-              onPress={() => void runEmail()}
-              disabled={!ready || email.trim() === ''}
-              loading={busy}
-              testID="auth-email-submit"
-            />
-            <View style={{ alignItems: 'center' }}>
-              <TextButton
-                title={authCopy.gate.back}
-                onPress={() => {
-                  setShowEmail(false);
-                  setFailed(false);
-                }}
-                testID="auth-email-back"
-              />
+            <Orb state="idle" size={formMode ? GATE_ORB_SIZE_COMPACT : GATE_ORB_SIZE} />
+            <View style={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
+              <SerifDisplay variant="display" center>
+                {title}
+              </SerifDisplay>
+              <Text
+                allowFontScaling={false}
+                style={[
+                  scaledType('body', scale),
+                  { color: colors.text.secondary, textAlign: 'center' },
+                ]}
+              >
+                {body}
+              </Text>
             </View>
           </View>
-        ) : (
-          <View style={{ gap: spacing.sm }}>
-            {google && (
-              <PillButton
-                title={authCopy.gate.google}
-                onPress={() => void runGoogle()}
-                disabled={!ready}
-                loading={busy}
-                testID="auth-google"
-              />
+
+          <View style={{ paddingBottom: spacing.lg, gap: spacing.sm }}>
+            {notice !== null && (
+              <Text
+                testID="auth-sign-in-notice"
+                allowFontScaling={false}
+                style={[
+                  scaledType('bodySmall', scale),
+                  { color: colors.text.secondary, textAlign: 'center' },
+                ]}
+              >
+                {notice}
+              </Text>
             )}
-            {apple && (
-              <PillButton
-                title={authCopy.gate.apple}
-                onPress={() => void runApple()}
-                disabled={!ready}
-                loading={busy}
-                testID="auth-apple"
-              />
+
+            {sent ? (
+              <Text
+                testID="auth-sign-in-sent"
+                allowFontScaling={false}
+                style={[
+                  scaledType('body', scale),
+                  { color: colors.text.primary, textAlign: 'center' },
+                ]}
+              >
+                {authCopy.gate.emailSent}
+              </Text>
+            ) : formMode ? (
+              <View style={{ gap: spacing.sm }}>
+                <Input
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder={authCopy.gate.password.emailLabel}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  returnKeyType="next"
+                  testID="auth-email-input"
+                />
+                <Input
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder={authCopy.gate.password.passwordLabel}
+                  autoCapitalize="none"
+                  secureTextEntry
+                  autoComplete={mode === 'create' ? 'new-password' : 'current-password'}
+                  returnKeyType="go"
+                  onSubmitEditing={() => {
+                    if (canSubmit) void (mode === 'create' ? runCreate() : runSignIn());
+                  }}
+                  {...(mode === 'create' && { hint: authCopy.gate.password.passwordHint })}
+                  testID="auth-password-input"
+                />
+                <PillButton
+                  title={
+                    mode === 'create'
+                      ? authCopy.gate.password.create
+                      : authCopy.gate.password.signIn
+                  }
+                  onPress={() => void (mode === 'create' ? runCreate() : runSignIn())}
+                  disabled={!canSubmit}
+                  loading={busy}
+                  testID="auth-password-submit"
+                />
+
+                <View style={{ alignItems: 'center', gap: spacing.xs }}>
+                  <TextButton
+                    title={
+                      mode === 'create'
+                        ? authCopy.gate.password.haveAccount
+                        : authCopy.gate.password.needAccount
+                    }
+                    onPress={() => {
+                      setMode(mode === 'create' ? 'signin' : 'create');
+                      setNotice(null);
+                    }}
+                    testID="auth-mode-swap"
+                  />
+                  {mode === 'signin' && (
+                    <TextButton
+                      title={authCopy.gate.password.forgot}
+                      onPress={() => void runEmailLink()}
+                      testID="auth-forgot-password"
+                    />
+                  )}
+                  <TextButton
+                    title={authCopy.gate.back}
+                    onPress={() => {
+                      setMode('choose');
+                      setNotice(null);
+                    }}
+                    testID="auth-email-back"
+                  />
+                </View>
+              </View>
+            ) : (
+              <View style={{ gap: spacing.sm }}>
+                {google && (
+                  <PillButton
+                    title={authCopy.gate.google}
+                    onPress={() => void runGoogle()}
+                    disabled={!ready}
+                    loading={busy}
+                    testID="auth-google"
+                  />
+                )}
+                {apple && (
+                  <PillButton
+                    title={authCopy.gate.apple}
+                    onPress={() => void runApple()}
+                    disabled={!ready}
+                    loading={busy}
+                    testID="auth-apple"
+                  />
+                )}
+                <PillButton
+                  title={authCopy.gate.password.create}
+                  onPress={() => setMode('create')}
+                  disabled={!ready}
+                  testID="auth-use-password"
+                />
+                <OutlinePill
+                  title={authCopy.gate.password.signIn}
+                  onPress={() => setMode('signin')}
+                  testID="auth-use-email"
+                />
+              </View>
             )}
-            <OutlinePill
-              title={authCopy.gate.email}
-              onPress={() => setShowEmail(true)}
-              testID="auth-use-email"
-            />
-            <Text
-              allowFontScaling={false}
-              style={[
-                scaledType('bodySmall', scale),
-                { color: colors.text.secondary, textAlign: 'center' },
-              ]}
-            >
-              {authCopy.gate.noPassword}
-            </Text>
           </View>
-        )}
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }

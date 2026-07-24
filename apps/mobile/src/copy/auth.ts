@@ -24,8 +24,6 @@ export const authCopy = {
     apple: 'Continue with Apple',
     email: 'Continue with email',
     or: 'or',
-    /** Sits under the buttons — the reason there is no password field. */
-    noPassword: 'No password. We’ll email you a link.',
     emailPlaceholder: 'you@example.com',
     emailSend: 'Email me a link',
     emailSent: 'Check your email — the link brings you straight back.',
@@ -34,6 +32,38 @@ export const authCopy = {
     back: 'Back',
     /** Shown when the whole device has no way to sign in configured. */
     unavailable: 'Sign-in isn’t set up on this build yet.',
+
+    /**
+     * Email + password (founder decision, 2026-07-25), which replaced the
+     * link-only front door. The magic link survives underneath as the way back
+     * in for anyone who forgets — hence `forgot` rather than a reset form.
+     */
+    password: {
+      createTitle: 'Create your account.',
+      createBody: 'One account, and your letters follow you to any phone.',
+      signInTitle: 'Welcome back.',
+      signInBody: 'Your letters, your memory and your subscription come with you.',
+
+      emailLabel: 'you@example.com',
+      passwordLabel: 'Password',
+      /** Supabase's floor is 6; saying so up front beats a rejection after the fact. */
+      passwordHint: 'At least 6 characters.',
+
+      create: 'Create account',
+      signIn: 'Sign in',
+      /** The quiet swap between the two modes. */
+      haveAccount: 'Already have an account? Sign in',
+      needAccount: 'New here? Create an account',
+
+      /** She is on the wrong tab, not in trouble. */
+      emailTaken: 'That address already has an account. Sign in instead.',
+      wrongCredentials: 'That email and password don’t match. Try again.',
+      unconfirmed: 'Check your email to confirm the address, then sign in.',
+      confirmEmail: 'Almost there — check your email to confirm the address.',
+
+      /** No reset form: the link she already trusts does the job. */
+      forgot: 'Forgot your password? Email me a link instead',
+    },
   },
 
   signIn: {
