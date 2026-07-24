@@ -1,7 +1,7 @@
 import type { OnboardingScreenId } from '@aura/shared';
 import { useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, Text, View } from 'react-native';
 
 import { PillButton, Screen, SerifDisplay, TextButton } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
@@ -117,7 +117,15 @@ export function ConversationScreen({
       <KeyboardAvoidingView
         // The floating-Continue rule (product 07 shared spec): the button rides
         // the keyboard rather than hiding under it.
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        //
+        // `padding` on BOTH platforms. Android used to be left on `undefined`,
+        // trusting the `adjustResize` in the manifest to shrink the window — but
+        // this app sets `edgeToEdgeEnabled=true` (android/gradle.properties), and
+        // under edge-to-edge Android stops applying adjustResize for the IME. The
+        // window never shrank, so on every text screen (S3 name, S4, S8, S10) the
+        // field and the Continue button sat underneath the keyboard. The sign-in
+        // gate had the identical bug and the identical fix.
+        behavior="padding"
         style={{ flex: 1 }}
       >
         <ScrollView
