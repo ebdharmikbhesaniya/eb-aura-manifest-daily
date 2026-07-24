@@ -47,10 +47,17 @@ export function LetterScreen({ letter, onContinue, testID }: LetterScreenProps) 
         <KaraokeLetter
           lines={letter.lines}
           positionMs={playback.positionMs}
+          revealAll={playback.failed}
           testID="letter-karaoke"
         />
 
-        {playback.ended && (
+        {/*
+          `failed` opens the ending too. Everything here is driven by playback
+          position, so audio that never loads used to mean no reveal and no
+          ending — a blank screen she could not leave at the emotional peak of
+          the product. She still gets her letter; she reads it instead.
+        */}
+        {(playback.ended || playback.failed) && (
           <View style={{ position: 'absolute', left: 0, right: 0, bottom: 48 }}>
             <LetterEnding onContinue={onContinue} testID="letter-ending" />
           </View>

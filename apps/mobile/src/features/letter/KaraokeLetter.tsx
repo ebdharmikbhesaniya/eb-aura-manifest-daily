@@ -21,6 +21,15 @@ const DIM_OPACITY = 0.6;
 export interface KaraokeLetterProps {
   lines: KaraokeLine[];
   positionMs: SharedValue<number>;
+  /**
+   * Show the whole letter at once, and let her scroll it.
+   *
+   * For when the audio will never play. The karaoke reveal is driven entirely
+   * by playback position, so with no voice every line stays at opacity 0 — the
+   * letter is on the device and invisible. This drops the choreography and
+   * falls back to something she can simply read.
+   */
+  revealAll?: boolean;
   testID?: string;
 }
 
@@ -35,7 +44,12 @@ export interface KaraokeLetterProps {
  * There are no controls, by design (product 08 §6). No scrubber, no pause, no
  * close. The screen scrolls itself and she touches nothing.
  */
-export function KaraokeLetter({ lines, positionMs, testID }: KaraokeLetterProps) {
+export function KaraokeLetter({
+  lines,
+  positionMs,
+  revealAll = false,
+  testID,
+}: KaraokeLetterProps) {
   const { spacing } = useTheme();
   const { height } = useWindowDimensions();
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
@@ -46,6 +60,9 @@ export function KaraokeLetter({ lines, positionMs, testID }: KaraokeLetterProps)
 
   useAnimatedReaction(
     () => {
+      // Nothing is being spoken, so nothing should be chased. Auto-scrolling a
+      // letter she is reading herself would fight her thumb.
+      if (revealAll) return -1;
       // Index of the line currently being spoken. Inlined rather than calling
       // the module's binary search: worklets cannot call an imported function
       // unless it is itself a worklet, and duplicating six lines is cheaper than
@@ -72,7 +89,10 @@ export function KaraokeLetter({ lines, positionMs, testID }: KaraokeLetterProps)
     <Animated.ScrollView
       ref={scrollRef}
       testID={testID}
-      scrollEnabled={false}
+      // Normally the screen scrolls itself and she touches nothing (product 08
+      // §6). With no audio there is nothing to follow, so the only way to read
+      // past the first screenful is her own thumb.
+      scrollEnabled={revealAll}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{
         // Half a screen of padding at both ends so the first line can sit at
@@ -88,6 +108,7 @@ export function KaraokeLetter({ lines, positionMs, testID }: KaraokeLetterProps)
           line={line}
           nextStartMs={lines[index + 1]?.startMs ?? null}
           positionMs={positionMs}
+          revealAll={revealAll}
           onLayoutY={(y) => {
             const next = [...offsets.value];
             next[index] = y;
@@ -103,16 +124,27 @@ interface KaraokeLineViewProps {
   line: KaraokeLine;
   nextStartMs: number | null;
   positionMs: SharedValue<number>;
+  revealAll: boolean;
   onLayoutY: (y: number) => void;
 }
 
-function KaraokeLineView({ line, nextStartMs, positionMs, onLayoutY }: KaraokeLineViewProps) {
+function KaraokeLineView({
+  line,
+  nextStartMs,
+  positionMs,
+  revealAll,
+  onLayoutY,
+}: KaraokeLineViewProps) {
   const { colors, spacing } = useTheme();
   const motion = useMotion();
   const fadeMs = Math.round(durations.fadeRise * motion.scale);
   const scale = clampedFontScale();
 
   const style = useAnimatedStyle(() => {
+    // No voice to follow: every line is simply present and legible, at full
+    // weight rather than the 60% "already spoken" dim.
+    if (revealAll) return { opacity: 1, transform: [] };
+
     // Two independent ramps: one brings the line in as its first word is spoken,
     // the other dims it once the NEXT line starts. Composing them means a line
     // never snaps between states — it arrives, holds, and recedes.

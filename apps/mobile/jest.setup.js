@@ -62,7 +62,15 @@ jest.mock('react-native-mmkv', () => {
 jest.mock('expo-audio', () => {
   const React = require('react');
   const player = { play: jest.fn(), pause: jest.fn(), seekTo: jest.fn(async () => undefined) };
-  const IDLE = { playing: false, currentTime: 0, duration: 0, didJustFinish: false };
+  // `error` mirrors the real AudioStatus field (null unless the source failed to
+  // load). The Letter reads it to tell "not started yet" from "will never play".
+  const IDLE = {
+    playing: false,
+    currentTime: 0,
+    duration: 0,
+    didJustFinish: false,
+    error: null,
+  };
 
   let status = { ...IDLE };
   const listeners = new Set();

@@ -14,6 +14,15 @@ export interface LetterPlayback {
   playing: SharedValue<number>;
   /** True once the audio has run to its end. */
   ended: boolean;
+  /**
+   * The audio will never play: the source failed to load, or there is none.
+   *
+   * Distinct from "not started yet", and the distinction is the whole point.
+   * Everything on this screen is driven by playback position, so without this
+   * flag a file ExoPlayer cannot read leaves her on a blank screen with no
+   * ending and no way out — which is exactly what shipped (see LetterScreen.test).
+   */
+  failed: boolean;
   durationMs: number;
   /** 0–100, for the drop-off event when she leaves early. */
   currentPct: () => number;
@@ -114,10 +123,17 @@ export function useLetterPlayback(
     };
   }, [durationMs]);
 
+  // `source === null` counts as failure, not as "still loading": `useLetter`
+  // resolves the path inside its query before the letter is handed over, so a
+  // null here means the mp3 could not be resolved at all. Waiting on it would
+  // hang forever on the same blank screen `status.error` now rescues.
+  const failed = source === null || (status.error ?? null) !== null;
+
   return {
     positionMs,
     playing,
     ended: status.didJustFinish,
+    failed,
     durationMs,
     currentPct: () => listenedPct(lastPositionRef.current, durationMs),
   };

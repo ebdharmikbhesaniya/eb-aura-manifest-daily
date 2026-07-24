@@ -1,7 +1,7 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef } from 'react';
-import { View } from 'react-native';
+import { BackHandler, View } from 'react-native';
 
 import { Screen } from '@/components';
 import { LetterScreen } from '@/features/letter/LetterScreen';
@@ -53,6 +53,28 @@ export default function LetterRoute() {
     });
     return unsubscribe;
   }, [navigation]);
+
+  /**
+   * Android's hardware back, which `beforeRemove` above does NOT cover here.
+   *
+   * The boot gate REPLACES into this route, so the Letter is usually the only
+   * entry in the stack — there is nothing to pop, React Navigation never starts
+   * a removal, and the event never fires. Back then fell through to the default
+   * handler and dropped her out of the app entirely, mid-letter, with the pause
+   * sheet she was supposed to get never appearing (observed on device
+   * 2026-07-24).
+   *
+   * Returning true swallows the press; the sheet is the answer instead, which
+   * is what product 08 §6 asks for on every other dismissal route.
+   */
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (leaving.current) return false;
+      sheetRef.current?.present();
+      return true;
+    });
+    return () => subscription.remove();
+  }, []);
 
   const leave = useCallback(() => {
     leaving.current = true;

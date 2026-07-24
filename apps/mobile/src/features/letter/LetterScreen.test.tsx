@@ -21,6 +21,8 @@ const audio = jest.requireMock('expo-audio') as {
       currentTime: number;
       duration: number;
       didJustFinish: boolean;
+      /** Mirrors AudioStatus.error — null unless the source failed to load. */
+      error: string | null;
     }>,
   ) => void;
   __resetStatus: () => void;
@@ -181,6 +183,61 @@ describe('LetterScreen', () => {
       await playTo(3_000);
 
       expect(screen.queryByText(letterCopy.ending.more)).toBeNull();
+    });
+  });
+
+  /**
+   * Observed on a real device, 2026-07-24: the generated audio came back in a
+   * format ExoPlayer could not read, and the Letter became a permanently blank
+   * screen with no way forward.
+   *
+   * Every line's opacity is driven off `positionMs`, which only advances from
+   * `status.currentTime`; the ending is gated on `didJustFinish`. With audio
+   * that never loads, both stay at zero forever — so she sat on an empty screen
+   * at the emotional peak of the product, with the only exit being to kill the
+   * app. The words themselves were fine and already on the device.
+   */
+  describe('when the audio cannot be played at all', () => {
+    const failAudio = async () => {
+      await act(async () => {
+        audio.__setStatus({ playing: false, error: 'Source error' });
+        await Promise.resolve();
+      });
+    };
+
+    it('still shows her the words — the letter is not lost with its voice', async () => {
+      await renderLetter();
+      await failAudio();
+
+      expect(screen.getByTestId('letter-karaoke')).toBeTruthy();
+      expect(screen.getByText(/Maya,/)).toBeTruthy();
+    });
+
+    it('offers the way forward, so a broken file is not a dead end', async () => {
+      await renderLetter();
+      await failAudio();
+
+      expect(screen.getByTestId('letter-continue')).toBeTruthy();
+    });
+
+    it('does not offer it merely because playback has not started yet', async () => {
+      // The difference between "loading" and "will never load" is the whole
+      // point — showing the ending early would cut the wow short every time.
+      await renderLetter();
+      await playTo(0);
+
+      expect(screen.queryByTestId('letter-continue')).toBeNull();
+    });
+
+    it('keeps the ending once the audio recovers nothing', async () => {
+      await renderLetter();
+      await failAudio();
+      await act(async () => {
+        audio.__setStatus({ currentTime: 0 });
+        await Promise.resolve();
+      });
+
+      expect(screen.getByTestId('letter-continue')).toBeTruthy();
     });
   });
 
