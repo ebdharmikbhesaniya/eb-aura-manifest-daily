@@ -1,4 +1,5 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Share, ScrollView, Text, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
@@ -11,10 +12,12 @@ import {
   RowGroup,
   Screen,
   SerifDisplay,
+  TextButton,
   useTabBarClearance,
 } from '@/components';
 import { affirmationsCopy } from '@/copy/affirmations';
 import { AffirmationCard } from '@/features/affirmations/AffirmationCard';
+import { KeptRow } from '@/features/affirmations/KeptRow';
 import { GuidedSheet, type GuidedStep } from '@/features/affirmations/GuidedSheet';
 import { useGenerationJob } from '@/features/letter/useGenerationJob';
 import { TechniqueSheet } from '@/features/affirmations/TechniqueSheet';
@@ -43,7 +46,14 @@ import { clampedFontScale, scaledType } from '@/theme/typography';
  * beats, so it records progress here (product 09) — the event fires only when
  * all three happen on the same day.
  */
+/**
+ * How many kept words the tab previews before handing off to the pushed record.
+ * Matches Home's recent-moments bound — a tab shows a slice, never an archive.
+ */
+const SAVED_ROWS = 5;
+
 export default function AffirmationsRoute() {
+  const router = useRouter();
   const { colors, spacing, typography } = useTheme();
   const scale = clampedFontScale();
   const tabBarClearance = useTabBarClearance();
@@ -294,7 +304,18 @@ export default function AffirmationsRoute() {
               </Text>
             </Card>
           ) : (
-            keptItems.map((item) => <KeptRow key={item.id} text={item.text} />)
+            keptItems.slice(0, SAVED_ROWS).map((item) => <KeptRow key={item.id} text={item.text} />)
+          )}
+
+          {/* Only once the preview stops showing all of them — with five or
+              fewer there is nothing further to open, and the label would be
+              pointing at the list she is already reading. */}
+          {keptItems.length > SAVED_ROWS && (
+            <TextButton
+              title={affirmationsCopy.allSaved}
+              onPress={() => router.push('/affirmations/saved')}
+              testID="affirmations-all-saved"
+            />
           )}
         </View>
       </ScrollView>
@@ -316,30 +337,5 @@ export default function AffirmationsRoute() {
         onKeep={keep}
       />
     </Screen>
-  );
-}
-
-/** A kept affirmation (v4 §saved): her words in the voice serif, heart-marked. */
-function KeptRow({ text }: { text: string }) {
-  const { colors, spacing } = useTheme();
-  const scale = clampedFontScale();
-
-  return (
-    <Card variant="solid" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-      <Text
-        allowFontScaling={false}
-        style={[scaledType('letterLine', scale), { flex: 1, color: colors.text.body }]}
-      >
-        “{text}”
-      </Text>
-      <Text
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-        allowFontScaling={false}
-        style={[scaledType('bodySmall', scale), { color: colors.accent.heart }]}
-      >
-        ♥
-      </Text>
-    </Card>
   );
 }

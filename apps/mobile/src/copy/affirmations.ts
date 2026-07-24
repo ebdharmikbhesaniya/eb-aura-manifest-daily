@@ -21,6 +21,8 @@ export const affirmationsCopy = {
   collectionTitle: 'Kept words',
   /** Saved-section label — rendered as "Saved · 9" (v4). */
   savedLabel: 'Saved',
+  /** Opens the full record once the tab's preview stops showing all of them. */
+  allSaved: 'All kept words ›',
   collectionEmpty: 'Your kept words will live here.',
 
   share: 'Share as card',
