@@ -109,7 +109,7 @@ describe('resolveDeepLink — the funnel always wins', () => {
       { kind: 'affirmation' },
       { kind: 'subscription' },
     ] as const)('queues %p behind the conversation', (target) => {
-      expect(resolveDeepLink(target, midOnboarding)).toBe('/(onboarding)');
+      expect(resolveDeepLink(target, midOnboarding)).toBe('/(onboarding)/resume');
     });
 
     it('STILL resolves the auth callback — it is how she gets into an account', () => {

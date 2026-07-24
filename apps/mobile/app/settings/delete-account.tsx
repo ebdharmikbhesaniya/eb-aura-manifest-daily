@@ -62,7 +62,11 @@ export default function DeleteAccountRoute() {
               // it the next conversation resumed at her old screen, holding her
               // old answers, on a session whose user no longer exists.
               .then(() => signOutAndWipeDevice())
-              .then(() => router.replace('/(onboarding)'))
+              // Back to the gate, not forward to the conversation. The account
+              // this device held no longer exists, so the sign-in wall is the
+              // honest next screen — routing straight to onboarding would start
+              // her writing again with no account to own any of it.
+              .then(() => router.replace('/'))
               .finally(() => setBusy(false));
           }}
           testID="delete-confirm"

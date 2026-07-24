@@ -72,7 +72,7 @@ export function resolveDeepLink(target: DeepLinkTarget, gate: GateState): string
   // a tapped notification must not be a way around the front door.
   if (!gate.claimed) return '/(auth)/sign-in';
 
-  if (!gate.onboardingComplete) return '/(onboarding)';
+  if (!gate.onboardingComplete) return '/(onboarding)/resume';
 
   // A letter she has not heard outranks anything a notification points at.
   if (gate.hasLetter && !gate.letterSeen) return '/letter';

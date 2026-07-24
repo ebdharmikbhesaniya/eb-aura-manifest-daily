@@ -2,7 +2,7 @@ import type { Profile } from '@/hooks/useProfile';
 
 /** Where boot sends her (05 §9, 06 §1). */
 export type BootRoute =
-  '/(auth)/sign-in' | '/(onboarding)' | '/letter' | '/paywall' | '/(tabs)/home';
+  '/(auth)/sign-in' | '/(onboarding)/resume' | '/letter' | '/paywall' | '/(tabs)/home';
 
 export interface BootState {
   /**
@@ -49,7 +49,9 @@ export interface BootState {
  */
 export function resolveBootRoute(state: BootState): BootRoute {
   if (!state.claimed) return '/(auth)/sign-in';
-  if (!state.profile.onboarding_completed_at) return '/(onboarding)';
+  // `/(onboarding)/resume`, not `/(onboarding)`: the group adds nothing to the
+  // path, so the bare group is `/` — this route's own front door.
+  if (!state.profile.onboarding_completed_at) return '/(onboarding)/resume';
   if (state.hasLetter && !state.letterSeen) return '/letter';
   if (state.hasLetter && !state.paywallSeen) return '/paywall';
   return '/(tabs)/home';

@@ -36,7 +36,7 @@ describe('resolveBootRoute', () => {
 
   it('sends a user who has not finished onboarding to the conversation', () => {
     expect(resolveBootRoute(state({ profile: { onboarding_completed_at: null } }))).toBe(
-      '/(onboarding)',
+      '/(onboarding)/resume',
     );
   });
 
@@ -44,7 +44,7 @@ describe('resolveBootRoute', () => {
     // Defensive: a falsy-but-present value must not skip onboarding, which would
     // drop her into an empty Home with no Letter — the worst possible first run.
     expect(resolveBootRoute(state({ profile: { onboarding_completed_at: '' } }))).toBe(
-      '/(onboarding)',
+      '/(onboarding)/resume',
     );
   });
 
@@ -67,7 +67,7 @@ describe('resolveBootRoute', () => {
         resolveBootRoute(
           state({ profile: { onboarding_completed_at: null }, hasLetter: true, letterSeen: false }),
         ),
-      ).toBe('/(onboarding)');
+      ).toBe('/(onboarding)/resume');
     });
 
     it('does not route to the Letter when none exists, however the flag reads', () => {
@@ -107,7 +107,7 @@ describe('resolveBootRoute', () => {
             paywallSeen: false,
           }),
         ),
-      ).toBe('/(onboarding)');
+      ).toBe('/(onboarding)/resume');
     });
 
     it('does not present it to someone who has no letter yet', () => {
