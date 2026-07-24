@@ -18,5 +18,10 @@ export const settingsCopy = {
     subtitle: 'A way back in, on any phone',
   },
 
+  signIn: {
+    /** Offered only to an unclaimed account — a claimed one is already in. */
+    subtitle: 'Bring an account from another phone',
+  },
+
   deleteAccount: 'Delete account',
 } as const;

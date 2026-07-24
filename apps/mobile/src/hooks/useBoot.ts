@@ -19,6 +19,9 @@ import { useAppState } from '@/stores/appState';
 export function useBoot(): void {
   const setReady = useAppState((s) => s.setReady);
   const setFailed = useAppState((s) => s.setFailed);
+  // Re-runs the whole sequence after a sign-out, which is what mints the next
+  // anonymous session (03 §2.1). See `bootNonce`.
+  const bootNonce = useAppState((s) => s.bootNonce);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,5 +64,5 @@ export function useBoot(): void {
     return () => {
       cancelled = true;
     };
-  }, [setReady, setFailed]);
+  }, [setReady, setFailed, bootNonce]);
 }

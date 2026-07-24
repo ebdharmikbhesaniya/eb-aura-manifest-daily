@@ -198,6 +198,12 @@ export interface EventCatalog {
   subscription_cancelled: { sku: string };
   /** Mobile. She linked an identity, so a reinstall keeps her letters (03 §2.2). */
   account_claimed: { method: ClaimMethod };
+  /**
+   * Mobile. She authenticated as an account that already existed — the
+   * new-device recovery path (03 §2.3). Distinct from `account_claimed`:
+   * claiming keeps the current user id, signing in adopts a different one.
+   */
+  account_signed_in: { method: ClaimMethod };
 
   // ─── Daily moments & player (Phase 7, mobile) ──────────────────────────
   /** Mobile. `source` says how she got here, not what she heard. */

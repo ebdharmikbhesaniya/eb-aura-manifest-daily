@@ -138,6 +138,8 @@ export const onboardingCopy = {
 
   editGuard: {
     entry: 'Fix an earlier answer',
+    /** Spoken label before anything is answered — plain back, nothing to fix. */
+    back: 'Back',
     title: 'Which one?',
     // Edits revise, never restart (product 07 rules).
     note: 'Your other answers stay exactly as they are.',

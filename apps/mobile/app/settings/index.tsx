@@ -4,12 +4,17 @@ import { useRef } from 'react';
 import { ScrollView } from 'react-native';
 
 import { ListRow, RowGroup, Screen, ScreenHeader } from '@/components';
+import { authCopy } from '@/copy/auth';
 import { notificationsCopy } from '@/copy/notifications';
 import { paywallCopy } from '@/copy/paywall';
 import { settingsCopy } from '@/copy/settings';
+import { SignInSheet } from '@/features/auth/SignInSheet';
+import { SignOutSheet } from '@/features/auth/SignOutSheet';
+import { useAccountStatus } from '@/features/auth/useAccountStatus';
 import { ClaimSheet } from '@/features/paywall/ClaimSheet';
 import { NotificationPrefsSheet } from '@/features/notifications/NotificationPrefsSheet';
 import { useEntitlement } from '@/features/paywall/useEntitlement';
+import { signOutAndWipeDevice } from '@/lib/accountReset';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /**
@@ -26,6 +31,15 @@ export default function SettingsRoute() {
   const { spacing } = useTheme();
   const claimRef = useRef<BottomSheetModal>(null);
   const prefsRef = useRef<BottomSheetModal>(null);
+  const signInRef = useRef<BottomSheetModal>(null);
+  const signOutRef = useRef<BottomSheetModal>(null);
+
+  // The paywall's copy of the claim sheet asks whether Apple is available;
+  // Settings never did, so it fell back to the `true` default and offered
+  // "Sign in with Apple" on Android, where the call cannot succeed — a dead
+  // primary button on the one screen that promises her letters survive a new
+  // phone.
+  const { claimed, appleAvailable } = useAccountStatus();
 
   const { premium, inTrial } = useEntitlement();
   const subscriptionSubtitle = premium
@@ -64,12 +78,35 @@ export default function SettingsRoute() {
             onPress={() => router.push('/settings/subscription')}
             testID="settings-subscription-row"
           />
+          {/* Claiming is for the account she is ON; signing in is for one she
+              already has elsewhere. Different rows because they are different
+              acts — see features/auth/session.ts. */}
           <ListRow
             title={paywallCopy.claim.title}
             subtitle={settingsCopy.claim.subtitle}
             onPress={() => claimRef.current?.present()}
             testID="settings-claim-row"
           />
+          {claimed === false && (
+            <ListRow
+              title={authCopy.signIn.action}
+              subtitle={settingsCopy.signIn.subtitle}
+              onPress={() => signInRef.current?.present()}
+              testID="settings-signin-row"
+            />
+          )}
+          {/* Held until the claim check settles: the subtitle promises she can
+              come back, and that promise is only true for a claimed account. */}
+          {claimed !== undefined && (
+            <ListRow
+              title={authCopy.signOut.title}
+              subtitle={
+                claimed ? authCopy.signOut.subtitleClaimed : authCopy.signOut.subtitleUnclaimed
+              }
+              onPress={() => signOutRef.current?.present()}
+              testID="settings-signout-row"
+            />
+          )}
           <ListRow
             title={settingsCopy.deleteAccount}
             destructive
@@ -81,7 +118,33 @@ export default function SettingsRoute() {
       </ScrollView>
 
       <NotificationPrefsSheet ref={prefsRef} />
-      <ClaimSheet ref={claimRef} onDone={() => claimRef.current?.dismiss()} />
+      <ClaimSheet
+        ref={claimRef}
+        appleAvailable={appleAvailable}
+        onDone={() => claimRef.current?.dismiss()}
+      />
+      <SignInSheet
+        ref={signInRef}
+        appleAvailable={appleAvailable}
+        hasLocalWork
+        onSignedIn={() => {
+          signInRef.current?.dismiss();
+          // The boot gate re-routes off the new session; going Home directly
+          // would render the previous account's shell for a frame.
+          router.replace('/');
+        }}
+        onDismiss={() => signInRef.current?.dismiss()}
+      />
+      <SignOutSheet
+        ref={signOutRef}
+        claimed={claimed === true}
+        appleAvailable={appleAvailable}
+        onSignOut={() => {
+          signOutRef.current?.dismiss();
+          void signOutAndWipeDevice().then(() => router.replace('/'));
+        }}
+        onDismiss={() => signOutRef.current?.dismiss()}
+      />
     </Screen>
   );
 }

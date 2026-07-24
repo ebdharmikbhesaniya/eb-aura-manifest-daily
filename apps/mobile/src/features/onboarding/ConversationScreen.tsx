@@ -1,13 +1,15 @@
 import type { OnboardingScreenId } from '@aura/shared';
+import { useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 
 import { PillButton, Screen, SerifDisplay, TextButton } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
+import { useOnboardingDraft } from '@/stores/onboardingDraft';
 import { useTheme } from '@/theme/ThemeProvider';
 
 import { EditGuardSheet } from './EditGuardSheet';
-import { SCREEN_ORDER } from './flow';
+import { previousScreen, QUESTION_SCREENS, SCREEN_ORDER, screenRoute } from './flow';
 import { ProgressHeader } from './ProgressHeader';
 
 export interface ConversationScreenProps {
@@ -52,11 +54,40 @@ export function ConversationScreen({
   showEditGuard = true,
   testID,
 }: ConversationScreenProps) {
+  const router = useRouter();
   const { colors, spacing, typography } = useTheme();
   const [editGuardOpen, setEditGuardOpen] = useState(false);
+  const answers = useOnboardingDraft((s) => s.answers);
 
   const stepIndex = screenId ? SCREEN_ORDER.indexOf(screenId) : -1;
   const hasHeader = stepIndex >= 0;
+
+  /**
+   * What the back chevron means depends on whether there is anything to revise.
+   *
+   * The edit-guard is product 07's "revise, never restart", and it lists only
+   * ANSWERED screens. On S3 — the first screen that asks for anything — nothing
+   * is answered yet, so the guard opened onto an empty sheet and S1 and S2 were
+   * unreachable: a chevron that visibly promised a way back and delivered a
+   * dead end. With nothing to revise, back simply means back.
+   */
+  const hasSomethingToRevise = QUESTION_SCREENS.some((id) => answers[id]);
+  const previous = screenId ? previousScreen(screenId) : null;
+
+  const stepBack = () => {
+    if (!previous) return;
+    // `replace`, not `back`: a cold start lands here via a Redirect with no
+    // history behind it, so there is often no stack to pop. Moving
+    // `currentScreen` too keeps resume honest about where she actually is.
+    useOnboardingDraft.getState().advanceTo(previous);
+    router.replace(screenRoute(previous) as never);
+  };
+
+  const onBack = hasSomethingToRevise
+    ? () => setEditGuardOpen(true)
+    : previous
+      ? stepBack
+      : undefined;
 
   return (
     <Screen {...(testID ? { testID } : {})}>
@@ -64,10 +95,12 @@ export function ConversationScreen({
         <ProgressHeader
           step={stepIndex + 1}
           total={SCREEN_ORDER.length}
-          {...(showEditGuard
+          {...(showEditGuard && onBack
             ? {
-                onBack: () => setEditGuardOpen(true),
-                backLabel: onboardingCopy.editGuard.entry,
+                onBack,
+                backLabel: hasSomethingToRevise
+                  ? onboardingCopy.editGuard.entry
+                  : onboardingCopy.editGuard.back,
               }
             : {})}
         />

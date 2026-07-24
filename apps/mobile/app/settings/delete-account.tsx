@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { Input, PillButton, Screen, TextButton, ScreenHeader } from '@/components';
+import { signOutAndWipeDevice } from '@/lib/accountReset';
 import { api } from '@/lib/api';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -57,6 +58,10 @@ export default function DeleteAccountRoute() {
             setBusy(true);
             void api
               .deleteAccount()
+              // 03 §5 step 5 — the local half of "delete means delete". Without
+              // it the next conversation resumed at her old screen, holding her
+              // old answers, on a session whose user no longer exists.
+              .then(() => signOutAndWipeDevice())
               .then(() => router.replace('/(onboarding)'))
               .finally(() => setBusy(false));
           }}

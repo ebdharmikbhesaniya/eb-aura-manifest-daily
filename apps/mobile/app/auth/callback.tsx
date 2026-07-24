@@ -4,7 +4,9 @@ import { Text, View } from 'react-native';
 
 import { Screen } from '@/components';
 import { paywallCopy } from '@/copy/paywall';
+import { consumePendingSignIn, recordEmailSignIn } from '@/features/auth/session';
 import { recordEmailClaim } from '@/features/paywall/claim';
+import { wipeDeviceState } from '@/lib/accountReset';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -53,6 +55,19 @@ export default function AuthCallbackRoute() {
         // An expired or reused link. She keeps everything — the anonymous
         // session on this device is untouched — so this is a retry, not a loss.
         setFailed(true);
+        return;
+      }
+
+      // A sign-in link and a claim link are indistinguishable here — both are
+      // just tokens — so which one this was is recorded when it is SENT.
+      if (consumePendingSignIn()) {
+        // She is now a different user. Everything MMKV and TanStack hold
+        // belongs to the anonymous account this device was on (03 §2.3).
+        recordEmailSignIn();
+        wipeDeviceState();
+        // Back through the boot gate so it re-routes off the new session —
+        // she may be mid-onboarding on one phone and finished on the other.
+        router.replace('/');
         return;
       }
 

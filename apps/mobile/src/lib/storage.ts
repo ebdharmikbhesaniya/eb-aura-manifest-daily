@@ -59,4 +59,13 @@ export const STORAGE_KEYS = {
   ritualProgress: 'ritual.progress',
   /** Whether the notification permission has been asked, and hint pacing (11 §2). */
   notificationGate: 'notifications.gate',
+  /**
+   * Set while an emailed SIGN-IN link is outstanding (03 §2.3).
+   *
+   * Claim links and sign-in links both land on `aura://auth/callback` carrying
+   * nothing but tokens, and the two need opposite handling — a claim keeps this
+   * device's data, a sign-in must wipe it. This flag is how the callback tells
+   * them apart.
+   */
+  pendingSignIn: 'auth.pendingSignIn',
 } as const;
