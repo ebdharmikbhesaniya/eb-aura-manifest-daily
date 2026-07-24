@@ -64,12 +64,17 @@ jest.mock('expo-audio', () => {
   const player = { play: jest.fn(), pause: jest.fn(), seekTo: jest.fn(async () => undefined) };
   // `error` mirrors the real AudioStatus field (null unless the source failed to
   // load). The Letter reads it to tell "not started yet" from "will never play".
+  // `playbackState`/`isLoaded`/`error` mirror the real AudioStatus. They are how
+  // the Letter tells "not started yet" from "will never play" — and on Android
+  // only the first two ever move, which is why all three are modelled here.
   const IDLE = {
     playing: false,
     currentTime: 0,
     duration: 0,
     didJustFinish: false,
     error: null,
+    isLoaded: false,
+    playbackState: 'idle',
   };
 
   let status = { ...IDLE };

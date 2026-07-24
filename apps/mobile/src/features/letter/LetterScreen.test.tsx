@@ -23,6 +23,8 @@ const audio = jest.requireMock('expo-audio') as {
       didJustFinish: boolean;
       /** Mirrors AudioStatus.error — null unless the source failed to load. */
       error: string | null;
+      isLoaded: boolean;
+      playbackState: string;
     }>,
   ) => void;
   __resetStatus: () => void;
@@ -198,9 +200,18 @@ describe('LetterScreen', () => {
    * app. The words themselves were fine and already on the device.
    */
   describe('when the audio cannot be played at all', () => {
+    /**
+     * How Android actually reports it. Measured on device: `error` stays null
+     * and nothing else is set either — the player simply tries, gives up, and
+     * settles back to idle without ever loading.
+     */
     const failAudio = async () => {
       await act(async () => {
-        audio.__setStatus({ playing: false, error: 'Source error' });
+        audio.__setStatus({ playbackState: 'buffering', isLoaded: false });
+        await Promise.resolve();
+      });
+      await act(async () => {
+        audio.__setStatus({ playbackState: 'idle', isLoaded: false, playing: false });
         await Promise.resolve();
       });
     };
@@ -238,6 +249,41 @@ describe('LetterScreen', () => {
       });
 
       expect(screen.getByTestId('letter-continue')).toBeTruthy();
+    });
+
+    it('does not give up while it is still buffering', async () => {
+      // `idle` alone is not failure — it is also the state before loading
+      // starts. Only idle AFTER an attempt counts.
+      await renderLetter();
+      await act(async () => {
+        audio.__setStatus({ playbackState: 'buffering', isLoaded: false });
+        await Promise.resolve();
+      });
+
+      expect(screen.queryByTestId('letter-continue')).toBeNull();
+    });
+
+    it('still honours an error when a platform does report one', async () => {
+      await renderLetter();
+      await act(async () => {
+        audio.__setStatus({ error: 'Source error' });
+        await Promise.resolve();
+      });
+
+      expect(screen.getByTestId('letter-continue')).toBeTruthy();
+    });
+
+    it('takes the fallback away again if the audio finally arrives', async () => {
+      await renderLetter();
+      await failAudio();
+      expect(screen.getByTestId('letter-continue')).toBeTruthy();
+
+      await act(async () => {
+        audio.__setStatus({ playing: true, isLoaded: true, playbackState: 'playing' });
+        await Promise.resolve();
+      });
+
+      expect(screen.queryByTestId('letter-continue')).toBeNull();
     });
   });
 

@@ -18,6 +18,16 @@ import type { KaraokeLine } from './karaoke';
 /** Previous lines dim to 60% (product 08 §5). */
 const DIM_OPACITY = 0.6;
 
+/**
+ * Room at the foot of a READ letter for the ending that sits over it.
+ *
+ * `LetterEnding` is positioned absolutely above the scroll view. While the
+ * letter is spoken that is invisible — the ending only appears once the words
+ * have scrolled away. In the read-it-yourself fallback both are on screen at
+ * once, and without this the last lines sit underneath the Continue button.
+ */
+const READ_ENDING_CLEARANCE = 260;
+
 export interface KaraokeLetterProps {
   lines: KaraokeLine[];
   positionMs: SharedValue<number>;
@@ -96,9 +106,12 @@ export function KaraokeLetter({
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{
         // Half a screen of padding at both ends so the first line can sit at
-        // reading height and the last line can rest there too.
-        paddingTop: height * 0.42,
-        paddingBottom: height * 0.5,
+        // reading height and the last line can rest there too. That framing is
+        // for a letter that scrolls ITSELF — when she is reading it by hand it
+        // just means a screenful of nothing before the first word, so the read
+        // fallback starts at the top and leaves room for the ending instead.
+        paddingTop: revealAll ? spacing.xl : height * 0.42,
+        paddingBottom: revealAll ? READ_ENDING_CLEARANCE : height * 0.5,
         paddingHorizontal: spacing.lg,
       }}
     >

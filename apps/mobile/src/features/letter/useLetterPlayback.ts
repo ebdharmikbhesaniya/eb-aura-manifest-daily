@@ -1,11 +1,24 @@
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFrameCallback, useSharedValue, type SharedValue } from 'react-native-reanimated';
 
 import { analytics } from '@/lib/analytics';
 import { haptic } from '@/theme/haptics';
 
 import { configureLetterAudio } from './audioMode';
+
+/**
+ * How long a letter may stay silent before she is offered it to read instead.
+ *
+ * Short on purpose, and safe to be short because the fallback UNDOES itself the
+ * moment audio starts (see the `status.playing` effect below). A premature
+ * fallback on a slow network therefore costs a brief glimpse of the text before
+ * the voice takes over; too LONG a wait costs her a blank screen she has no
+ * reason to believe will ever change. Measured on device, the real failure sits
+ * at ~0.7s and a cached local file starts instantly (10 §3), so five seconds is
+ * far past either.
+ */
+const AUDIO_LOAD_TIMEOUT_MS = 5_000;
 import { closingLineIndex, lineIndexAt, listenedPct, type KaraokeLine } from './karaoke';
 
 export interface LetterPlayback {
@@ -103,6 +116,58 @@ export function useLetterPlayback(
     }
   }, [status.playing, status.currentTime, lines, closingIndex, playing, positionMs]);
 
+  /**
+   * Whether the audio has given up, decided from what the platform ACTUALLY
+   * reports rather than from what its types promise.
+   *
+   * `AudioStatus.error` exists and is documented, but Android never populates it
+   * for a source ExoPlayer cannot parse — measured on device 2026-07-24, where a
+   * malformed mp3 produced exactly this and nothing else:
+   *
+   *   {error: null, isLoaded: false, playbackState: "buffering"}
+   *   {error: null, isLoaded: false, playbackState: "idle"}
+   *
+   * So `error` is kept as the fast path where a platform does set it, and the
+   * real signal is the settle: something that tried to load, never loaded, and
+   * has now gone idle. The timeout is the backstop for the third case — a load
+   * that neither succeeds nor reports anything at all — because a wrong guess
+   * here costs her the whole letter.
+   */
+  const [audioFailed, setAudioFailed] = useState(false);
+  const attemptedRef = useRef(false);
+
+  if (status.playbackState === 'buffering' || status.isLoaded) attemptedRef.current = true;
+
+  useEffect(() => {
+    if (status.error) setAudioFailed(true);
+  }, [status.error]);
+
+  useEffect(() => {
+    // Idle after a load attempt, with nothing loaded, is ExoPlayer having
+    // errored out. Guarded on `attemptedRef` because `idle` is also the state
+    // BEFORE loading starts, and firing then would cut every letter short.
+    if (attemptedRef.current && status.playbackState === 'idle' && !status.isLoaded) {
+      setAudioFailed(true);
+    }
+  }, [status.playbackState, status.isLoaded]);
+
+  useEffect(() => {
+    // A source that recovers — a slow network that finally lands — takes the
+    // screen back out of the fallback.
+    if (status.playing) setAudioFailed(false);
+  }, [status.playing]);
+
+  useEffect(() => {
+    setAudioFailed(false);
+    attemptedRef.current = false;
+    if (source === null) return;
+
+    const timer = setTimeout(() => {
+      if (!startedRef.current) setAudioFailed(true);
+    }, AUDIO_LOAD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [source]);
+
   const durationMs = status.duration > 0 ? status.duration * 1000 : (fallbackDurationMs ?? 0);
 
   useEffect(() => {
@@ -127,7 +192,7 @@ export function useLetterPlayback(
   // resolves the path inside its query before the letter is handed over, so a
   // null here means the mp3 could not be resolved at all. Waiting on it would
   // hang forever on the same blank screen `status.error` now rescues.
-  const failed = source === null || (status.error ?? null) !== null;
+  const failed = source === null || audioFailed;
 
   return {
     positionMs,
