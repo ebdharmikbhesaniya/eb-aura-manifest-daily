@@ -9,7 +9,7 @@ import { useOnboardingDraft } from '@/stores/onboardingDraft';
 import { useTheme } from '@/theme/ThemeProvider';
 
 import { EditGuardSheet } from './EditGuardSheet';
-import { previousScreen, QUESTION_SCREENS, SCREEN_ORDER, screenRoute } from './flow';
+import { previousScreen, QUESTION_SCREENS, screenRoute } from './flow';
 import { ProgressHeader } from './ProgressHeader';
 
 export interface ConversationScreenProps {
@@ -59,7 +59,15 @@ export function ConversationScreen({
   const [editGuardOpen, setEditGuardOpen] = useState(false);
   const answers = useOnboardingDraft((s) => s.answers);
 
-  const stepIndex = screenId ? SCREEN_ORDER.indexOf(screenId) : -1;
+  /**
+   * The counter measures QUESTIONS, not screens.
+   *
+   * S1 and S2 are the welcome and the introduction — they ask nothing and they
+   * draw no header. Counting them anyway meant the first number she ever saw
+   * was "3/10", which reads as though the app skipped two steps behind her back.
+   * The first question is question one.
+   */
+  const stepIndex = screenId ? QUESTION_SCREENS.indexOf(screenId) : -1;
   const hasHeader = stepIndex >= 0;
 
   /**
@@ -94,7 +102,7 @@ export function ConversationScreen({
       {hasHeader && (
         <ProgressHeader
           step={stepIndex + 1}
-          total={SCREEN_ORDER.length}
+          total={QUESTION_SCREENS.length}
           {...(showEditGuard && onBack
             ? {
                 onBack,
