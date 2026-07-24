@@ -99,6 +99,18 @@ const config: ExpoConfig = {
       // from template defaults.
       'expo-splash-screen',
       {
+        // The image is NOT decoration here — it is required. This plugin
+        // version writes `windowSplashScreenAnimatedIcon → @drawable/
+        // splashscreen_logo` into styles.xml unconditionally, but only
+        // GENERATES that drawable when an image is configured. Colour-only
+        // therefore fails Android resource linking on any clean build, which
+        // is exactly how it failed the first time this was built from scratch.
+        //
+        // The mark is the Orb, rendered from the light-theme orb tokens
+        // (bone → emberSoft → ember, lit upper-left) so the splash and the
+        // app's central motif cannot drift apart.
+        image: './assets/brand/splash-orb.png',
+        imageWidth: 180,
         backgroundColor: '#ECE9DF',
         dark: { backgroundColor: '#171410' },
       },
@@ -136,7 +148,15 @@ const config: ExpoConfig = {
     // GoogleService-Info.plist, which is why no id is passed here. The WEB
     // client id the JS side needs is a separate value and lives in
     // EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (see src/lib/env.ts).
-    '@react-native-google-signin/google-signin',
+    //
+    // Added ONLY when that file exists. The plugin pulls in the
+    // `com.google.gms.google-services` Gradle plugin, which fails the Android
+    // build outright if no google-services.json is present — so including it
+    // unconditionally would mean no Google project, no build at all. Without
+    // it the gate hides the Google button and offers email (features/auth/google).
+    ...(process.env.GOOGLE_SERVICES_JSON
+      ? (['@react-native-google-signin/google-signin'] as const)
+      : []),
   ],
 
   experiments: {
