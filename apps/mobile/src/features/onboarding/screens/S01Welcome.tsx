@@ -1,13 +1,8 @@
-import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { Orb, PillButton, Screen, SerifDisplay, TextButton } from '@/components';
-import { authCopy } from '@/copy/auth';
+import { Orb, PillButton, Screen, SerifDisplay } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
-import { SignInSheet } from '@/features/auth/SignInSheet';
-import { useAccountStatus } from '@/features/auth/useAccountStatus';
 import { loadPlans } from '@/features/paywall/purchases';
 import { analytics } from '@/lib/analytics';
 import { useOnboardingDraft } from '@/stores/onboardingDraft';
@@ -32,13 +27,10 @@ const WELCOME_ORB_SIZE = 180;
  * paywall footer and in Settings, where a returning user actually looks.
  */
 export function S01Welcome() {
-  const router = useRouter();
   const { colors, spacing, typography } = useTheme();
   const { advance } = useConversation('s01-welcome');
   const start = useOnboardingDraft((s) => s.start);
   const [price, setPrice] = useState<string | null>(null);
-  const signInRef = useRef<BottomSheetModal>(null);
-  const { appleAvailable } = useAccountStatus();
 
   useEffect(() => {
     void loadPlans().then((plans) => {
@@ -87,31 +79,11 @@ export function S01Welcome() {
           }}
         />
 
-        {/* The one place a returning user looks (03 §2.3). Quiet, under the
-            button: reinstalling is the rare case, and putting a sign-in wall in
-            front of everyone else is exactly what the anonymous boot avoids.
-            Nothing is at stake yet on this screen, so no replace warning. */}
-        <View style={{ alignItems: 'center' }}>
-          <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
-            {authCopy.signIn.link}
-          </Text>
-          <TextButton
-            title={authCopy.signIn.action}
-            onPress={() => signInRef.current?.present()}
-            testID="s01-signin"
-          />
-        </View>
+        {/* No sign-in affordance here any more: `(auth)/sign-in` is now the
+            first screen in the app, so by the time she reaches the welcome she
+            is already signed in and an "Already have an account?" line would be
+            asking a question she just answered. */}
       </View>
-
-      <SignInSheet
-        ref={signInRef}
-        appleAvailable={appleAvailable}
-        onSignedIn={() => {
-          signInRef.current?.dismiss();
-          router.replace('/');
-        }}
-        onDismiss={() => signInRef.current?.dismiss()}
-      />
     </Screen>
   );
 }

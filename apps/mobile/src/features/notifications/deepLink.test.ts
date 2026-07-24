@@ -51,10 +51,32 @@ describe('parseDeepLink', () => {
 });
 
 describe('resolveDeepLink — the funnel always wins', () => {
-  const ready: GateState = { onboardingComplete: true, hasLetter: true, letterSeen: true };
+  const ready: GateState = {
+    claimed: true,
+    onboardingComplete: true,
+    hasLetter: true,
+    letterSeen: true,
+  };
 
   it('opens the moment in the player', () => {
     expect(resolveDeepLink({ kind: 'moment', momentId: 'm1' }, ready)).toBe('/player?momentId=m1');
+  });
+
+  it('sends every content link to sign-in when the account has no identity', () => {
+    // A tapped notification must not be a way around the front door.
+    const unclaimed: GateState = { ...ready, claimed: false };
+
+    expect(resolveDeepLink({ kind: 'moment', momentId: 'm1' }, unclaimed)).toBe('/(auth)/sign-in');
+    expect(resolveDeepLink({ kind: 'affirmation' }, unclaimed)).toBe('/(auth)/sign-in');
+    expect(resolveDeepLink({ kind: 'subscription' }, unclaimed)).toBe('/(auth)/sign-in');
+  });
+
+  it('still resolves the auth callback — it is how she gets IN', () => {
+    // The magic link must work before an identity exists, or the email path
+    // could never complete and the gate would be a locked door with no key.
+    const unclaimed: GateState = { ...ready, claimed: false };
+
+    expect(resolveDeepLink({ kind: 'auth_callback' }, unclaimed)).toBe('/auth/callback');
   });
 
   it('opens a milestone letter on the cover', () => {
@@ -75,6 +97,7 @@ describe('resolveDeepLink — the funnel always wins', () => {
 
   describe('an incomplete onboarding outranks every content link', () => {
     const midOnboarding: GateState = {
+      claimed: true,
       onboardingComplete: false,
       hasLetter: false,
       letterSeen: false,
@@ -98,6 +121,7 @@ describe('resolveDeepLink — the funnel always wins', () => {
 
   describe('an unheard letter outranks a notification', () => {
     const letterWaiting: GateState = {
+      claimed: true,
       onboardingComplete: true,
       hasLetter: true,
       letterSeen: false,

@@ -3,6 +3,7 @@ import { useEffect, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
 import { bootCopy } from '@/copy/boot';
+import { useAccountStatus } from '@/features/auth/useAccountStatus';
 import { hasSeenLetter } from '@/features/letter/keepLetter';
 import { useNotificationRouting } from '@/features/notifications/useNotificationRouting';
 import { hasSeenPaywall } from '@/features/paywall/paywallSeen';
@@ -26,6 +27,10 @@ export function BootGate({ children }: { children: ReactNode }) {
 
   useBoot();
 
+  // Re-asked on every boot (and after a sign-out bumps the nonce), because it
+  // is what decides whether she meets the gate at all.
+  const { claimed } = useAccountStatus();
+
   const { data: profile } = useProfile(userId ?? undefined);
 
   // Only asked for once onboarding is done — before that the answer is always
@@ -37,10 +42,14 @@ export function BootGate({ children }: { children: ReactNode }) {
   // A tapped notification routes AFTER the boot gate has decided where she
   // belongs (06 §5), so a link can never skip the funnel. This also reports the
   // open, which is the only way auto-soften can ever reset (11 §5).
-  useNotificationRouting(userId ?? undefined, profile, Boolean(letterQuery.data));
+  useNotificationRouting(userId ?? undefined, profile, Boolean(letterQuery.data), claimed);
 
   useEffect(() => {
     if (status !== 'ready' || !profile) return;
+
+    // The claim check decides the very first gate, so routing before it settles
+    // would flash whichever screen the default happened to pick.
+    if (claimed === undefined) return;
 
     // Wait for the letter lookup to settle before routing, or a completed user
     // would be sent to Home for a frame and then yanked to the Letter — the wow
@@ -49,13 +58,14 @@ export function BootGate({ children }: { children: ReactNode }) {
 
     router.replace(
       resolveBootRoute({
+        claimed,
         profile,
         hasLetter: Boolean(letterQuery.data),
         letterSeen: hasSeenLetter(),
         paywallSeen: hasSeenPaywall(),
       }),
     );
-  }, [status, profile, letterQuery.isPending, letterQuery.data, router]);
+  }, [status, claimed, profile, letterQuery.isPending, letterQuery.data, router]);
 
   const holding = (
     <View

@@ -129,6 +129,14 @@ const config: ExpoConfig = {
         enableBackgroundPlayback: true,
       },
     ],
+    // Sign-in is the first screen now (03 §2.1), and Google is its Android
+    // half — Apple covers iOS and neither exists on the other platform.
+    //
+    // The plugin reads the reversed client id out of GOOGLE_SERVICES_JSON /
+    // GoogleService-Info.plist, which is why no id is passed here. The WEB
+    // client id the JS side needs is a separate value and lives in
+    // EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (see src/lib/env.ts).
+    '@react-native-google-signin/google-signin',
   ],
 
   experiments: {

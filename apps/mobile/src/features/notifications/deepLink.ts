@@ -48,6 +48,8 @@ export function parseDeepLink(url: string | null | undefined): DeepLinkTarget {
 }
 
 export interface GateState {
+  /** Does the account have an identity on it? The first gate (03 §2.2). */
+  claimed: boolean;
   onboardingComplete: boolean;
   hasLetter: boolean;
   letterSeen: boolean;
@@ -65,6 +67,10 @@ export function resolveDeepLink(target: DeepLinkTarget, gate: GateState): string
   // The magic-link callback is infrastructure, not content — it must work at
   // any point, including mid-onboarding on a second device.
   if (target.kind === 'auth_callback') return '/auth/callback';
+
+  // Ahead of everything else, for the same reason the boot gate puts it first:
+  // a tapped notification must not be a way around the front door.
+  if (!gate.claimed) return '/(auth)/sign-in';
 
   if (!gate.onboardingComplete) return '/(onboarding)';
 

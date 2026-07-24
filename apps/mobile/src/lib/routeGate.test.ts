@@ -1,6 +1,9 @@
 import { resolveBootRoute, type BootState } from './routeGate';
 
+// Signed in by default so the existing cases still exercise the gate they were
+// written for; the sign-in gate has its own block below.
 const state = (overrides: Partial<BootState> = {}): BootState => ({
+  claimed: true,
   profile: { onboarding_completed_at: '2026-07-17T10:00:00Z' },
   hasLetter: false,
   letterSeen: false,
@@ -9,6 +12,28 @@ const state = (overrides: Partial<BootState> = {}): BootState => ({
 });
 
 describe('resolveBootRoute', () => {
+  describe('the sign-in gate (founder decision, 2026-07-24)', () => {
+    it('sends an account with no identity on it to sign in', () => {
+      expect(resolveBootRoute(state({ claimed: false }))).toBe('/(auth)/sign-in');
+    });
+
+    it('gates ahead of onboarding — nothing is written before an owner exists', () => {
+      expect(
+        resolveBootRoute(state({ claimed: false, profile: { onboarding_completed_at: null } })),
+      ).toBe('/(auth)/sign-in');
+    });
+
+    it('gates ahead of a waiting letter', () => {
+      expect(resolveBootRoute(state({ claimed: false, hasLetter: true, letterSeen: false }))).toBe(
+        '/(auth)/sign-in',
+      );
+    });
+
+    it('lets a signed-in user straight through to the rest of the funnel', () => {
+      expect(resolveBootRoute(state({ claimed: true }))).toBe('/(tabs)/home');
+    });
+  });
+
   it('sends a user who has not finished onboarding to the conversation', () => {
     expect(resolveBootRoute(state({ profile: { onboarding_completed_at: null } }))).toBe(
       '/(onboarding)',

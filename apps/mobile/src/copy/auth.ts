@@ -12,6 +12,30 @@
  * after.
  */
 export const authCopy = {
+  /**
+   * The gate (founder decision, 2026-07-24). It is the first screen in the app,
+   * so it carries the welcome as well as the ask — a bare form would make the
+   * first thing she ever sees feel like a toll booth.
+   */
+  gate: {
+    title: 'Welcome to Aura.',
+    body: 'Sign in once, and your letters follow you to any phone.',
+    google: 'Continue with Google',
+    apple: 'Continue with Apple',
+    email: 'Continue with email',
+    or: 'or',
+    /** Sits under the buttons — the reason there is no password field. */
+    noPassword: 'No password. We’ll email you a link.',
+    emailPlaceholder: 'you@example.com',
+    emailSend: 'Email me a link',
+    emailSent: 'Check your email — the link brings you straight back.',
+    /** Nothing worked, and she is stuck at the front door. Never a code. */
+    failed: 'That didn’t go through. Try again in a moment.',
+    back: 'Back',
+    /** Shown when the whole device has no way to sign in configured. */
+    unavailable: 'Sign-in isn’t set up on this build yet.',
+  },
+
   signIn: {
     /** The quiet line under S1's button, and the Settings row title. */
     link: 'Already have an account?',

@@ -1,0 +1,89 @@
+import { env } from '@/lib/env';
+
+/**
+ * Google Sign-In (03 §2.2).
+ *
+ * The module is required LAZILY, exactly like `useSpeech` does for expo-speech.
+ * This is a native module: a dev client built before it was added has no such
+ * native side, and a top-level import would take the whole app down at startup
+ * rather than costing one button. Sign-in is now the first screen, so a crash
+ * here is a crash before anything.
+ */
+
+interface GoogleSignInModule {
+  GoogleSignin: {
+    configure: (options: { webClientId: string; offlineAccess?: boolean }) => void;
+    hasPlayServices: (options?: { showPlayServicesUpdateDialog?: boolean }) => Promise<boolean>;
+    signIn: () => Promise<{ data?: { idToken?: string | null } | null; idToken?: string | null }>;
+    signOut: () => Promise<unknown>;
+  };
+}
+
+let configured = false;
+
+function loadModule(): GoogleSignInModule | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('@react-native-google-signin/google-signin') as GoogleSignInModule;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether Google can be offered at all.
+ *
+ * False when the client id is unset (an unconfigured dev build) or the native
+ * module is missing. The sign-in screen hides the button rather than drawing a
+ * dead one — the same mistake Settings was making with Apple on Android.
+ */
+export function googleAuthAvailable(): boolean {
+  if (!env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID) return false;
+  return loadModule() !== null;
+}
+
+export type GoogleTokenResult =
+  { status: 'ok'; idToken: string } | { status: 'cancelled' } | { status: 'failed' };
+
+/**
+ * Returns a Google id_token for Supabase to verify.
+ *
+ * This does NOT create the Supabase session — the caller decides whether the
+ * token should LINK to the current anonymous user or authenticate as an
+ * existing one, and that decision is the difference between keeping her data
+ * and abandoning it (see `authenticateWithProvider`).
+ */
+export async function getGoogleIdToken(): Promise<GoogleTokenResult> {
+  const mod = loadModule();
+  const webClientId = env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  if (!mod || !webClientId) return { status: 'failed' };
+
+  try {
+    if (!configured) {
+      mod.GoogleSignin.configure({ webClientId });
+      configured = true;
+    }
+
+    await mod.GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    const result = await mod.GoogleSignin.signIn();
+
+    // v13+ nests the payload under `data`; older builds return it flat. Reading
+    // both keeps this working across a dev-client upgrade.
+    const idToken = result.data?.idToken ?? result.idToken ?? null;
+    if (!idToken) return { status: 'cancelled' };
+
+    return { status: 'ok', idToken };
+  } catch (error) {
+    const code = (error as { code?: string })?.code;
+    // The library reports a dismissed sheet as a thrown error, not a null user.
+    if (code === 'SIGN_IN_CANCELLED' || code === '12501') return { status: 'cancelled' };
+    return { status: 'failed' };
+  }
+}
+
+/** Clears Google's own cached account so the next sign-in re-prompts. */
+export async function googleSignOut(): Promise<void> {
+  const mod = loadModule();
+  if (!mod || !configured) return;
+  await mod.GoogleSignin.signOut().catch(() => undefined);
+}

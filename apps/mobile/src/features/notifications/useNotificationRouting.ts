@@ -27,14 +27,21 @@ export function useNotificationRouting(
   userId: string | undefined,
   profile: Pick<Profile, 'onboarding_completed_at'> | undefined,
   hasLetter: boolean,
+  /**
+   * Derived from the SESSION, not the profile row: linking an identity does not
+   * rewrite `profiles.is_anonymous`, so the row would keep claiming she is
+   * anonymous long after she signed in. Undefined while the check is in flight.
+   */
+  claimed: boolean | undefined,
 ): void {
   const router = useRouter();
 
   useEffect(() => {
-    if (!userId || !profile) return;
+    if (!userId || !profile || claimed === undefined) return;
     let active = true;
 
     const gate = {
+      claimed,
       onboardingComplete: Boolean(profile.onboarding_completed_at),
       hasLetter,
       letterSeen: hasSeenLetter(),
@@ -62,5 +69,5 @@ export function useNotificationRouting(
       active = false;
       subscription.remove();
     };
-  }, [userId, profile, hasLetter, router]);
+  }, [userId, profile, hasLetter, claimed, router]);
 }

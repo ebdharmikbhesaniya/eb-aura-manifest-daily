@@ -21,6 +21,16 @@ const envSchema = z.object({
    */
   EXPO_PUBLIC_TERMS_URL: z.string().url().optional(),
   EXPO_PUBLIC_PRIVACY_URL: z.string().url().optional(),
+  /**
+   * Google's WEB OAuth client id — yes, the web one, on native too. Google
+   * issues the id_token Supabase verifies against the web client, and passing
+   * the Android client id here yields a token Supabase rejects with an audience
+   * mismatch. This is the single most common way to misconfigure this.
+   *
+   * Optional so a dev build without Google configured still starts; the sign-in
+   * screen simply does not offer the Google button (see `features/auth/google`).
+   */
+  EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse({
@@ -32,6 +42,7 @@ const parsed = envSchema.safeParse({
   EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
   EXPO_PUBLIC_TERMS_URL: process.env.EXPO_PUBLIC_TERMS_URL,
   EXPO_PUBLIC_PRIVACY_URL: process.env.EXPO_PUBLIC_PRIVACY_URL,
+  EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
 });
 
 if (!parsed.success) {

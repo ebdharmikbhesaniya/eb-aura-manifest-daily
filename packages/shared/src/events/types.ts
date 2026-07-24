@@ -280,7 +280,7 @@ export type PaywallSurface = 'post_letter' | 'locked_feature' | 'settings';
 export type GatedFeature =
   'manifest_anything' | 'refine' | 'favorites' | 'collections' | 'share_export';
 
-export type ClaimMethod = 'apple' | 'email';
+export type ClaimMethod = 'apple' | 'email' | 'google';
 
 export type EventName = keyof EventCatalog;
 export type EventPayload<E extends EventName> = EventCatalog[E];

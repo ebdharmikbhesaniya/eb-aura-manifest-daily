@@ -18,6 +18,7 @@
     "@expo-google-fonts/newsreader": "^0.4.1",
     "@expo/vector-icons": "^15.0.2",
     "@gorhom/bottom-sheet": "^5.2.14",
+    "@react-native-google-signin/google-signin": "^16.1.2",
     "@sentry/react-native": "~7.11.0",
     "@shopify/react-native-skia": "2.6.2",
     "@supabase/supabase-js": "^2.110.7",
