@@ -70,6 +70,20 @@ export const Sheet = forwardRef<BottomSheetModal, SheetProps>(function Sheet(
       // would let each sheet pick its own height and break the native feel.
       enableDynamicSizing={false}
       animationConfigs={motion.reduceMotion ? reducedTiming : spring}
+      // Every input flow in the app lives in one of these (product 12), so the
+      // keyboard contract belongs here rather than in each caller.
+      //
+      // `interactive` lets the sheet ride the keyboard instead of being covered
+      // by it, and `restore` drops it back to its detent when the field blurs.
+      //
+      // `android_keyboardInputMode` defaults to `adjustPan`, which pans the whole
+      // window and hides the sheet's own header and buttons. `adjustResize` is
+      // also what this app needs specifically: it sets `edgeToEdgeEnabled=true`,
+      // and the panning default is what left text fields sitting under the
+      // keyboard on the gate and in the conversation.
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
       backdropComponent={renderBackdrop}
       backgroundStyle={{
         backgroundColor: colors.surface.sheet,

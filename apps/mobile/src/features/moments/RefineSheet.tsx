@@ -60,6 +60,7 @@ export const RefineSheet = forwardRef<BottomSheetModal, RefineSheetProps>(functi
 
         {needsNote && (
           <Input
+            inSheet
             value={note}
             onChangeText={setNote}
             placeholder={momentsCopy.refine.notePlaceholder}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FlatList, Text, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Text, View } from 'react-native';
 
 import { Input, Screen, ScreenHeader, TextButton } from '@/components';
 import { memoryCopy } from '@/copy/memory';
@@ -39,7 +39,16 @@ export function NeverIncludeScreen({ onBack }: NeverIncludeScreenProps = {}) {
 
   return (
     <Screen testID="never-include">
-      <View style={{ flex: 1, gap: spacing.lg, paddingVertical: spacing.xl }}>
+      {/*
+        Adding a term is the whole point of this screen, so the keyboard is up
+        for most of her time on it. Under `edgeToEdgeEnabled=true` Android no
+        longer applies the manifest's adjustResize, which put the field and its
+        Add action under the keyboard.
+      */}
+      <KeyboardAvoidingView
+        behavior="padding"
+        style={{ flex: 1, gap: spacing.lg, paddingVertical: spacing.xl }}
+      >
         <ScreenHeader
           title={memoryCopy.neverInclude.title}
           {...(onBack ? { onBack } : {})}
@@ -93,7 +102,7 @@ export function NeverIncludeScreen({ onBack }: NeverIncludeScreenProps = {}) {
             </View>
           )}
         />
-      </View>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }

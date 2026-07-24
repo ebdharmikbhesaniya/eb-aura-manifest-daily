@@ -1,3 +1,4 @@
+import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
@@ -48,6 +49,17 @@ export interface InputProps {
   /** Submit behaviour, so the keyboard's action key advances rather than dead-ends. */
   returnKeyType?: 'next' | 'done' | 'go';
   onSubmitEditing?: () => void;
+  /**
+   * Renders `BottomSheetTextInput` instead of a plain one. REQUIRED for any
+   * field inside a `Sheet`.
+   *
+   * `@gorhom/bottom-sheet` tracks focus through its own input to know the sheet
+   * must rise; a bare `TextInput` gives it nothing to track, so the keyboard
+   * opens over the sheet and the field disappears underneath it. Every input
+   * flow in this app lives in a sheet (product 12), so this is the common case,
+   * not the exotic one.
+   */
+  inSheet?: boolean;
   testID?: string;
 }
 
@@ -69,6 +81,7 @@ export function Input({
   autoComplete,
   returnKeyType,
   onSubmitEditing,
+  inSheet = false,
   testID,
   sunken = false,
 }: InputProps) {
@@ -90,10 +103,14 @@ export function Input({
         });
   };
 
+  // Same props either way — only the host component differs, so the design
+  // system stays one field rather than two that can drift.
+  const Field = inSheet ? BottomSheetTextInput : TextInput;
+
   return (
     <View>
       <View>
-        <TextInput
+        <Field
           testID={testID}
           value={value}
           onChangeText={onChangeText}

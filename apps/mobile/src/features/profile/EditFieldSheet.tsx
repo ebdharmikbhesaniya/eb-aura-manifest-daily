@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, Text, View } from 'react-native';
 
 import { Input, PillButton, TextButton } from '@/components';
 import { profileCopy } from '@/copy/profile';
@@ -60,39 +60,48 @@ export function EditFieldSheet({
 
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable
-        accessibilityLabel={profileCopy.edit.cancel}
-        onPress={onClose}
-        style={{ flex: 1, backgroundColor: colors.surface.scrim, justifyContent: 'flex-end' }}
-      >
+      {/*
+        This is a plain RN Modal, not a `Sheet`, so it gets none of the
+        bottom-sheet library's keyboard handling. The panel is anchored to the
+        bottom and the field below autofocuses, so without this the keyboard
+        opens straight over the thing she was asked to edit — the same
+        edge-to-edge failure the gate and the conversation had.
+      */}
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <Pressable
-          onPress={(e) => e.stopPropagation()}
-          style={{
-            backgroundColor: colors.surface.sheet,
-            borderTopLeftRadius: radii.sheet,
-            borderTopRightRadius: radii.sheet,
-            padding: spacing.lg,
-            gap: spacing.md,
-          }}
+          accessibilityLabel={profileCopy.edit.cancel}
+          onPress={onClose}
+          style={{ flex: 1, backgroundColor: colors.surface.scrim, justifyContent: 'flex-end' }}
         >
-          <Text style={[typography.title, { color: colors.text.primary }]}>{title}</Text>
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: colors.surface.sheet,
+              borderTopLeftRadius: radii.sheet,
+              borderTopRightRadius: radii.sheet,
+              padding: spacing.lg,
+              gap: spacing.md,
+            }}
+          >
+            <Text style={[typography.title, { color: colors.text.primary }]}>{title}</Text>
 
-          {saved ? (
-            <Text
-              accessibilityLiveRegion="polite"
-              style={[typography.body, { color: colors.text.secondary }]}
-            >
-              {profileCopy.edit.savedNote}
-            </Text>
-          ) : (
-            <View style={{ gap: spacing.md }}>
-              <Input value={value} onChangeText={setValue} multiline={multiline} autoFocus />
-              <PillButton title={profileCopy.edit.save} onPress={save} />
-              <TextButton title={profileCopy.edit.cancel} onPress={onClose} />
-            </View>
-          )}
+            {saved ? (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={[typography.body, { color: colors.text.secondary }]}
+              >
+                {profileCopy.edit.savedNote}
+              </Text>
+            ) : (
+              <View style={{ gap: spacing.md }}>
+                <Input value={value} onChangeText={setValue} multiline={multiline} autoFocus />
+                <PillButton title={profileCopy.edit.save} onPress={save} />
+                <TextButton title={profileCopy.edit.cancel} onPress={onClose} />
+              </View>
+            )}
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

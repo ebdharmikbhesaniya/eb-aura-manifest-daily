@@ -108,6 +108,7 @@ export const GuidedSheet = forwardRef<BottomSheetModal, GuidedSheetProps>(functi
             </View>
 
             <Input
+              inSheet
               value={goalText}
               onChangeText={setGoalText}
               placeholder={affirmationsCopy.guided.goalPlaceholder}

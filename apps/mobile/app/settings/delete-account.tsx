@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { KeyboardAvoidingView, Text, View } from 'react-native';
 
 import { Input, PillButton, Screen, TextButton, ScreenHeader } from '@/components';
 import { signOutAndWipeDevice } from '@/lib/accountReset';
@@ -30,7 +30,16 @@ export default function DeleteAccountRoute() {
 
   return (
     <Screen testID="delete-account">
-      <View style={{ flex: 1, gap: spacing.lg, paddingVertical: spacing.lg }}>
+      {/*
+        She has to type a confirmation word here, so the keyboard is not
+        optional on this screen — and under `edgeToEdgeEnabled=true` Android
+        stops honouring the manifest's adjustResize, which would leave the
+        field and the Delete button beneath it.
+      */}
+      <KeyboardAvoidingView
+        behavior="padding"
+        style={{ flex: 1, gap: spacing.lg, paddingVertical: spacing.lg }}
+      >
         <ScreenHeader
           title="Delete everything?"
           onBack={() => router.back()}
@@ -79,7 +88,7 @@ export default function DeleteAccountRoute() {
             testID="delete-cancel"
           />
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, Text, View } from 'react-native';
 
 import {
   Card,
@@ -102,141 +102,148 @@ export function GratitudeScreen({
   const promptMark = endsInMark ? trimmedPrompt.slice(-1) : '';
 
   return (
-    <ScrollView
-      testID={testID}
-      contentContainerStyle={{
-        padding: layout.screenMargin,
-        gap: spacing.lg,
-        paddingBottom: tabBarClearance,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: spacing.md,
+    // The composer is the screen's whole job, so the keyboard is up whenever
+    // she is actually using it. Under `edgeToEdgeEnabled=true` Android stops
+    // applying the manifest's adjustResize, which left the field and the Save
+    // button below the keyboard with no way to scroll them back into view.
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+      <ScrollView
+        testID={testID}
+        contentContainerStyle={{
+          padding: layout.screenMargin,
+          gap: spacing.lg,
+          paddingBottom: tabBarClearance,
         }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <SerifDisplay variant="title">{gratitudeCopy.title}</SerifDisplay>
-        <View testID="gratitude-dots">
-          <WeekDots filled={dots.map((dot) => dot.filled)} />
-        </View>
-      </View>
-
-      <Card variant="solid" style={{ gap: spacing.md }}>
-        {/* v4 sets the question a step below a sheet title and closes it on an
-            ember mark — the same brand full stop the screen titles wear. */}
-        <Text
-          allowFontScaling={false}
-          style={[scaledType('gratitudePrompt', scale), { color: colors.text.primary }]}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: spacing.md,
+          }}
         >
-          {promptBody}
-          <Text style={{ color: colors.accent.ember }}>{promptMark}</Text>
-        </Text>
+          <SerifDisplay variant="title">{gratitudeCopy.title}</SerifDisplay>
+          <View testID="gratitude-dots">
+            <WeekDots filled={dots.map((dot) => dot.filled)} />
+          </View>
+        </View>
 
-        <Input
-          value={entry}
-          onChangeText={setEntry}
-          placeholder={gratitudeCopy.placeholder}
-          multiline
-          sunken
-          testID="gratitude-input"
+        <Card variant="solid" style={{ gap: spacing.md }}>
+          {/* v4 sets the question a step below a sheet title and closes it on an
+            ember mark — the same brand full stop the screen titles wear. */}
+          <Text
+            allowFontScaling={false}
+            style={[scaledType('gratitudePrompt', scale), { color: colors.text.primary }]}
+          >
+            {promptBody}
+            <Text style={{ color: colors.accent.ember }}>{promptMark}</Text>
+          </Text>
+
+          <Input
+            value={entry}
+            onChangeText={setEntry}
+            placeholder={gratitudeCopy.placeholder}
+            multiline
+            sunken
+            testID="gratitude-input"
+          />
+
+          {showStarter && draft === '' && !hasTodaysEntry && (
+            <Text
+              testID="gratitude-starter"
+              allowFontScaling={false}
+              style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
+            >
+              {gratitudeCopy.starter}
+            </Text>
+          )}
+
+          {showContract && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <View
+                style={{
+                  // The memory-contract mark: a small blush dot, warmth not warning.
+                  width: spacing.sm,
+                  height: spacing.sm,
+                  borderRadius: spacing.sm / 2,
+                  backgroundColor: colors.accent.blush,
+                }}
+              />
+              <Text
+                testID="gratitude-contract"
+                allowFontScaling={false}
+                style={[scaledType('bodySmall', scale), { color: colors.text.secondary, flex: 1 }]}
+              >
+                {gratitudeCopy.memoryContract}
+              </Text>
+            </View>
+          )}
+        </Card>
+
+        <PillButton
+          title={saved ? gratitudeCopy.saved : gratitudeCopy.save}
+          disabled={draft === '' || saved}
+          onPress={keep}
+          testID="gratitude-save"
         />
 
-        {showStarter && draft === '' && !hasTodaysEntry && (
-          <Text
-            testID="gratitude-starter"
-            allowFontScaling={false}
-            style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
-          >
-            {gratitudeCopy.starter}
-          </Text>
-        )}
+        <View style={{ gap: spacing.sm }}>
+          <Label>{gratitudeCopy.historyMonthTitle}</Label>
 
-        {showContract && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <View
-              style={{
-                // The memory-contract mark: a small blush dot, warmth not warning.
-                width: spacing.sm,
-                height: spacing.sm,
-                borderRadius: spacing.sm / 2,
-                backgroundColor: colors.accent.blush,
-              }}
-            />
-            <Text
-              testID="gratitude-contract"
-              allowFontScaling={false}
-              style={[scaledType('bodySmall', scale), { color: colors.text.secondary, flex: 1 }]}
-            >
-              {gratitudeCopy.memoryContract}
-            </Text>
-          </View>
-        )}
-      </Card>
-
-      <PillButton
-        title={saved ? gratitudeCopy.saved : gratitudeCopy.save}
-        disabled={draft === '' || saved}
-        onPress={keep}
-        testID="gratitude-save"
-      />
-
-      <View style={{ gap: spacing.sm }}>
-        <Label>{gratitudeCopy.historyMonthTitle}</Label>
-
-        {history.length === 0 ? (
-          <Card variant="solid">
-            <Text
-              testID="gratitude-history-empty"
-              allowFontScaling={false}
-              style={[scaledType('body', scale), { color: colors.text.secondary }]}
-            >
-              {gratitudeCopy.historyEmpty}
-            </Text>
-          </Card>
-        ) : (
-          history.map((item) => (
-            <Card
-              key={item.entryDate}
-              variant="solid"
-              // v4 §gratitude gives an entry its own surface: 16pt radius and
-              // 13/16 padding, tighter than the composer it sits under.
-              style={{
-                gap: spacing.xs - 1,
-                borderRadius: radii.field,
-                paddingVertical: layout.tilePaddingV,
-                paddingHorizontal: layout.listRowPaddingH,
-              }}
-            >
-              {/* Plain, not the tracked uppercase `Label`: a weekday here is a
-                  timestamp on her own words, not section wayfinding. */}
+          {history.length === 0 ? (
+            <Card variant="solid">
               <Text
+                testID="gratitude-history-empty"
                 allowFontScaling={false}
-                style={[scaledType('entryDay', scale), { color: colors.text.label }]}
+                style={[scaledType('body', scale), { color: colors.text.secondary }]}
               >
-                {dayLabelFor(item.entryDate)}
-              </Text>
-              <Text
-                allowFontScaling={false}
-                style={[scaledType('entryBody', scale), { color: colors.text.body }]}
-              >
-                {item.entry}
+                {gratitudeCopy.historyEmpty}
               </Text>
             </Card>
-          ))
-        )}
-      </View>
+          ) : (
+            history.map((item) => (
+              <Card
+                key={item.entryDate}
+                variant="solid"
+                // v4 §gratitude gives an entry its own surface: 16pt radius and
+                // 13/16 padding, tighter than the composer it sits under.
+                style={{
+                  gap: spacing.xs - 1,
+                  borderRadius: radii.field,
+                  paddingVertical: layout.tilePaddingV,
+                  paddingHorizontal: layout.listRowPaddingH,
+                }}
+              >
+                {/* Plain, not the tracked uppercase `Label`: a weekday here is a
+                  timestamp on her own words, not section wayfinding. */}
+                <Text
+                  allowFontScaling={false}
+                  style={[scaledType('entryDay', scale), { color: colors.text.label }]}
+                >
+                  {dayLabelFor(item.entryDate)}
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  style={[scaledType('entryBody', scale), { color: colors.text.body }]}
+                >
+                  {item.entry}
+                </Text>
+              </Card>
+            ))
+          )}
+        </View>
 
-      {history.length > 0 && onHistory && (
-        <TextButton
-          title={gratitudeCopy.allEntries}
-          onPress={onHistory}
-          testID="gratitude-all-entries"
-        />
-      )}
-    </ScrollView>
+        {history.length > 0 && onHistory && (
+          <TextButton
+            title={gratitudeCopy.allEntries}
+            onPress={onHistory}
+            testID="gratitude-all-entries"
+          />
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

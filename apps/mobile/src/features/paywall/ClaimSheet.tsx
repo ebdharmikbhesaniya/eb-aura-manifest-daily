@@ -90,6 +90,7 @@ export const ClaimSheet = forwardRef<BottomSheetModal, ClaimSheetProps>(function
         ) : showEmail ? (
           <View style={{ gap: spacing.sm }}>
             <Input
+              inSheet
               value={email}
               onChangeText={setEmail}
               placeholder={paywallCopy.claim.emailPlaceholder}

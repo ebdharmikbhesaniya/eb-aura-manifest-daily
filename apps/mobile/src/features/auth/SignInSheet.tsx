@@ -96,6 +96,7 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
         ) : showEmail ? (
           <View style={{ gap: spacing.sm }}>
             <Input
+              inSheet
               value={email}
               onChangeText={setEmail}
               placeholder={authCopy.signIn.emailPlaceholder}

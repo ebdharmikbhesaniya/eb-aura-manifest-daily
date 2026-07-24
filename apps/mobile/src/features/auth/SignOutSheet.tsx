@@ -97,6 +97,7 @@ export const SignOutSheet = forwardRef<BottomSheetModal, SignOutSheetProps>(func
         ) : showEmail ? (
           <View style={{ gap: spacing.sm }}>
             <Input
+              inSheet
               value={email}
               onChangeText={setEmail}
               placeholder={paywallCopy.claim.emailPlaceholder}

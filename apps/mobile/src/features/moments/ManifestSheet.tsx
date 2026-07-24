@@ -58,6 +58,7 @@ export const ManifestSheet = forwardRef<BottomSheetModal, ManifestSheetProps>(
           </View>
 
           <Input
+            inSheet
             value={desire}
             onChangeText={setDesire}
             placeholder={momentsCopy.manifest.placeholder}
