@@ -9,7 +9,6 @@ import { signInWithPassword, signUpWithPassword } from '@/features/auth/password
 import { authenticateWithProvider, sendSignInLink } from '@/features/auth/session';
 import { OutlinePill } from '@/features/paywall/OutlinePill';
 import { appleAuthAvailable } from '@/features/paywall/claim';
-import { useAppState } from '@/stores/appState';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
 
@@ -47,7 +46,6 @@ export default function SignInRoute() {
   const router = useRouter();
   const { colors, spacing } = useTheme();
   const scale = clampedFontScale();
-  const userId = useAppState((s) => s.userId);
 
   const [google, setGoogle] = useState(false);
   const [apple, setApple] = useState(false);
@@ -169,12 +167,12 @@ export default function SignInRoute() {
     }
   }, [email, password, proceed]);
 
-  // The buttons act on the anonymous session boot creates, so they cannot run
-  // before it exists. The gate is only reachable once boot is ready, so this is
-  // a guard rather than a state she will sit in.
-  const ready = userId !== null;
+  // No anonymous session to wait on any more (03 §2.1 reversal): the gate is only
+  // mounted once boot has routed here, and provider login ADOPTS an account
+  // directly rather than linking onto an existing one, so nothing has to exist
+  // first. The only thing that disables a button is an auth attempt in flight.
   const formMode = mode === 'create' || mode === 'signin';
-  const canSubmit = ready && email.trim() !== '' && password !== '' && !busy;
+  const canSubmit = email.trim() !== '' && password !== '' && !busy;
 
   // The choose screen keeps the welcome; the forms name what she is doing.
   const title =
@@ -331,7 +329,7 @@ export default function SignInRoute() {
                   <PillButton
                     title={authCopy.gate.google}
                     onPress={() => void runGoogle()}
-                    disabled={!ready}
+                    disabled={busy}
                     loading={busy}
                     testID="auth-google"
                   />
@@ -340,7 +338,7 @@ export default function SignInRoute() {
                   <PillButton
                     title={authCopy.gate.apple}
                     onPress={() => void runApple()}
-                    disabled={!ready}
+                    disabled={busy}
                     loading={busy}
                     testID="auth-apple"
                   />
@@ -348,7 +346,6 @@ export default function SignInRoute() {
                 <PillButton
                   title={authCopy.gate.password.create}
                   onPress={() => setMode('create')}
-                  disabled={!ready}
                   testID="auth-use-password"
                 />
                 <OutlinePill
