@@ -8,6 +8,7 @@ import { authCopy } from '@/copy/auth';
 import { notificationsCopy } from '@/copy/notifications';
 import { paywallCopy } from '@/copy/paywall';
 import { settingsCopy } from '@/copy/settings';
+import { googleAuthAvailable } from '@/features/auth/google';
 import { SignInSheet } from '@/features/auth/SignInSheet';
 import { SignOutSheet } from '@/features/auth/SignOutSheet';
 import { useAccountStatus } from '@/features/auth/useAccountStatus';
@@ -126,6 +127,7 @@ export default function SettingsRoute() {
       <SignInSheet
         ref={signInRef}
         appleAvailable={appleAvailable}
+        googleAvailable={googleAuthAvailable()}
         hasLocalWork
         onSignedIn={() => {
           signInRef.current?.dismiss();

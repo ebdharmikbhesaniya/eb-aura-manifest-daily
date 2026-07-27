@@ -8,10 +8,13 @@ import { OutlinePill } from '@/features/paywall/OutlinePill';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
 
-import { sendSignInLink, signInWithApple } from './session';
+import { getGoogleIdToken } from './google';
+import { authenticateWithProvider, sendSignInLink, signInWithApple } from './session';
 
 export interface SignInSheetProps {
   appleAvailable?: boolean;
+  /** Google is the Android half of provider sign-in — Apple covers iOS. */
+  googleAvailable?: boolean;
   /**
    * True when this device already holds an unclaimed conversation worth losing.
    * Adds the replace warning — signing in abandons the anonymous account, and
@@ -31,7 +34,7 @@ export interface SignInSheetProps {
  * so. See `session.ts` for why the two must never be merged.
  */
 export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(function SignInSheet(
-  { appleAvailable = false, hasLocalWork = false, onSignedIn, onDismiss },
+  { appleAvailable = false, googleAvailable = false, hasLocalWork = false, onSignedIn, onDismiss },
   ref,
 ) {
   const { colors, spacing } = useTheme();
@@ -48,6 +51,21 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
     const result = await signInWithApple();
     setBusy(false);
     if (result.status === 'signed_in') onSignedIn();
+  };
+
+  const runGoogle = async () => {
+    setBusy(true);
+    const token = await getGoogleIdToken();
+    if (token.status !== 'ok') {
+      setBusy(false);
+      return;
+    }
+    // `authenticateWithProvider` links to the account on this device when it can
+    // and only signs in as an existing one when the identity is already taken —
+    // the same keep-her-data-first order the gate uses (see session.ts).
+    const outcome = await authenticateWithProvider('google', token.idToken);
+    setBusy(false);
+    if (outcome.status === 'linked' || outcome.status === 'signed_in') onSignedIn();
   };
 
   const runEmail = async () => {
@@ -123,6 +141,14 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
           </View>
         ) : (
           <View style={{ gap: spacing.sm }}>
+            {googleAvailable && (
+              <PillButton
+                title={authCopy.signIn.google}
+                onPress={() => void runGoogle()}
+                loading={busy}
+                testID="signin-google"
+              />
+            )}
             {appleAvailable && (
               <PillButton
                 title={authCopy.signIn.apple}

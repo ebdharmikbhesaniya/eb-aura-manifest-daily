@@ -1,3 +1,4 @@
+import { googleSignOut } from '@/features/auth/google';
 import { queryClient } from '@/lib/queryClient';
 import { kv } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
@@ -26,6 +27,14 @@ export async function signOutAndWipeDevice(): Promise<void> {
   // this call legitimately errors in the delete path, and it must not be what
   // stops the local wipe from happening.
   await supabase.auth.signOut().catch(() => undefined);
+
+  // Also clear Google's OWN cached account (03 §2.2). `supabase.auth.signOut`
+  // ends the Supabase session but the native Google SDK keeps the last account
+  // signed in, so the next person on this device would be silently re-offered
+  // it — or auto-signed straight back into it. A no-op on iOS and on any build
+  // without the native module. Its own failures are already swallowed.
+  await googleSignOut();
+
   wipeDeviceState();
 }
 

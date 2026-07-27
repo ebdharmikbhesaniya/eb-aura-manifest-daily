@@ -76,6 +76,7 @@ export const authCopy = {
     replaceWarning:
       'This phone has words on it that aren’t saved anywhere else. Signing in puts them away for good.',
     apple: 'Continue with Apple',
+    google: 'Continue with Google',
     email: 'Continue with email',
     emailPlaceholder: 'you@example.com',
     emailSent: 'Check your email — the link signs you straight in.',

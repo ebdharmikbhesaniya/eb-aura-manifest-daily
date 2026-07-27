@@ -55,6 +55,14 @@ Leading with `signInWithIdToken` would strand a part-way conversation every sing
 
 Buttons are hidden, never drawn dead, when a provider is unavailable — Apple on Android, Google on a build with no client id.
 
+The **restore sheet** (`features/auth/SignInSheet.tsx`, opened from Settings for an existing account) offers the same set — Google, Apple, then email — through the identical `authenticateWithProvider` path, so a returning Android user has a provider option there too, not only email. **Signing out** (`lib/accountReset.ts#signOutAndWipeDevice`) now also calls `googleSignOut()`: `supabase.auth.signOut` ends the Supabase session but the native Google SDK keeps its own account cached, and without this the next person on the device is silently re-offered — or auto-signed back into — the previous Google account.
+
+**Enabling Google (Android) is three config facts, no code:**
+
+1. `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` — the **Web** OAuth client id (not the Android one); this is the audience Supabase verifies the id-token against, and `googleAuthAvailable()` gates the button on it.
+2. `GOOGLE_SERVICES_JSON` — path to `google-services.json`. `app.config.ts` adds the `@react-native-google-signin/google-signin` config plugin **only when this is set** (the plugin pulls in a Gradle plugin that fails the build outright with no file present), and it needs a **native rebuild** to take effect.
+3. Supabase dashboard → Auth → Providers → **Google enabled**, with that Web client id listed under Authorized Client IDs. The Android OAuth client in Google Cloud must carry the signing key's **SHA-1** (the _debug_ keystore's for a debug-signed dev client).
+
 ### 2.3 Edge cases (the ones that bite)
 
 | Case                                                                       | Handling                                                                                                                                                                                                                                                                                                                                                                    |
