@@ -9,8 +9,8 @@ import { buildSuperProperties } from '@/lib/superProperties';
 import { useAppState } from '@/stores/appState';
 
 /**
- * The boot sequence (05 §9):
- *   load session | signInAnonymously → identify → route gate
+ * The boot sequence (05 §9, reversed 2026-07-27):
+ *   read stored session → (none? → unauthenticated) → identify → route gate
  *
  * RevenueCat is configured here with her Supabase id as the RC `app_user_id`
  * (03 §4) — the binding that lets an anonymous purchase survive a later claim.
@@ -18,9 +18,11 @@ import { useAppState } from '@/stores/appState';
  */
 export function useBoot(): void {
   const setReady = useAppState((s) => s.setReady);
+  const setUnauthenticated = useAppState((s) => s.setUnauthenticated);
   const setFailed = useAppState((s) => s.setFailed);
-  // Re-runs the whole sequence after a sign-out, which is what mints the next
-  // anonymous session (03 §2.1). See `bootNonce`.
+  // Re-runs the whole sequence after a sign-in or sign-out. A sign-in has just
+  // created the session this re-run picks up; a sign-out leaves none, so the
+  // re-run lands in `unauthenticated` and the gate shows the wall. See `bootNonce`.
   const bootNonce = useAppState((s) => s.bootNonce);
 
   useEffect(() => {
@@ -30,6 +32,16 @@ export function useBoot(): void {
       try {
         const session = await ensureSession();
         if (cancelled) return;
+
+        // No stored session means she has never signed in (or signed out): the
+        // app mints nothing anonymous any more (03 §2.1 reversal), so this is the
+        // unauthenticated state and the boot gate shows her the sign-in wall.
+        // RevenueCat and analytics identify are deliberately below this line —
+        // there is no user id to bind them to until she has an account.
+        if (!session) {
+          setUnauthenticated();
+          return;
+        }
 
         const userId = session.user.id;
 
@@ -64,5 +76,5 @@ export function useBoot(): void {
     return () => {
       cancelled = true;
     };
-  }, [setReady, setFailed, bootNonce]);
+  }, [setReady, setUnauthenticated, setFailed, bootNonce]);
 }

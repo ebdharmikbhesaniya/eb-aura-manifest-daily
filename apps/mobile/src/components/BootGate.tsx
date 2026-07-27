@@ -45,6 +45,14 @@ export function BootGate({ children }: { children: ReactNode }) {
   useNotificationRouting(userId ?? undefined, profile, Boolean(letterQuery.data), claimed);
 
   useEffect(() => {
+    // No session at all (03 §2.1 reversal): there is no profile to wait on and
+    // nothing to resolve — she has never signed in. Send her to the wall. The
+    // render below lets the `(auth)` stack actually appear rather than holding.
+    if (status === 'unauthenticated') {
+      router.replace('/(auth)/sign-in');
+      return;
+    }
+
     if (status !== 'ready' || !profile) return;
 
     // The claim check decides the very first gate, so routing before it settles
@@ -84,6 +92,11 @@ export function BootGate({ children }: { children: ReactNode }) {
       )}
     </View>
   );
+
+  // Unauthenticated renders the app so the sign-in wall (an `(auth)` route) can
+  // show — it has no profile and never will until she signs in, so it must not
+  // be caught by the `!profile` hold below.
+  if (status === 'unauthenticated') return <>{children}</>;
 
   if (status === 'failed' || status === 'booting' || !profile) return holding;
 

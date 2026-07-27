@@ -1,8 +1,10 @@
 # 03 — AUTH ARCHITECTURE
 
-_Supabase Auth. Sign-in is required before the app can be used (founder decision, 2026-07-24). Anonymous sessions still exist underneath as the substrate the chosen identity is linked to._
+_Supabase Auth. Sign-in is required before the app can be used, and there is no anonymous session underneath any more (founder decisions, 2026-07-24 and 2026-07-27). Email + password or Google is the only way in._
 
-> **Reversal, 2026-07-24.** This document previously specified anonymous-first with **no auth screen before the wow**, and product doc 07's "no email asked at onboarding" rule followed from it. The founder has reversed that: sign-in or sign-up is now the first screen in the app. §1, §2.1 and §2.2 below are rewritten to match the code; the anonymous-first rationale is preserved in §2.4 because the mechanism it describes is still what runs underneath, and because the trade-off it names is real and was accepted knowingly.
+> **Reversal, 2026-07-24.** This document previously specified anonymous-first with **no auth screen before the wow**, and product doc 07's "no email asked at onboarding" rule followed from it. The founder reversed that: sign-in or sign-up is now the first screen in the app.
+>
+> **Reversal, 2026-07-27.** Anonymous sign-in is now removed entirely. The app previously still minted an anonymous session at boot as the substrate the chosen identity was _linked_ onto; the founder's call is that no session should exist without a real identity. Boot no longer calls `signInAnonymously()` — it reads the stored session or falls to the sign-in wall — and provider/password login now ADOPTS an account directly (`signInWithIdToken` / `signUp` / `signInWithPassword`) rather than linking. Because sign-in already preceded onboarding, no user data is ever at risk in this change: nothing is written before login. The anonymous ("claim") machinery (`linkIdentity`, `claim.ts`, `ClaimSheet`, `is_anonymous`) is left in the tree but is now **dormant** — no path reaches it. Supabase: **Allow anonymous sign-ins must stay OFF.**
 >
 > Product doc 07's friction rule is now **stale** and should be re-read in light of this.
 
@@ -11,7 +13,7 @@ _Supabase Auth. Sign-in is required before the app can be used (founder decision
 ## 1. Principles
 
 1. **An identity before any content.** Nothing she writes is reachable until an account exists to own it. The sign-in gate is the first route the boot gate resolves, ahead of onboarding, the letter and the paywall.
-2. **An account exists from second one.** Anonymous Supabase sessions are real users: real `user_id`, real rows, real RLS. The gate does not replace that — it **links** a credential to it, so the id never changes.
+2. **No session without an identity** (2026-07-27). Boot mints nothing. A first launch has no session and meets the sign-in wall; only email or Google login creates one. There is no anonymous substrate to link onto, so login adopts the account directly.
 3. **Email + password is the front door** (founder decision, 2026-07-25), with Google, Apple and the emailed link alongside it. This REVERSES the "no passwords" rule this doc shipped with: the link round-trip through an inbox cost more sign-ups than the rule saved. The security cost is stated plainly in §6 rather than hidden.
 4. **Purchase forces durability.** Money must never be attached to an unrecoverable identity. Now trivially satisfied: everyone is durable before they can spend.
 
@@ -19,21 +21,20 @@ _Supabase Auth. Sign-in is required before the app can be used (founder decision
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Anonymous : boot — signInAnonymously()
-    Anonymous --> Gate : (auth)/sign-in — required, cannot be skipped
-    Gate --> Claimed : linkIdentity() — same user_id, data kept
-    Gate --> Adopted : signInWithIdToken() — identity belonged elsewhere
-    Claimed --> [*] : account deletion
+    [*] --> Unauthenticated : boot — no stored session
+    Unauthenticated --> Gate : (auth)/sign-in — required, cannot be skipped
+    Gate --> SignedUp : signUp() — new email account, confirm inbox
+    Gate --> Adopted : signInWithIdToken() / signInWithPassword()
+    SignedUp --> [*] : account deletion
     Adopted --> [*] : account deletion
 ```
 
 ### 2.1 First launch
 
-- App boot → no stored session → `supabase.auth.signInAnonymously()`.
-- DB trigger creates `profiles` row; `is_anonymous = true`.
-- Session persisted in secure storage (Keychain via expo-secure-store adapter for the Supabase client).
-- PostHog identified with `user_id` (pseudonymous — 13 §2).
-- **The boot gate then routes to `(auth)/sign-in` and stays there** until an identity is attached. The anonymous session is plumbing she never sees.
+- App boot → `ensureSession()` reads secure storage → **no session** → `setUnauthenticated()`. Nothing is minted (`signInAnonymously` is gone).
+- The boot gate renders the app and routes to `(auth)/sign-in`. RevenueCat and analytics identify do **not** run yet — there is no `user_id` to bind them to.
+- Login (email or Google) creates the session and, via `wipeDeviceState()`, bumps the boot nonce so `useBoot` re-runs, finds the new session, and `resolveBootRoute` sends her onward (onboarding for a new account).
+- The DB trigger still creates the `profiles` row on the new user; `is_anonymous` is now always `false`.
 
 ### 2.2 The gate (`app/(auth)/sign-in.tsx`)
 
@@ -41,17 +42,12 @@ Offers, in order: **Google** (Android's half), **Apple** (iOS's half, and requir
 
 The password form has two modes and one rule between them, which is the same claim-vs-adopt split `authenticateWithProvider` follows (`features/auth/password.ts`):
 
-1. **Create account → `updateUser({ email, password })`**, converting the anonymous user in place. `user_id` does not change, so a part-way conversation survives. `signUp` is deliberately NOT used here: it mints a new user and orphans the draft behind a new session.
-2. **Sign in → `signInWithPassword`**, which adopts an existing account and therefore wipes local device state (§5 step 5), exactly as the Apple path does.
+1. **Create account → `signUp({ email, password })`** (2026-07-27). With no anonymous user to convert, this mints the account directly. Email confirmation is ON, so it returns "check your email"; the confirmation link lands via `aura://auth/callback`, which routes through the boot gate so a new user goes to onboarding. (The old `updateUser`-on-anonymous branch remains in `password.ts` but is dormant — there is never an anonymous user to hit it.)
+2. **Sign in → `signInWithPassword`**, which adopts an existing account and wipes local device state (§5 step 5).
 
 A sign-up that comes back "already registered" moves her to the Sign in mode rather than failing — she is on the wrong tab, not in trouble. There is **no password-reset form**: "forgot your password" sends the magic link, which already exists and is already trusted.
 
-`features/auth/session.ts#authenticateWithProvider` decides what a chosen identity means, and the order is load-bearing:
-
-1. **`linkIdentity({ provider, token })` first.** Attaches the identity to the anonymous user this device is already on. `user_id` does not change, so memory, letter and the RevenueCat entitlement keyed to it (§4) all survive. This is the path for a brand-new user **and** for anyone who was part-way through the conversation before the gate existed.
-2. **Only if that fails with `identity_already_exists`**, fall back to `signInWithIdToken` — the identity belongs to another account, which is the returning-on-a-new-phone case (§2.3). The local device state belonging to the abandoned anonymous user is wiped (§5 step 5).
-
-Leading with `signInWithIdToken` would strand a part-way conversation every single time, silently. The match on the link failure is deliberately narrow: a network blip must not be read as "already taken".
+`features/auth/session.ts#authenticateWithProvider` handles a chosen Google identity. Since 2026-07-27 it is **adopt-only**: `signInWithIdToken({ provider, token })` directly, then `wipeDeviceState()`. There is no anonymous user to `linkIdentity` onto, and attempting to link with no current user would simply fail — so linking was removed. `wipeDeviceState` here is a clean-start safety net, not a data loss: nothing of hers is written before login.
 
 Buttons are hidden, never drawn dead, when a provider is unavailable — Apple on Android, Google on a build with no client id.
 

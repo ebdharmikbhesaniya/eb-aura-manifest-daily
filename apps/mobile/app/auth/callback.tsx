@@ -71,9 +71,13 @@ export default function AuthCallbackRoute() {
         return;
       }
 
-      // The claim is only complete once the link is followed (03 §2.2).
+      // Not a sign-in link, so it is a brand-new email SIGN-UP being confirmed
+      // (03 §2.1 reversal: sign-up now precedes onboarding) or the dormant claim
+      // link. Route through the boot gate rather than straight to Home: a
+      // just-confirmed new user still has to onboard, and `resolveBootRoute` is
+      // the one place that decides that. A finished user still lands on Home.
       recordEmailClaim();
-      router.replace('/(tabs)/home');
+      router.replace('/');
     })();
 
     return () => {

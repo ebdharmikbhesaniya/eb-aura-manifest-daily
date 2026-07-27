@@ -65,6 +65,7 @@ export function wipeDeviceState(): void {
   queryClient.clear();
 
   // Last: flips the boot gate back to `booting` and bumps the nonce, which
-  // re-runs `useBoot` and mints the fresh anonymous session.
+  // re-runs `useBoot`. After a sign-in it finds the new session; after a
+  // sign-out it finds none and the gate shows the sign-in wall (03 §2.1).
   useAppState.getState().reset();
 }

@@ -59,60 +59,29 @@ export type AuthOutcome =
   | { status: 'failed' };
 
 /**
- * The one entry point the sign-in wall uses. Tries to KEEP her data first.
+ * The one entry point the sign-in wall uses. Adopt-only (reversed 2026-07-27).
  *
- *   1. `linkIdentity` — attaches the identity to the anonymous account this
- *      device is already on. Her user id does not change, so the letter, the
- *      memory and the RevenueCat entitlement keyed to it (03 §4) all survive.
- *      This is the path for a brand-new user AND for anyone who was already
- *      part-way through the conversation before the wall existed.
+ * This used to `linkIdentity` first, to attach the identity to the anonymous
+ * account this device booted with and keep her data. There is no anonymous
+ * account any more (03 §2.1 reversal): the app mints no session before login, so
+ * there is nothing to link onto, and `linkIdentity` would simply fail with no
+ * current user. So it signs in AS the provider account directly.
  *
- *   2. If that identity already belongs to a DIFFERENT account, linking is
- *      refused — and rightly so, since one Google account cannot be two users.
- *      That is the returning-on-a-new-phone case (03 §2.3), so fall back to
- *      authenticating as the account that already holds her letters, and wipe
- *      the local state belonging to the anonymous user we are leaving behind.
- *
- * Order matters and is not interchangeable. Leading with `signInWithIdToken`
- * would strand a part-way conversation every time, silently.
+ * `wipeDeviceState` on success is a safety net, not a data loss: nothing is
+ * written before login, so there is nothing of hers to lose — but any leftover
+ * MMKV/query state (e.g. a stale session that had routed her here) belongs to
+ * whatever preceded this, and her real account must start clean.
  */
 export async function authenticateWithProvider(
   provider: AuthProvider,
   idToken: string,
 ): Promise<AuthOutcome> {
-  const linked = await supabase.auth.linkIdentity({ provider, token: idToken });
-
-  if (!linked.error) {
-    analytics.capture('account_claimed', { method: provider === 'apple' ? 'apple' : 'google' });
-    return { status: 'linked' };
-  }
-
-  if (!isIdentityTakenError(linked.error)) return { status: 'failed' };
-
   const adopted = await supabase.auth.signInWithIdToken({ provider, token: idToken });
   if (adopted.error) return { status: 'failed' };
 
   analytics.capture('account_signed_in', { method: provider === 'apple' ? 'apple' : 'google' });
-  // She is a different user now; everything local belongs to the one we left.
   wipeDeviceState();
   return { status: 'signed_in' };
-}
-
-/**
- * Whether linking failed because the identity is spoken for.
- *
- * This is the ONLY failure that may fall through to signing in. Treating a
- * network blip or an expired token as "already taken" would abandon a live
- * conversation over a retryable error, so the match is deliberately narrow and
- * anything unrecognised stays a plain failure.
- */
-function isIdentityTakenError(error: {
-  code?: string | undefined;
-  message?: string | undefined;
-}): boolean {
-  if (error.code === 'identity_already_exists') return true;
-  const message = error.message?.toLowerCase() ?? '';
-  return message.includes('already') && (message.includes('linked') || message.includes('exists'));
 }
 
 /**

@@ -4,49 +4,22 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
 /**
- * Session bootstrap (05 §9, 03 §2.1).
+ * Session bootstrap (05 §9, 03 §2.1 — reversed 2026-07-27).
  *
- * First launch signs in anonymously — no email, no signup, no wall. The whole
- * onboarding and the Letter happen on this session (00 §D2); it is a real user
- * with real rows and real RLS, not a placeholder.
- */
-
-/** Retry schedule for the first sign-in. Offline launch must not dead-end (05 §3). */
-const RETRY_DELAYS_MS = [500, 1500, 4000];
-
-export class AnonymousSignInError extends Error {
-  constructor(cause: string) {
-    super(`Anonymous sign-in failed: ${cause}`);
-    this.name = 'AnonymousSignInError';
-  }
-}
-
-/**
- * Returns the stored session, or creates an anonymous one.
+ * There is no anonymous fallback any more. The app requires a real identity —
+ * email or Google — before it will run, so boot no longer MINTS a session; it
+ * only READS the stored one. A returning user has it in secure storage and boots
+ * straight in; a first launch has none, and the boot gate sends her to the
+ * sign-in wall (see `useBoot` → `setUnauthenticated`).
  *
- * Retries with backoff because a first launch on a bad connection is common and
- * losing here means she cannot use the app at all. The caller shows an honest
- * waiting state — never a spinner with an error code (05 §8).
+ * This used to sign in anonymously with a retry/backoff, because losing that
+ * call meant she could not use the app at all. Now a missing session is not a
+ * failure — it is the unauthenticated state — so there is nothing to retry: this
+ * is a local read of secure storage, not a network call.
  */
-export async function ensureSession(
-  sleep: (ms: number) => Promise<void> = defaultSleep,
-): Promise<Session> {
+export async function ensureSession(): Promise<Session | null> {
   const { data } = await supabase.auth.getSession();
-  if (data.session) return data.session;
-
-  let lastError = 'unknown';
-
-  // One attempt up front, then one per backoff step.
-  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
-    if (attempt > 0) await sleep(RETRY_DELAYS_MS[attempt - 1] ?? 0);
-
-    const { data: signInData, error } = await supabase.auth.signInAnonymously();
-
-    if (signInData?.session) return signInData.session;
-    lastError = error?.message ?? 'no session returned';
-  }
-
-  throw new AnonymousSignInError(lastError);
+  return data.session;
 }
 
 /**
@@ -55,8 +28,4 @@ export async function ensureSession(
  */
 export function identifyForObservability(userId: string): void {
   Sentry.setUser({ id: userId });
-}
-
-function defaultSleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
