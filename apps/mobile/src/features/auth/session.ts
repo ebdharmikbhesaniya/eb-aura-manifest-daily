@@ -5,6 +5,8 @@ import { analytics } from '@/lib/analytics';
 import { kv, STORAGE_KEYS } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 
+import { authRedirectUrl } from './redirect';
+
 /**
  * Signing back IN (03 §2.3, "restore on a new device, previously claimed").
  *
@@ -131,7 +133,9 @@ export async function signInWithApple(): Promise<SignInResult> {
 export async function sendSignInLink(email: string): Promise<{ sent: boolean }> {
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: false },
+    // shouldCreateUser stays false (below); emailRedirectTo brings the tapped
+    // link back into the app instead of the Site URL default (03 §2.1).
+    options: { shouldCreateUser: false, emailRedirectTo: authRedirectUrl() },
   });
 
   if (error) return { sent: false };

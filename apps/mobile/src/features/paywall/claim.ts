@@ -1,6 +1,7 @@
 import type { ClaimMethod } from '@aura/shared';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
+import { authRedirectUrl } from '@/features/auth/redirect';
 import { analytics } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 
@@ -68,7 +69,11 @@ export async function claimWithApple(): Promise<ClaimResult> {
  * overstating it would leave her believing her data is safe when it is not yet.
  */
 export async function claimWithEmail(email: string): Promise<{ sent: boolean }> {
-  const { error } = await supabase.auth.updateUser({ email });
+  const { error } = await supabase.auth.updateUser(
+    { email },
+    // The confirmation link opens the app, not the Site URL default (03 §2.1).
+    { emailRedirectTo: authRedirectUrl() },
+  );
   return { sent: !error };
 }
 

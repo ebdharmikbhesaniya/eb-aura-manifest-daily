@@ -36,6 +36,13 @@ jest.mock('expo-linear-gradient', () => {
   return { LinearGradient: View };
 });
 
+// expo-linking builds the app's deep-link URLs. The stub mirrors the real
+// scheme-based output so `authRedirectUrl()` and the email-flow callers can be
+// asserted without the native module.
+jest.mock('expo-linking', () => ({
+  createURL: (path) => `aura://${String(path).replace(/^\/+/, '')}`,
+}));
+
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(async () => undefined),
   notificationAsync: jest.fn(async () => undefined),

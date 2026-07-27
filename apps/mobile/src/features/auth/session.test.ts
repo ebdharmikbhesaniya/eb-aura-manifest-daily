@@ -1,4 +1,4 @@
-import { authenticateWithProvider } from './session';
+import { authenticateWithProvider, sendSignInLink } from './session';
 
 /**
  * `authenticateWithProvider` (03 §2.2, reversed 2026-07-27).
@@ -11,16 +11,21 @@ import { authenticateWithProvider } from './session';
  */
 
 jest.mock('@/lib/supabase', () => ({
-  supabase: { auth: { linkIdentity: jest.fn(), signInWithIdToken: jest.fn() } },
+  supabase: {
+    auth: { linkIdentity: jest.fn(), signInWithIdToken: jest.fn(), signInWithOtp: jest.fn() },
+  },
 }));
 jest.mock('@/lib/accountReset', () => ({ wipeDeviceState: jest.fn() }));
 jest.mock('@/lib/analytics', () => ({ analytics: { capture: jest.fn() } }));
 
 const { supabase } = jest.requireMock('@/lib/supabase') as {
-  supabase: { auth: { linkIdentity: jest.Mock; signInWithIdToken: jest.Mock } };
+  supabase: {
+    auth: { linkIdentity: jest.Mock; signInWithIdToken: jest.Mock; signInWithOtp: jest.Mock };
+  };
 };
 const mockLinkIdentity = supabase.auth.linkIdentity;
 const mockSignInWithIdToken = supabase.auth.signInWithIdToken;
+const mockSignInWithOtp = supabase.auth.signInWithOtp;
 const { wipeDeviceState } = jest.requireMock('@/lib/accountReset') as {
   wipeDeviceState: jest.Mock;
 };
@@ -59,5 +64,19 @@ describe('authenticateWithProvider', () => {
 
     expect(mockSignInWithIdToken).toHaveBeenCalledWith({ provider: 'apple', token: 'apple-token' });
     expect(analytics.capture).toHaveBeenCalledWith('account_signed_in', { method: 'apple' });
+  });
+});
+
+describe('sendSignInLink', () => {
+  it('sends the magic link back to the app, not the Site URL', async () => {
+    mockSignInWithOtp.mockResolvedValue({ error: null });
+
+    await sendSignInLink('her@example.com');
+
+    expect(mockSignInWithOtp).toHaveBeenCalledWith({
+      email: 'her@example.com',
+      // shouldCreateUser stays false; emailRedirectTo is the new part (03 §2.1).
+      options: { shouldCreateUser: false, emailRedirectTo: 'aura://auth/callback' },
+    });
   });
 });

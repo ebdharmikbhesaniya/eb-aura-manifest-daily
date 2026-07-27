@@ -2,6 +2,8 @@ import { wipeDeviceState } from '@/lib/accountReset';
 import { analytics } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 
+import { authRedirectUrl } from './redirect';
+
 /**
  * Email + password (founder decision, 2026-07-25).
  *
@@ -58,7 +60,12 @@ export async function signUpWithPassword(email: string, password: string): Promi
     // Only anonymous users can be converted. Anyone else signing up is already
     // somebody, and `signUp` is then the honest call.
     if (current.user?.is_anonymous !== true) {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        // Confirmation link opens the app (03 §2.1), not the Site URL default.
+        options: { emailRedirectTo: authRedirectUrl() },
+      });
       if (error) return classifySignUpError(error);
       // No session means the project has email confirmation switched on.
       if (!data.session) return { status: 'confirm_email' };

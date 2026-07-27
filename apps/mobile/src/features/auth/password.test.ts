@@ -124,6 +124,21 @@ describe('signUpWithPassword', () => {
     expect(updateUser).not.toHaveBeenCalled();
   });
 
+  it('sends the confirmation link back to the app, not the Site URL', async () => {
+    // Without emailRedirectTo the confirm link falls back to the project's Site
+    // URL (localhost:3000 by default) and dead-ends in a browser (03 §2.1).
+    getUser.mockResolvedValue({ data: { user: { id: 'real-1', is_anonymous: false } } });
+    signUp.mockResolvedValue({ data: { session: null }, error: null });
+
+    await signUpWithPassword('her@example.com', 'hunter22');
+
+    expect(signUp).toHaveBeenCalledWith({
+      email: 'her@example.com',
+      password: 'hunter22',
+      options: { emailRedirectTo: 'aura://auth/callback' },
+    });
+  });
+
   it('never throws — a network blip is a failure she can retry', async () => {
     updateUser.mockRejectedValue(new Error('offline'));
 
