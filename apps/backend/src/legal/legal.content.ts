@@ -171,3 +171,46 @@ export const TERMS: LegalDocument = {
     },
   ],
 };
+
+/**
+ * The public account-deletion page (Google Play / App Store data-deletion
+ * requirement). Must be reachable without signing in — the store reviewer and
+ * users without the app both need it.
+ */
+export const DELETION: LegalDocument = {
+  title: 'Delete Your Account',
+  effectiveDate: EFFECTIVE,
+  intro: [
+    `This page explains how to delete your ${APP} account and the data associated with it, as required by the app stores' data-deletion policies.`,
+  ],
+  sections: [
+    {
+      heading: 'Delete from within the app',
+      body: [
+        'Open the app, go to your Profile, tap the gear to open Settings, then tap "Delete account" and confirm. Your account and its data are removed right away — no email or waiting required.',
+      ],
+    },
+    {
+      heading: 'Request deletion without the app',
+      body: [
+        `If you can no longer access the app, email ${CONTACT} from the address on your account and ask us to delete it. We verify the request and complete the deletion within 30 days.`,
+      ],
+    },
+    {
+      heading: 'What is deleted',
+      body: [
+        'Your account and email; the details you shared during onboarding; your journal, gratitude and memory entries; the letters, affirmations and moments generated for you, including their audio; and your analytics identity.',
+      ],
+    },
+    {
+      heading: 'What may be retained',
+      body: [
+        'We may keep limited records where the law requires it — for example, billing and subscription records held by the app store and our payment processor. Your subscription itself is managed by the app store; cancel it there.',
+      ],
+    },
+    {
+      heading: 'Contact',
+      body: [`Questions about account deletion: ${CONTACT} (${COMPANY}).`],
+    },
+  ],
+};

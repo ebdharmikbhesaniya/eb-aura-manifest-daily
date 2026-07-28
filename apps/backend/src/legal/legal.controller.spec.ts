@@ -26,9 +26,16 @@ describe('LegalController', () => {
     expect(html).toContain('<h1>Terms of Service</h1>');
   });
 
-  it('exposes both routes publicly so the browser needs no JWT', () => {
+  it('serves the account-deletion page as an HTML document', () => {
+    const html = controller.deleteAccount();
+    expect(html.startsWith('<!doctype html>')).toBe(true);
+    expect(html).toContain('<h1>Delete Your Account</h1>');
+  });
+
+  it('exposes every route publicly so the browser needs no JWT', () => {
     const reflector = new Reflector();
     expect(reflector.get<boolean>(IS_PUBLIC_KEY, controller.privacy)).toBe(true);
     expect(reflector.get<boolean>(IS_PUBLIC_KEY, controller.terms)).toBe(true);
+    expect(reflector.get<boolean>(IS_PUBLIC_KEY, controller.deleteAccount)).toBe(true);
   });
 });
