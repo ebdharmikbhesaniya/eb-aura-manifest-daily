@@ -20,10 +20,10 @@ export interface LegalDocument {
 }
 
 const APP = 'Aura: Manifest Daily';
-const COMPANY = '[COMPANY NAME]';
-const CONTACT = '[CONTACT EMAIL]';
-const JURISDICTION = '[JURISDICTION]';
-const EFFECTIVE = '[EFFECTIVE DATE]';
+const COMPANY = 'EmperorBrains';
+const CONTACT = 'emperorbrains.official@gmail.com';
+const JURISDICTION = 'Hyderabad, India';
+const EFFECTIVE = 'July 28, 2026';
 
 export const PRIVACY: LegalDocument = {
   title: 'Privacy Policy',
