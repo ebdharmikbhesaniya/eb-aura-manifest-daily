@@ -191,6 +191,13 @@ const config: ExpoConfig = {
     typedRoutes: true,
   },
 
+  updates: {
+    url: 'https://u.expo.dev/d9ec1b00-6bd1-4535-8a38-0a7bad13752e',
+  },
+  runtimeVersion: {
+    policy: 'appVersion',
+  },
+
   extra: {
     buildEnv,
     eas: {
