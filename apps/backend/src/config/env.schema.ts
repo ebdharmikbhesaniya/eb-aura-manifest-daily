@@ -9,15 +9,26 @@ import { z } from 'zod';
  * can be answered without a redeploy.
  */
 
-const port = z.coerce.number().int().min(1).max(65535);
+/**
+ * A host like Render stores an UNSET variable as an empty string, not as absent
+ * (04 §6). Zod's `.default()` only fills `undefined`, so a blank value would
+ * coerce to `0` and fail — the "Number must be greater than 0" boot crash seen
+ * in production. Normalising "" → undefined makes blank mean "use the default",
+ * exactly as an absent variable does.
+ */
+const blankAsUnset = (schema: z.ZodTypeAny) =>
+  z.preprocess((v) => (v === '' ? undefined : v), schema);
 
-/** Accepts "3" from env, falls back to the shared default. */
-const intWithDefault = (fallback: number) => z.coerce.number().int().positive().default(fallback);
+const port = blankAsUnset(z.coerce.number().int().min(1).max(65535).default(3000));
+
+/** Accepts "3" from env, treats blank/absent as the shared default. */
+const intWithDefault = (fallback: number) =>
+  blankAsUnset(z.coerce.number().int().positive().default(fallback));
 
 export const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-    PORT: port.default(3000),
+    PORT: port,
 
     // ─── Supabase ───────────────────────────────────────────────────────
     SUPABASE_URL: z.string().url(),
