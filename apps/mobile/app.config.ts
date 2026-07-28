@@ -194,8 +194,7 @@ const config: ExpoConfig = {
   extra: {
     buildEnv,
     eas: {
-      // Populated by `eas init` when the EAS project is created (16 §2).
-      projectId: process.env.EAS_PROJECT_ID ?? undefined,
+      projectId: process.env.EAS_PROJECT_ID ?? 'd9ec1b00-6bd1-4535-8a38-0a7bad13752e',
     },
   },
 };
