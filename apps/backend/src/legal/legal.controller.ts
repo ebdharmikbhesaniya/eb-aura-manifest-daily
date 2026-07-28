@@ -1,0 +1,27 @@
+import { Controller, Get, Header, VERSION_NEUTRAL } from '@nestjs/common';
+
+import { Public } from '../auth/public.decorator';
+import { PRIVACY, TERMS } from './legal.content';
+import { renderLegalPage } from './legal.template';
+
+/**
+ * The public legal pages. `VERSION_NEUTRAL` keeps them at `/privacy` and
+ * `/terms` rather than under `/v1`; `@Public()` opts them out of the global
+ * SupabaseAuthGuard so a browser with no session can read them (07 §4 style).
+ */
+@Controller({ version: VERSION_NEUTRAL })
+export class LegalController {
+  @Public()
+  @Get('privacy')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  privacy(): string {
+    return renderLegalPage(PRIVACY);
+  }
+
+  @Public()
+  @Get('terms')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  terms(): string {
+    return renderLegalPage(TERMS);
+  }
+}

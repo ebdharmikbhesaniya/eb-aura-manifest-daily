@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { GenerationModule } from './generation/generation.module';
 import { validateEnv, type Env } from './config/env.schema';
 import { HealthModule } from './health/health.module';
+import { LegalModule } from './legal/legal.module';
 import { buildLoggerConfig } from './observability/logger.config';
 import { ProvidersModule } from './providers/providers.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -51,6 +52,7 @@ import { SupabaseModule } from './supabase/supabase.module';
     AuthModule,
     ProvidersModule,
     HealthModule,
+    LegalModule,
     AccountModule,
     GenerationModule,
     SubscriptionsModule,
