@@ -23,5 +23,16 @@ export const settingsCopy = {
     subtitle: 'Bring an account from another phone',
   },
 
+  legal: {
+    terms: {
+      title: 'Terms of Service',
+      subtitle: 'The agreement you accept by using Aura',
+    },
+    privacy: {
+      title: 'Privacy Policy',
+      subtitle: 'What we collect — and what we never do',
+    },
+  },
+
   deleteAccount: 'Delete account',
 } as const;
