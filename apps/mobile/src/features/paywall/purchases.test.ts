@@ -98,12 +98,16 @@ describe('fallback plans', () => {
   it('states the offer even with no store behind it', () => {
     const plans = load().fallbackPlans();
 
-    expect(plans).toHaveLength(2);
+    expect(plans).toHaveLength(3);
     expect(plans.every((p) => p.price.length > 0)).toBe(true);
   });
 
-  it('leads with annual — it is the hero and is pre-selected', () => {
-    expect(load().fallbackPlans()[0]?.id).toBe('annual');
+  it('leads with annual, then monthly, then weekly (12 §1 cover order)', () => {
+    expect(
+      load()
+        .fallbackPlans()
+        .map((p) => p.id),
+    ).toEqual(['annual', 'monthly', 'weekly']);
   });
 
   it('marks every one unpurchasable, with no package to charge', () => {
@@ -121,6 +125,6 @@ describe('fallback plans', () => {
   });
 
   it('falls back rather than returning nothing when RevenueCat is unconfigured', async () => {
-    await expect(load().loadPlans()).resolves.toHaveLength(2);
+    await expect(load().loadPlans()).resolves.toHaveLength(3);
   });
 });

@@ -30,9 +30,11 @@ export const paywallCopy = {
 
   plans: {
     annualName: 'Annual',
+    monthlyName: 'Monthly',
     weeklyName: 'Weekly',
     /** Price-row cadence suffixes; the price itself always comes from the store. */
     perYear: '/year',
+    perMonth: '/month',
     perWeek: '/week',
     annualBadge: 'Best value',
     /**

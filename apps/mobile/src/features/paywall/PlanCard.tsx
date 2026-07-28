@@ -32,12 +32,22 @@ export function PlanCard({ plan, selected, onSelect, testID }: PlanCardProps) {
   const scale = clampedFontScale();
 
   const annual = plan.id === 'annual';
-  const name = annual ? paywallCopy.plans.annualName : paywallCopy.plans.weeklyName;
-  const cadence = annual ? paywallCopy.plans.perYear : paywallCopy.plans.perWeek;
+  const monthly = plan.id === 'monthly';
+  const name = annual
+    ? paywallCopy.plans.annualName
+    : monthly
+      ? paywallCopy.plans.monthlyName
+      : paywallCopy.plans.weeklyName;
+  const cadence = annual
+    ? paywallCopy.plans.perYear
+    : monthly
+      ? paywallCopy.plans.perMonth
+      : paywallCopy.plans.perWeek;
 
   // The a11y label keeps the full one-line honest price the tests pin.
   const spoken = priceLine(plan.id, plan.price, plan.monthlyEquivalent);
 
+  // Monthly carries no equivalent — its headline already is the per-month figure.
   const equivalent = plan.monthlyEquivalent
     ? (annual ? paywallCopy.plans.annualEquivalent : paywallCopy.plans.weeklyEquivalent).replace(
         '{monthly}',

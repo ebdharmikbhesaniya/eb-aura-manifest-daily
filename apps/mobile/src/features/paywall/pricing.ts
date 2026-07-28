@@ -18,7 +18,9 @@ const MONTHS_PER_YEAR = 12;
 
 /** Converts a plan's headline price into a per-month figure. */
 export function monthlyAmount(planId: PlanId, price: number): number {
-  return planId === 'annual' ? price / MONTHS_PER_YEAR : (price * WEEKS_PER_YEAR) / MONTHS_PER_YEAR;
+  if (planId === 'annual') return price / MONTHS_PER_YEAR;
+  if (planId === 'monthly') return price; // Already a monthly headline.
+  return (price * WEEKS_PER_YEAR) / MONTHS_PER_YEAR;
 }
 
 /**
@@ -36,6 +38,9 @@ export function monthlyEquivalent(
 ): string | null {
   if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) return null;
   if (!currencyCode) return null;
+  // A monthly plan's headline IS the monthly figure — restating it would read as
+  // a second, redundant price, the exact ambiguity this surface avoids.
+  if (planId === 'monthly') return null;
 
   try {
     return new Intl.NumberFormat(undefined, {
@@ -56,7 +61,7 @@ export function monthlyEquivalent(
  * will ever be charged, and implying otherwise would be its own small dishonesty.
  */
 export function priceLine(planId: PlanId, priceString: string, equivalent: string | null): string {
-  const cadence = planId === 'annual' ? '/year' : '/week';
+  const cadence = planId === 'annual' ? '/year' : planId === 'monthly' ? '/month' : '/week';
   const head = `${priceString}${priceString.includes('/') ? '' : cadence}`;
   return equivalent ? `${head} · about ${equivalent}/month` : head;
 }

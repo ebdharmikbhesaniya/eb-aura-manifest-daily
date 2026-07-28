@@ -1,4 +1,10 @@
-import { FALLBACK_PRICING, PREMIUM_ENTITLEMENT_ID, PRODUCT_IDS, type PlanId } from '@aura/shared';
+import {
+  FALLBACK_PRICING,
+  PLAN_ORDER,
+  PREMIUM_ENTITLEMENT_ID,
+  PRODUCT_IDS,
+  type PlanId,
+} from '@aura/shared';
 import { Platform } from 'react-native';
 import Purchases, { type CustomerInfo, type PurchasesPackage } from 'react-native-purchases';
 
@@ -97,7 +103,12 @@ export function fallbackPlans(): OfferedPlan[] {
         purchasable: false,
       };
     })
-    .sort((a, b) => (a.id === 'annual' ? -1 : b.id === 'annual' ? 1 : 0));
+    .sort(byPlanOrder);
+}
+
+/** Cover order (12 §1): annual hero first, then monthly, then weekly. */
+function byPlanOrder(a: OfferedPlan, b: OfferedPlan): number {
+  return PLAN_ORDER.indexOf(a.id) - PLAN_ORDER.indexOf(b.id);
 }
 
 /**
@@ -137,7 +148,7 @@ export async function loadPlans(): Promise<OfferedPlan[]> {
   if (plans.length === 0) return fallbackPlans();
 
   // Annual first: it is the hero and is pre-selected (12 §1).
-  return plans.sort((a, b) => (a.id === 'annual' ? -1 : b.id === 'annual' ? 1 : 0));
+  return plans.sort(byPlanOrder);
 }
 
 export type PurchaseOutcome =

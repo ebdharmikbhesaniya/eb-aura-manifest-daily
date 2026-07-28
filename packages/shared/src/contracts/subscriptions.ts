@@ -66,8 +66,12 @@ export const PREMIUM_ENTITLEMENT_ID = 'premium';
 /** Store product ids (12 §1). Live prices are read from the store, never here. */
 export const PRODUCT_IDS = {
   annual: 'aura_premium_annual',
+  monthly: 'aura_premium_monthly',
   weekly: 'aura_premium_weekly',
 } as const;
+
+/** Display order on the cover: annual is the hero, then monthly, then weekly. */
+export const PLAN_ORDER = ['annual', 'monthly', 'weekly'] as const;
 
 export type PlanId = keyof typeof PRODUCT_IDS;
 
@@ -93,5 +97,6 @@ export const FALLBACK_PRICING: Record<
   { amount: number; currency: string; hasTrial: boolean }
 > = {
   annual: { amount: 39.99, currency: 'USD', hasTrial: false },
+  monthly: { amount: 14.99, currency: 'USD', hasTrial: false },
   weekly: { amount: 6.99, currency: 'USD', hasTrial: true },
 };

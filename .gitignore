@@ -46,3 +46,8 @@ google-services.json
 GoogleService-Info.plist
 # Play signing / service-account JSONs used by EAS submit.
 *-play-service-account.json
+
+# Google Cloud service account keys — NEVER commit (contains a private key)
+/aura-*.json
+*service-account*.json
+*serviceaccount*.json
