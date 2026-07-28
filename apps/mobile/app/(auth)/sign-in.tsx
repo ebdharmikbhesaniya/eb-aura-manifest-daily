@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { KeyboardAvoidingView, ScrollView, Text, View } from 'react-native';
@@ -328,6 +329,7 @@ export default function SignInRoute() {
                 {google && (
                   <PillButton
                     title={authCopy.gate.google}
+                    icon={<Ionicons name="logo-google" size={20} color={colors.text.onCta} />}
                     onPress={() => void runGoogle()}
                     disabled={busy}
                     loading={busy}
@@ -337,6 +339,7 @@ export default function SignInRoute() {
                 {apple && (
                   <PillButton
                     title={authCopy.gate.apple}
+                    icon={<Ionicons name="logo-apple" size={20} color={colors.text.onCta} />}
                     onPress={() => void runApple()}
                     disabled={busy}
                     loading={busy}

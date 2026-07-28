@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { BottomSheetView, type BottomSheetModal } from '@gorhom/bottom-sheet';
 import { forwardRef, useState } from 'react';
 import { Text, View } from 'react-native';
@@ -144,6 +145,7 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
             {googleAvailable && (
               <PillButton
                 title={authCopy.signIn.google}
+                icon={<Ionicons name="logo-google" size={20} color={colors.text.onCta} />}
                 onPress={() => void runGoogle()}
                 loading={busy}
                 testID="signin-google"
@@ -152,6 +154,7 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
             {appleAvailable && (
               <PillButton
                 title={authCopy.signIn.apple}
+                icon={<Ionicons name="logo-apple" size={20} color={colors.text.onCta} />}
                 onPress={() => void runApple()}
                 loading={busy}
                 testID="signin-apple"

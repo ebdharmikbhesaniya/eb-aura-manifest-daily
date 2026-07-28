@@ -1,4 +1,5 @@
-import { ActivityIndicator, Pressable, Text } from 'react-native';
+import type { ReactNode } from 'react';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { haptic } from '@/theme/haptics';
@@ -10,6 +11,8 @@ export interface PillButtonProps {
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
+  /** A leading glyph (e.g. a provider logo) shown before the label. */
+  icon?: ReactNode;
   testID?: string;
 }
 
@@ -23,6 +26,7 @@ export function PillButton({
   onPress,
   disabled = false,
   loading = false,
+  icon,
   testID,
 }: PillButtonProps) {
   const { colors, layout, radii, spacing, typography } = useTheme();
@@ -32,6 +36,12 @@ export function PillButton({
   // Loading is a form of disabled: a live button under a spinner lets a second
   // tap fire the CTA twice.
   const inert = disabled || loading;
+
+  // An inert pill fills with `cta.disabled` — a LIGHT olive in light theme. The
+  // label and spinner must switch off the cream `onCta` colour or they vanish
+  // against that fill (cream-on-light); the disabled text colour keeps them
+  // readable. Enabled keeps the cream label on the ink pill.
+  const foreground = inert ? colors.text.disabled : colors.text.onCta;
 
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -71,9 +81,12 @@ export function PillButton({
         ]}
       >
         {loading ? (
-          <ActivityIndicator color={colors.text.onCta} />
+          <ActivityIndicator color={foreground} />
         ) : (
-          <Text style={[typography.button, { color: colors.text.onCta }]}>{title}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            {icon}
+            <Text style={[typography.button, { color: foreground }]}>{title}</Text>
+          </View>
         )}
       </Animated.View>
     </Pressable>

@@ -1,8 +1,10 @@
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { StyleSheet, Text } from 'react-native';
 
 import { haptic } from '@/theme/haptics';
 import { ThemeProvider } from '@/theme/ThemeProvider';
+import { colorSchemes } from '@/theme/tokens';
 
 import { PillButton } from './PillButton';
 
@@ -94,5 +96,37 @@ describe('PillButton', () => {
       busy: true,
       disabled: true,
     });
+  });
+
+  it('labels an enabled button in the on-CTA colour', async () => {
+    await render(<PillButton title="Continue" onPress={jest.fn()} />, { wrapper });
+
+    const color = StyleSheet.flatten(screen.getByText('Continue').props.style).color;
+    expect(color).toBe(colorSchemes.light.text.onCta);
+  });
+
+  it('labels a DISABLED button in the disabled colour so it stays visible in light theme', async () => {
+    // The bug: a disabled pill fills with a LIGHT olive but kept its cream label,
+    // leaving the text unreadable in light theme. The disabled label must use the
+    // disabled text colour instead.
+    await render(<PillButton title="Continue" onPress={jest.fn()} disabled />, { wrapper });
+
+    const color = StyleSheet.flatten(screen.getByText('Continue').props.style).color;
+    expect(color).toBe(colorSchemes.light.text.disabled);
+    expect(color).not.toBe(colorSchemes.light.text.onCta);
+  });
+
+  it('renders a leading provider icon before the label when given one', async () => {
+    await render(
+      <PillButton
+        title="Continue with Google"
+        onPress={jest.fn()}
+        icon={<Text testID="provider-icon">G</Text>}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.getByTestId('provider-icon')).toBeTruthy();
+    expect(screen.getByText('Continue with Google')).toBeTruthy();
   });
 });
