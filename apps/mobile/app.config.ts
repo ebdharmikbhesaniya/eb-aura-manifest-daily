@@ -49,8 +49,15 @@ const config: ExpoConfig = {
   // tracked in 05 §1: FCM credentials for push, and a Play Billing key.
   platforms: ['ios', 'android'],
 
+  icon: './assets/brand/icon.png',
+
   android: {
     package: `${BRAND.bundleIdentifier}${suffix}`,
+    adaptiveIcon: {
+      foregroundImage: './assets/brand/adaptive-icon.png',
+      backgroundColor: '#ECE9DF',
+      monochromeImage: './assets/brand/monochrome-icon.png',
+    },
 
     // The Android counterpart to `microphonePermission: false` below. Google
     // Play prints every manifest permission on the store listing, so a stray
@@ -75,6 +82,7 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: `${BRAND.bundleIdentifier}${suffix}`,
     supportsTablet: false,
+    icon: './assets/brand/icon.png',
     // Sign in with Apple — the primary claim path (03 §2.2) and required by the
     // App Store whenever third-party login is offered. This flag adds the
     // entitlement; the capability must also be enabled on the App Store Connect
@@ -109,10 +117,13 @@ const config: ExpoConfig = {
         // The mark is the Orb, rendered from the light-theme orb tokens
         // (bone → emberSoft → ember, lit upper-left) so the splash and the
         // app's central motif cannot drift apart.
-        image: './assets/brand/splash-orb.png',
+        image: './assets/brand/splash-icon.png',
         imageWidth: 180,
         backgroundColor: '#ECE9DF',
-        dark: { backgroundColor: '#171410' },
+        dark: {
+          image: './assets/brand/splash-icon-dark.png',
+          backgroundColor: '#171410',
+        },
       },
     ],
     // Required for RevenueCat, Skia and MMKV native modules (05 §1).
