@@ -12,6 +12,7 @@ import { googleAuthAvailable } from '@/features/auth/google';
 import { SignInSheet } from '@/features/auth/SignInSheet';
 import { SignOutSheet } from '@/features/auth/SignOutSheet';
 import { useAccountStatus } from '@/features/auth/useAccountStatus';
+import { LegalRowGroup } from '@/features/settings/LegalRowGroup';
 import { ClaimSheet } from '@/features/paywall/ClaimSheet';
 import { NotificationPrefsSheet } from '@/features/notifications/NotificationPrefsSheet';
 import { useEntitlement } from '@/features/paywall/useEntitlement';
@@ -116,6 +117,8 @@ export default function SettingsRoute() {
             testID="settings-delete-row"
           />
         </RowGroup>
+
+        <LegalRowGroup />
       </ScrollView>
 
       <NotificationPrefsSheet ref={prefsRef} />
