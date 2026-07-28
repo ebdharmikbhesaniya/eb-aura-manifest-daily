@@ -105,15 +105,31 @@ describe('PillButton', () => {
     expect(color).toBe(colorSchemes.light.text.onCta);
   });
 
-  it('labels a DISABLED button in the disabled colour so it stays visible in light theme', async () => {
-    // The bug: a disabled pill fills with a LIGHT olive but kept its cream label,
-    // leaving the text unreadable in light theme. The disabled label must use the
-    // disabled text colour instead.
-    await render(<PillButton title="Continue" onPress={jest.fn()} disabled />, { wrapper });
+  it('dims a disabled button but keeps it a solid, readable pill', async () => {
+    // The bug: a disabled pill filled with a LIGHT olive almost identical to the
+    // bone background, so it read as a washed-out ghost. A disabled button is the
+    // SAME ink pill at reduced opacity — present and muted — with its label kept
+    // at the high-contrast on-CTA colour.
+    await render(<PillButton title="Continue" onPress={jest.fn()} disabled testID="cta" />, {
+      wrapper,
+    });
+
+    const containerOpacity = StyleSheet.flatten(screen.getByTestId('cta').props.style).opacity;
+    expect(containerOpacity).toBe(0.4);
 
     const color = StyleSheet.flatten(screen.getByText('Continue').props.style).color;
-    expect(color).toBe(colorSchemes.light.text.disabled);
-    expect(color).not.toBe(colorSchemes.light.text.onCta);
+    expect(color).toBe(colorSchemes.light.text.onCta);
+  });
+
+  it('does not dim while loading — a working button stays solid', async () => {
+    await render(
+      <PillButton title="Continue" onPress={jest.fn()} disabled loading testID="cta" />,
+      {
+        wrapper,
+      },
+    );
+
+    expect(StyleSheet.flatten(screen.getByTestId('cta').props.style).opacity).toBe(1);
   });
 
   it('renders a leading provider icon before the label when given one', async () => {

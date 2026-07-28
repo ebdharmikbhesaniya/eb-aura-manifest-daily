@@ -37,11 +37,12 @@ export function PillButton({
   // tap fire the CTA twice.
   const inert = disabled || loading;
 
-  // An inert pill fills with `cta.disabled` — a LIGHT olive in light theme. The
-  // label and spinner must switch off the cream `onCta` colour or they vanish
-  // against that fill (cream-on-light); the disabled text colour keeps them
-  // readable. Enabled keeps the cream label on the ink pill.
-  const foreground = inert ? colors.text.disabled : colors.text.onCta;
+  // A purely disabled pill reads as the SAME ink pill at reduced opacity — a
+  // clearly-present but muted button. The `cta.disabled` fill was a light olive
+  // almost identical to the bone background, so the pill all but vanished and
+  // its label sat on near-nothing. Opacity keeps the shape and the label's
+  // contrast intact. A loading pill is NOT dimmed: it is working, not disabled.
+  const dimmed = disabled && !loading;
 
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -52,6 +53,7 @@ export function PillButton({
       accessibilityLabel={title}
       accessibilityState={{ disabled: inert, busy: loading }}
       disabled={inert}
+      style={{ opacity: dimmed ? 0.4 : 1 }}
       onPressIn={() => {
         // Same 0.97 / 150ms acknowledgment as chips (product 13 §catalog) —
         // one press language across the app, and it collapses under Reduce Motion.
@@ -75,17 +77,17 @@ export function PillButton({
             paddingHorizontal: spacing.lg,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: inert ? colors.cta.disabled : colors.cta.background,
+            backgroundColor: colors.cta.background,
           },
           animatedStyle,
         ]}
       >
         {loading ? (
-          <ActivityIndicator color={foreground} />
+          <ActivityIndicator color={colors.text.onCta} />
         ) : (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
             {icon}
-            <Text style={[typography.button, { color: foreground }]}>{title}</Text>
+            <Text style={[typography.button, { color: colors.text.onCta }]}>{title}</Text>
           </View>
         )}
       </Animated.View>
