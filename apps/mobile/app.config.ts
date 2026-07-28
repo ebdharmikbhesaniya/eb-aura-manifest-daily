@@ -99,6 +99,11 @@ const config: ExpoConfig = {
   },
 
   plugins: [
+    // Must be FIRST: Expo composes withXcodeProject mods in reverse-registration
+    // order (last-registered runs first), so registering earliest = running last —
+    // which is what we need in order to see @sentry/react-native/expo's and
+    // expo-dev-launcher's build phases and stamp `alwaysOutOfDate = 1;` on them.
+    './plugins/withSilencedBuildPhases',
     'expo-router',
     [
       // Splash mirrors the design tokens (src/theme/palette.ts, Aura Design v3
@@ -128,7 +133,19 @@ const config: ExpoConfig = {
     ],
     // Required for RevenueCat, Skia and MMKV native modules (05 §1).
     'expo-dev-client',
-    '@sentry/react-native/expo',
+    [
+      // `organization` and `project` are passed here so the plugin doesn't emit
+      // "Missing config for organization, project" at prebuild. They fall back to
+      // env vars if provided, so a real Sentry account can be wired up later
+      // without a code change. Actual debug-symbol uploads are still gated by
+      // SENTRY_DISABLE_AUTO_UPLOAD in .env — the placeholders below never hit
+      // the network in dev.
+      '@sentry/react-native/expo',
+      {
+        organization: process.env.SENTRY_ORG ?? 'aura-manifest-daily',
+        project: process.env.SENTRY_PROJECT ?? 'aura-mobile',
+      },
+    ],
     // Push arrives from the backend only — the app never local-schedules
     // content (11 §1), so no permission strings beyond the OS default are added.
     'expo-notifications',

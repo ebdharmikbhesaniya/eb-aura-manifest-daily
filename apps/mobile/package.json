@@ -76,6 +76,12 @@
       "exclude": [
         "typescript"
       ]
+    },
+    "autolinking": {
+      "//": "Skip Expo module autolinking for @react-native-google-signin/google-signin. It ships an ExpoAdapterGoogleSignIn module in addition to the RN CLI module — react-native.config.js handles the CLI side, this key handles the Expo side. Together they prevent the AppCheckCore/GoogleUtilities/RecaptchaInterop pod chain from being pulled in on iOS (which fails pod install under static linkage). Google sign-in is Android-only for this app; iOS uses Apple Sign-In.",
+      "exclude": [
+        "@react-native-google-signin/google-signin"
+      ]
     }
   }
 }
