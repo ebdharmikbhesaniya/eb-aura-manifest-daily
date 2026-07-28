@@ -32,7 +32,7 @@ const { suffix, nameSuffix } = variant[buildEnv];
 const config: ExpoConfig = {
   name: `${BRAND.displayName}${nameSuffix}`,
   description: BRAND.storeTitle,
-  slug: 'aura-manifest-daily',
+  slug: 'aura',
   version: '1.0.0',
   orientation: 'portrait',
   scheme: BRAND.scheme,
