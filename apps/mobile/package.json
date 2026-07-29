@@ -2,7 +2,6 @@
   "name": "@aura/mobile",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@10.4.1",
   "main": "expo-router/entry",
   "scripts": {
     "dev": "expo start --dev-client",
