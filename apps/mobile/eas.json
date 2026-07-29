@@ -5,6 +5,9 @@
   },
   "build": {
     "base": {
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
       "ios": {
         "resourceClass": "m-medium"
       }
