@@ -131,8 +131,11 @@ const config: ExpoConfig = {
         // (bone → emberSoft → ember, lit upper-left) so the splash and the
         // app's central motif cannot drift apart.
         image: './assets/brand/splash-icon.png',
-        imageWidth: 180,
-        backgroundColor: '#ECE9DF',
+        // Larger mark (was 180) so the orb reads on the splash rather than
+        // floating small; the art feathers to transparent at its edges so it
+        // blends into the background with no square around it.
+        imageWidth: 220,
+        backgroundColor: '#FDEBC9',
         dark: {
           image: './assets/brand/splash-icon-dark.png',
           backgroundColor: '#171410',
