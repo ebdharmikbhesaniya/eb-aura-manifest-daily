@@ -80,10 +80,12 @@
       ]
     },
     "autolinking": {
-      "//": "Skip Expo module autolinking for @react-native-google-signin/google-signin. It ships an ExpoAdapterGoogleSignIn module in addition to the RN CLI module — react-native.config.js handles the CLI side, this key handles the Expo side. Together they prevent the AppCheckCore/GoogleUtilities/RecaptchaInterop pod chain from being pulled in on iOS (which fails pod install under static linkage). Google sign-in is Android-only for this app; iOS uses Apple Sign-In.",
-      "exclude": [
-        "@react-native-google-signin/google-signin"
-      ]
+      "//": "Exclude @react-native-google-signin/google-signin from autolinking on APPLE ONLY. It ships an ExpoAdapterGoogleSignIn module plus the RN CLI module, and on iOS the pod pulls in AppCheckCore → GoogleUtilities + RecaptchaInterop, which fails pod install under static linkage. Google sign-in is Android-only here (iOS uses Apple Sign-In). This MUST be scoped to `apple`: a top-level `exclude` also strips the RNGoogleSignin native module from the Android build (expo-modules-autolinking applies exclude to every platform), which makes the app crash at startup with \"TurboModuleRegistry.getEnforcing('RNGoogleSignin') could not be found\". react-native.config.js additionally sets ios:null for the CLI side.",
+      "apple": {
+        "exclude": [
+          "@react-native-google-signin/google-signin"
+        ]
+      }
     }
   }
 }

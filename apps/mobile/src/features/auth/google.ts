@@ -1,3 +1,5 @@
+import { TurboModuleRegistry } from 'react-native';
+
 import { env } from '@/lib/env';
 
 /**
@@ -23,6 +25,14 @@ let configured = false;
 
 function loadModule(): GoogleSignInModule | null {
   try {
+    // The library's entry runs TurboModuleRegistry.getEnforcing('RNGoogleSignin')
+    // at import time. When the native module isn't in the binary that THROWS —
+    // and under the New Architecture the throw escapes this try/catch and takes
+    // the whole app down at startup (a black screen on the very first screen),
+    // which is the exact failure this lazy loader was meant to avoid. Probe with
+    // the non-throwing get() first and never import the wrapper without it, so a
+    // build missing the native side degrades to a hidden button, not a crash.
+    if (TurboModuleRegistry.get('RNGoogleSignin') == null) return null;
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require('@react-native-google-signin/google-signin') as GoogleSignInModule;
   } catch {
