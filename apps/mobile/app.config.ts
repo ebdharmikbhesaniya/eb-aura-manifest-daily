@@ -20,10 +20,18 @@ const BRAND = {
 type BuildEnv = 'development' | 'staging' | 'production';
 const buildEnv = (process.env.APP_ENV ?? 'development') as BuildEnv;
 
-/** Staging and dev get distinct ids + names so all three can coexist on one device. */
+/**
+ * One identity across every environment (founder decision, 2026-07-29): local
+ * dev, staging, preview and production all build `com.aura.manifestdaily` with
+ * the name "Aura". The earlier per-variant `.dev`/`.staging` suffixes are gone,
+ * so the variants no longer coexist on a device — installing one replaces the
+ * others. Firebase/Google sign-in therefore needs every signing SHA-1 that can
+ * produce this package (debug keystore for local dev, EAS keystore for
+ * internal/preview, Play App Signing for the store) on the one Firebase app.
+ */
 const variant: Record<BuildEnv, { suffix: string; nameSuffix: string }> = {
-  development: { suffix: '.dev', nameSuffix: ' (Dev)' },
-  staging: { suffix: '.staging', nameSuffix: ' (Staging)' },
+  development: { suffix: '', nameSuffix: '' },
+  staging: { suffix: '', nameSuffix: '' },
   production: { suffix: '', nameSuffix: '' },
 };
 
