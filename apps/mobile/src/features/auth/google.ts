@@ -80,13 +80,18 @@ export async function getGoogleIdToken(): Promise<GoogleTokenResult> {
     // v13+ nests the payload under `data`; older builds return it flat. Reading
     // both keeps this working across a dev-client upgrade.
     const idToken = result.data?.idToken ?? result.idToken ?? null;
-    if (!idToken) return { status: 'cancelled' };
+    // A resolved sign-in with no id token is a configuration problem (missing
+    // webClientId / SHA-1), not a user cancel — surface it as a failure.
+    if (!idToken) return { status: 'failed' };
 
     return { status: 'ok', idToken };
   } catch (error) {
     const code = (error as { code?: string })?.code;
-    // The library reports a dismissed sheet as a thrown error, not a null user.
-    if (code === 'SIGN_IN_CANCELLED' || code === '12501') return { status: 'cancelled' };
+    // The library reports a user-dismissed sheet as a thrown error (SIGN_IN_CANCELLED).
+    // Other codes are real failures, not a deliberate cancel: 12501 can mean a
+    // misconfigured OAuth client / SHA-1, and 7 (NETWORK_ERROR) means Play Services
+    // could not reach Google's token endpoint (e.g. an IPv6-only network).
+    if (code === 'SIGN_IN_CANCELLED') return { status: 'cancelled' };
     return { status: 'failed' };
   }
 }

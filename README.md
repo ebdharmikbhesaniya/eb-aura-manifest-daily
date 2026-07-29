@@ -53,6 +53,27 @@ pnpm exec expo run:ios          # first run builds the dev client (slow)
 pnpm dev                        # subsequent runs
 ```
 
+### Android app
+
+Native modules mean a dev client is required. For detailed commands, see [android-commands.txt](apps/mobile/android-commands.txt).
+
+```bash
+cd apps/mobile/android
+
+# Fix CMake/missing JNI folder error (if clean build or first build)
+./gradlew generateCodegenArtifactsFromSchema
+
+# Build Debug APK
+./gradlew assembleDebug
+
+# Install on connected device/emulator
+./gradlew installDebug
+
+# instal app
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+```
+
 ## Everyday commands
 
 | Command                                      | Does                                                 |

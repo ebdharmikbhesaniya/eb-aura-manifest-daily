@@ -51,3 +51,8 @@ GoogleService-Info.plist
 /aura-*.json
 *service-account*.json
 *serviceaccount*.json
+
+# Google OAuth client secret JSONs (downloaded from Cloud Console) — NEVER commit
+client_secret*.json
+# Signing / deployment certificates
+*.der

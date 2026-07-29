@@ -1,0 +1,16 @@
+# React Native Android Build & Install Commands
+
+If you face CMake or compilation errors in Android due to missing JNI/codegen folders, run these commands inside the `apps/mobile/android` directory:
+
+1. Restore/Generate Codegen Artifacts (Fixes missing JNI folders error):
+   ./gradlew generateCodegenArtifactsFromSchema
+
+2. Build Debug APK:
+   ./gradlew assembleDebug
+   (The generated APK will be at: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk)
+
+3. Install on Connected Device/Emulator:
+   ./gradlew installDebug
+
+Alternative: Install existing APK via ADB:
+   adb install -r app/build/outputs/apk/debug/app-debug.apk
