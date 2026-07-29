@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, ScrollView, Text, View } from 'react-native';
 
 import { Input, Orb, PillButton, Screen, SerifDisplay, TextButton } from '@/components';
 import { authCopy } from '@/copy/auth';
+import { EMAIL_AUTH_ENABLED } from '@/features/auth/emailAuthEnabled';
 import { googleAuthAvailable, getGoogleIdToken } from '@/features/auth/google';
 import { signInWithPassword, signUpWithPassword } from '@/features/auth/password';
 import { authenticateWithProvider, sendSignInLink } from '@/features/auth/session';
@@ -346,16 +347,26 @@ export default function SignInRoute() {
                     testID="auth-apple"
                   />
                 )}
-                <PillButton
-                  title={authCopy.gate.password.create}
-                  onPress={() => setMode('create')}
-                  testID="auth-use-password"
-                />
-                <OutlinePill
-                  title={authCopy.gate.password.signIn}
-                  onPress={() => setMode('signin')}
-                  testID="auth-use-email"
-                />
+                {/*
+                  Email auth (create account + sign in with email/password) is
+                  disabled for launch — Google/Apple only. Gated behind
+                  EMAIL_AUTH_ENABLED rather than deleted so the whole flow can be
+                  restored by flipping that one flag. See emailAuthEnabled.ts.
+                */}
+                {EMAIL_AUTH_ENABLED && (
+                  <>
+                    <PillButton
+                      title={authCopy.gate.password.create}
+                      onPress={() => setMode('create')}
+                      testID="auth-use-password"
+                    />
+                    <OutlinePill
+                      title={authCopy.gate.password.signIn}
+                      onPress={() => setMode('signin')}
+                      testID="auth-use-email"
+                    />
+                  </>
+                )}
               </View>
             )}
           </View>

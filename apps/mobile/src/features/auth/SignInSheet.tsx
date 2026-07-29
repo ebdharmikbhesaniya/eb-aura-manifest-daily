@@ -9,6 +9,7 @@ import { OutlinePill } from '@/features/paywall/OutlinePill';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
 
+import { EMAIL_AUTH_ENABLED } from './emailAuthEnabled';
 import { getGoogleIdToken } from './google';
 import { authenticateWithProvider, sendSignInLink, signInWithApple } from './session';
 
@@ -160,11 +161,15 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
                 testID="signin-apple"
               />
             )}
-            <OutlinePill
-              title={authCopy.signIn.email}
-              onPress={() => setShowEmail(true)}
-              testID="signin-use-email"
-            />
+            {/* Email (magic-link) sign-in disabled for launch — Google/Apple
+                only. Gated, not deleted; flip EMAIL_AUTH_ENABLED to restore. */}
+            {EMAIL_AUTH_ENABLED && (
+              <OutlinePill
+                title={authCopy.signIn.email}
+                onPress={() => setShowEmail(true)}
+                testID="signin-use-email"
+              />
+            )}
           </View>
         )}
 
