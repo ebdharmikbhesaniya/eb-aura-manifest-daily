@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
-    "doctor": "expo-doctor"
+    "doctor": "expo-doctor",
+    "eas-build-post-install": "pnpm --filter @aura/shared build"
   },
   "dependencies": {
     "@aura/shared": "workspace:*",
