@@ -41,7 +41,16 @@ export type MemoryCategory =
 export type MemorySource =
   'onboarding' | 'gratitude' | 'refine' | 'manifest' | 'profile_edit' | 'system';
 
-/** S1–S11 (product 07). Stable ids — they are analytics keys and resume anchors. */
+/**
+ * Stable ids — they are analytics keys and resume anchors, so a retired screen
+ * keeps its id rather than renumber the rest.
+ *
+ * `s07-dream-home`, `s08-dream-city` and `s09-people` are NOT in the live flow
+ * (SCREEN_ORDER) — they stay in the type so their profile columns and any
+ * historical analytics remain well-typed. `s12-notifications` is the closing
+ * OS-permission step (founder decision, 2026-07-30): the ask now lands at the
+ * end of onboarding rather than on the first Home after the paywall.
+ */
 export type OnboardingScreenId =
   | 's01-welcome'
   | 's02-meet-aura'
@@ -53,7 +62,8 @@ export type OnboardingScreenId =
   | 's08-dream-city'
   | 's09-people'
   | 's10-struggle'
-  | 's11-arrival-time';
+  | 's11-arrival-time'
+  | 's12-notifications';
 
 export type OnboardingAnswerType = 'text' | 'choice' | 'multi_choice' | 'people' | 'time' | 'none';
 
@@ -134,7 +144,7 @@ export interface EventCatalog {
     skipped: boolean;
     char_count_bucket: CharCountBucket;
   };
-  /** Mobile. Fires once, when S11 commits. */
+  /** Mobile. Fires once, when the closing step (s12-notifications) commits. */
   onboarding_completed: { duration_s: number; questions_answered: number };
 
   // ─── Memory / moat (Phase 4) ───────────────────────────────────────────

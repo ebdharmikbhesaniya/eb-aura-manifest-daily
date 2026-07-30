@@ -67,9 +67,9 @@ describe('onboarding draft', () => {
       // rewind past where she actually was.
       const store = useOnboardingDraft.getState();
       store.setAnswer('s03-name', 'Maya');
-      store.advanceTo('s08-dream-city');
+      store.advanceTo('s10-struggle');
 
-      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s08-dream-city');
+      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s10-struggle');
     });
 
     it('treats a skip as answered for resume purposes', () => {
@@ -127,11 +127,11 @@ describe('onboarding draft', () => {
   describe('offline queue (05 §3)', () => {
     it('lists uncommitted answers in screen order', () => {
       const store = useOnboardingDraft.getState();
-      store.setAnswer('s08-dream-city', 'Lisbon');
+      store.setAnswer('s10-struggle', 'heavy days lately');
       store.setAnswer('s03-name', 'Maya');
       store.markCommitted('s03-name');
 
-      expect(pendingCommits(useOnboardingDraft.getState().answers)).toEqual(['s08-dream-city']);
+      expect(pendingCommits(useOnboardingDraft.getState().answers)).toEqual(['s10-struggle']);
     });
 
     it('is empty once everything synced', () => {

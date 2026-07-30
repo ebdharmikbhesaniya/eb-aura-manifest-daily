@@ -136,6 +136,17 @@ export const onboardingCopy = {
     primary: 'Continue',
   },
 
+  s12Notifications: {
+    // The closing step (founder decision 2026-07-30): ask for the OS permission
+    // while her arrival time is still fresh, so it reads as a reminder she just
+    // set up — not a cold system prompt. Skippable; Home still offers it later.
+    question: 'Want your moments to reach you?',
+    helper: 'So the words written for you actually arrive.',
+    note: 'One quiet arrival at your time. Never a nudge, never a scorecard — and you can turn it off anytime.',
+    primary: 'Turn on reminders',
+    skip: 'Maybe later',
+  },
+
   editGuard: {
     entry: 'Fix an earlier answer',
     /** Spoken label before anything is answered — plain back, nothing to fix. */

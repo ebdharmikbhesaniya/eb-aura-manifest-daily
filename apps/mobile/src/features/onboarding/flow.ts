@@ -15,17 +15,19 @@ export const SCREEN_ORDER: readonly OnboardingScreenId[] = [
   's04-self-description',
   's05-work-feeling',
   's06-values',
-  's08-dream-city',
-  's09-people',
+  // s08-dream-city and s09-people were retired from the flow (2026-07-30): the
+  // conversation is now six questions. Their ids/columns are kept (see
+  // OnboardingScreenId) but they no longer ask.
   's10-struggle',
   's11-arrival-time',
+  // The closing step: the OS notification permission ask. Moved here from
+  // post-paywall (Home) so she opts in with her arrival time still fresh.
+  's12-notifications',
 ];
 
-/** Skippable per product 07: S4, S8, S10 (and S9 via "Just me for now"). Never S3. */
+/** Skippable per product 07: S4, S10. Never S3. */
 export const SKIPPABLE: ReadonlySet<OnboardingScreenId> = new Set([
   's04-self-description',
-  's08-dream-city',
-  's09-people',
   's10-struggle',
 ]);
 
@@ -41,6 +43,8 @@ export const ANSWER_TYPE: Record<OnboardingScreenId, OnboardingAnswerType> = {
   's09-people': 'people',
   's10-struggle': 'text',
   's11-arrival-time': 'time',
+  // A permission ask, not a question — carries no answer, draws no progress step.
+  's12-notifications': 'none',
 };
 
 /** Screens that carry an answer — the denominator for `questions_answered`. */

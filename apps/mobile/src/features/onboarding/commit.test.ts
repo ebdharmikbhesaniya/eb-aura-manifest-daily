@@ -92,14 +92,14 @@ describe('onboarding commit path', () => {
     it('drains answers that failed to sync', async () => {
       stubSupabase(new Set(['onboarding_answers']));
       await submitAnswer('user-1', 's03-name', 'Maya');
-      await submitAnswer('user-1', 's08-dream-city', 'Lisbon');
+      await submitAnswer('user-1', 's10-struggle', 'heavy days lately');
 
       stubSupabase();
       const synced = await flushPending('user-1');
 
       expect(synced).toBe(true);
       expect(useOnboardingDraft.getState().answers['s03-name']?.committedAt).not.toBeNull();
-      expect(useOnboardingDraft.getState().answers['s08-dream-city']?.committedAt).not.toBeNull();
+      expect(useOnboardingDraft.getState().answers['s10-struggle']?.committedAt).not.toBeNull();
     });
 
     it('reports false while still offline', async () => {
@@ -122,14 +122,18 @@ describe('onboarding commit path', () => {
     it('stamps completion, seeds memory and fires the funnel event', async () => {
       useOnboardingDraft.getState().start(0);
       await submitAnswer('user-1', 's03-name', 'Maya');
-      await submitAnswer('user-1', 's08-dream-city', 'Lisbon');
+      await submitAnswer('user-1', 's04-self-description', 'restless in a good way');
       await submitAnswer('user-1', 's10-struggle', null, true);
 
       await completeOnboarding('user-1', 120_000);
 
       expect(seed).toHaveBeenCalledWith(
         'user-1',
-        expect.objectContaining({ name: 'Maya', dream_city: 'Lisbon', struggle: null }),
+        expect.objectContaining({
+          name: 'Maya',
+          self_description: 'restless in a good way',
+          struggle: null,
+        }),
       );
       expect(capture).toHaveBeenCalledWith('onboarding_completed', {
         duration_s: 120,

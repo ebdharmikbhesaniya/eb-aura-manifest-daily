@@ -19,9 +19,9 @@ const HOUR_CHOICES = ['06:00', '07:00', '08:00', '09:00', '12:00', '18:00', '20:
 
 /**
  * S11: the reminder-in-onboarding lever (product 07 — Calm's 3× retention move).
- * The OS notification permission is NOT asked here: it comes after the Letter
- * and paywall with this context banked (Phase 9) — priming without the scary
- * dialog mid-conversation.
+ * The OS notification permission is not asked on THIS screen — it follows on
+ * the next one (s12-notifications, the closing step) so choosing a time and
+ * granting the permission stay two distinct beats rather than one loaded moment.
  *
  * V4 dress: Morning/Evening as choice cards with a reason under each, a
  * disclosure row for the hour presets, and the anti-nag promise on parchment.

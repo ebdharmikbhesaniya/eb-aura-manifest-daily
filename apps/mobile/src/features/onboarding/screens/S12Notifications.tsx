@@ -1,0 +1,88 @@
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Text } from 'react-native';
+
+import { Card } from '@/components';
+import { onboardingCopy } from '@/copy/onboarding';
+import { markPermissionAsked } from '@/features/notifications/permissionGate';
+import { requestPermissionAndRegister } from '@/features/notifications/useNotifications';
+import { analytics } from '@/lib/analytics';
+import { useAppState } from '@/stores/appState';
+import { haptic } from '@/theme/haptics';
+import { useTheme } from '@/theme/ThemeProvider';
+
+import { completeOnboarding } from '../commit';
+import { ConversationScreen } from '../ConversationScreen';
+
+/**
+ * S12: the closing step of the conversation — the OS notification permission
+ * ask (founder decision, 2026-07-30). It used to land on the first Home after
+ * the paywall (11 §2); it now sits here, right after she picks an arrival time
+ * (S11), so the ask reads as a reminder of what she just set up.
+ *
+ * This screen — not S11 — now finishes onboarding: it stamps completion and
+ * hands off to the generation ritual (product 07 S12, 08 §1). It draws no
+ * progress header (it carries no answer) and no edit-guard (nothing to revise
+ * from a permission prompt).
+ *
+ * Enabling asks the OS and records the ask, so the post-paywall fallback on Home
+ * stays quiet — she is never asked twice. "Maybe later" leaves it unrecorded, so
+ * Home can still offer it on that first landing.
+ */
+export function S12Notifications() {
+  const router = useRouter();
+  const { colors, spacing, typography } = useTheme();
+  const userId = useAppState((s) => s.userId);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    analytics.capture('onboarding_screen_viewed', { screen_id: 's12-notifications' });
+  }, []);
+
+  const finish = async (ask: boolean): Promise<void> => {
+    if (busy) return;
+    setBusy(true);
+    void haptic('onboardingContinue');
+
+    try {
+      if (ask && userId) {
+        await requestPermissionAndRegister(userId);
+        markPermissionAsked(true);
+      }
+
+      // Finishing the conversation: flush + stamp completion, then straight into
+      // the ritual. `replace`, so a back-swipe cannot reopen onboarding.
+      if (userId) {
+        await completeOnboarding(userId);
+        router.replace('/(onboarding)/generating');
+      }
+    } finally {
+      // Left un-busy on a sync failure so she can retry rather than stall.
+      setBusy(false);
+    }
+  };
+
+  return (
+    <ConversationScreen
+      testID="s12-notifications"
+      // No header (no answer) and no edit-guard on a permission prompt.
+      showEditGuard={false}
+      question={onboardingCopy.s12Notifications.question}
+      helper={onboardingCopy.s12Notifications.helper}
+      primaryTitle={onboardingCopy.s12Notifications.primary}
+      onPrimary={() => void finish(true)}
+      primaryDisabled={busy}
+      skipTitle={onboardingCopy.s12Notifications.skip}
+      onSkip={() => void finish(false)}
+    >
+      <Card
+        variant="solid"
+        style={{ backgroundColor: colors.accent.parchment, marginTop: spacing.sm }}
+      >
+        <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
+          {onboardingCopy.s12Notifications.note}
+        </Text>
+      </Card>
+    </ConversationScreen>
+  );
+}

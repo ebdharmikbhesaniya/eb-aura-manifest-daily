@@ -8,7 +8,6 @@ import { ClaimSheet } from '@/features/paywall/ClaimSheet';
 import { PaywallScreen } from '@/features/paywall/PaywallScreen';
 import { appleAuthAvailable } from '@/features/paywall/claim';
 import { markPaywallSeen } from '@/features/paywall/paywallSeen';
-import { markPermissionAsked } from '@/features/notifications/permissionGate';
 import {
   loadPlans,
   purchasePlan,
@@ -66,14 +65,14 @@ export default function PaywallRoute() {
   /**
    * The FIRST presentation's dismissal, straight after the Letter.
    *
-   * A real outcome, not a cancel: it marks the paywall seen, sends her on to
-   * the free tier, and arms the notification ask for that first Home landing
-   * (11 §2) — product 08 forbids anything between the letter and the paywall,
-   * and this is the first moment that rule stops applying.
+   * A real outcome, not a cancel: it marks the paywall seen and sends her on to
+   * the free tier. The notification ask is NO LONGER re-armed here — as of
+   * 2026-07-30 it is the closing step of onboarding (s12-notifications), so it
+   * has already happened by the time she reaches this. Home still asks as a
+   * fallback only when she chose "Maybe later" there (`asked` never set).
    */
   const leaveToFreeTier = useCallback(() => {
     markPaywallSeen();
-    markPermissionAsked(false);
     router.replace('/(tabs)/home');
   }, [router]);
 
