@@ -12,11 +12,5 @@
 // isn't present — so skipping ios autolinking is safe: iOS just falls through
 // to Apple / Email like the app.config.ts comment describes.
 module.exports = {
-  dependencies: {
-    '@react-native-google-signin/google-signin': {
-      platforms: {
-        ios: null,
-      },
-    },
-  },
+  dependencies: {},
 };

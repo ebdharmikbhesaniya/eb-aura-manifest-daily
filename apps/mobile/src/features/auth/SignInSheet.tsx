@@ -47,19 +47,31 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
   const [sent, setSent] = useState(false);
   const [unknown, setUnknown] = useState(false);
   const [busy, setBusy] = useState(false);
+  /**
+   * Provider sign-in used to fail completely silently here — the sheet just went
+   * un-busy and sat there. `authCopy.gate.failed` is reused rather than
+   * duplicated: it is surface-agnostic wording and already in the audited copy
+   * catalog, so there is one string for "auth did not go through", not two.
+   */
+  const [notice, setNotice] = useState<string | null>(null);
 
   const runApple = async () => {
     setBusy(true);
+    setNotice(null);
     const result = await signInWithApple();
     setBusy(false);
     if (result.status === 'signed_in') onSignedIn();
+    else if (result.status === 'failed') setNotice(authCopy.gate.failed);
   };
 
   const runGoogle = async () => {
     setBusy(true);
+    setNotice(null);
     const token = await getGoogleIdToken();
     if (token.status !== 'ok') {
       setBusy(false);
+      // Silent on a first cancel, loud on a repeat — see cancelStreak.ts.
+      if (token.status === 'failed' || token.unexpected) setNotice(authCopy.gate.failed);
       return;
     }
     // `authenticateWithProvider` links to the account on this device when it can
@@ -68,6 +80,7 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
     const outcome = await authenticateWithProvider('google', token.idToken);
     setBusy(false);
     if (outcome.status === 'linked' || outcome.status === 'signed_in') onSignedIn();
+    else if (outcome.status === 'failed') setNotice(authCopy.gate.failed);
   };
 
   const runEmail = async () => {
@@ -143,6 +156,18 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
           </View>
         ) : (
           <View style={{ gap: spacing.sm }}>
+            {notice !== null && (
+              <Text
+                testID="signin-notice"
+                allowFontScaling={false}
+                style={[
+                  scaledType('bodySmall', scale),
+                  { color: colors.text.secondary, textAlign: 'center' },
+                ]}
+              >
+                {notice}
+              </Text>
+            )}
             {googleAvailable && (
               <PillButton
                 title={authCopy.signIn.google}

@@ -75,7 +75,11 @@ export default function SignInRoute() {
     const token = await getGoogleIdToken();
     if (token.status !== 'ok') {
       setBusy(false);
-      if (token.status === 'failed') setNotice(authCopy.gate.failed);
+      // A cancel stays silent the first time — she meant it, and apologising for
+      // her own decision is worse than saying nothing. But a REPEATED cancel is
+      // how a dropped OAuth callback looks (see cancelStreak.ts), and leaving
+      // that silent is what made a configuration bug read as "nothing happens".
+      if (token.status === 'failed' || token.unexpected) setNotice(authCopy.gate.failed);
       return;
     }
 

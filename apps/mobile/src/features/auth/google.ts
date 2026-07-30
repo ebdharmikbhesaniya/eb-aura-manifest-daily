@@ -1,6 +1,9 @@
+import * as Sentry from '@sentry/react-native';
 import { TurboModuleRegistry } from 'react-native';
 
 import { env } from '@/lib/env';
+
+import { isUnexpectedCancel } from './cancelStreak';
 
 /**
  * Google Sign-In (03 §2.2).
@@ -53,7 +56,20 @@ export function googleAuthAvailable(): boolean {
 }
 
 export type GoogleTokenResult =
-  { status: 'ok'; idToken: string } | { status: 'cancelled' } | { status: 'failed' };
+  | { status: 'ok'; idToken: string }
+  /**
+   * `unexpected` is true when this "cancel" is more likely a broken sign-in flow
+   * than her decision (see `cancelStreak.ts`). Callers must show something when
+   * it is true — a silent dead end is what let a configuration bug hide.
+   */
+  | { status: 'cancelled'; unexpected: boolean }
+  | { status: 'failed' };
+
+/**
+ * Consecutive cancels with no success in between. Module-level so it spans taps
+ * within a session; a successful sign-in clears it.
+ */
+let consecutiveCancels = 0;
 
 /**
  * Returns a Google id_token for Supabase to verify.
@@ -84,6 +100,8 @@ export async function getGoogleIdToken(): Promise<GoogleTokenResult> {
     // webClientId / SHA-1), not a user cancel — surface it as a failure.
     if (!idToken) return { status: 'failed' };
 
+    // A real token clears any suspicion built up by earlier cancels.
+    consecutiveCancels = 0;
     return { status: 'ok', idToken };
   } catch (error) {
     const code = (error as { code?: string })?.code;
@@ -91,7 +109,26 @@ export async function getGoogleIdToken(): Promise<GoogleTokenResult> {
     // Other codes are real failures, not a deliberate cancel: 12501 can mean a
     // misconfigured OAuth client / SHA-1, and 7 (NETWORK_ERROR) means Play Services
     // could not reach Google's token endpoint (e.g. an IPv6-only network).
-    if (code === 'SIGN_IN_CANCELLED') return { status: 'cancelled' };
+    if (code === 'SIGN_IN_CANCELLED') {
+      consecutiveCancels += 1;
+      const unexpected = isUnexpectedCancel(consecutiveCancels);
+
+      // Reported only once it looks like a broken flow, never on an ordinary
+      // cancel — otherwise every person who changes her mind becomes an alert
+      // and the signal is worthless. The message names the usual cause, because
+      // the one time this happened it took reading the native SDK to find it.
+      if (unexpected) {
+        Sentry.captureMessage(
+          `Google sign-in cancelled ${consecutiveCancels}x in a row — likely a dropped ` +
+            `OAuth callback (check the reversed-client-id URL scheme and that ` +
+            `ExpoAdapterGoogleSignIn is autolinked), not a user cancel`,
+          'warning',
+        );
+      }
+
+      return { status: 'cancelled', unexpected };
+    }
+    consecutiveCancels = 0;
     return { status: 'failed' };
   }
 }

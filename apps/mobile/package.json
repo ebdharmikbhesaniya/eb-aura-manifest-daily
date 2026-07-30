@@ -62,6 +62,7 @@
   },
   "devDependencies": {
     "@aura/config": "workspace:*",
+    "@sentry/cli": "2.58.4",
     "@testing-library/react-native": "^14.0.1",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.1",
@@ -80,12 +81,7 @@
       ]
     },
     "autolinking": {
-      "//": "Exclude @react-native-google-signin/google-signin from autolinking on APPLE ONLY. It ships an ExpoAdapterGoogleSignIn module plus the RN CLI module, and on iOS the pod pulls in AppCheckCore → GoogleUtilities + RecaptchaInterop, which fails pod install under static linkage. Google sign-in is Android-only here (iOS uses Apple Sign-In). This MUST be scoped to `apple`: a top-level `exclude` also strips the RNGoogleSignin native module from the Android build (expo-modules-autolinking applies exclude to every platform), which makes the app crash at startup with \"TurboModuleRegistry.getEnforcing('RNGoogleSignin') could not be found\". react-native.config.js additionally sets ios:null for the CLI side.",
-      "apple": {
-        "exclude": [
-          "@react-native-google-signin/google-signin"
-        ]
-      }
+      "//": "Google Sign-In autolinks on BOTH platforms as of 2026-07-30. It was previously excluded on `apple`, and that exclusion is exactly what silently broke iOS sign-in: it removed ExpoAdapterGoogleSignIn, whose only job is the GoogleSignInAppDelegate subscriber that forwards the OAuth callback to GIDSignIn.handle(url). Without it the sheet opened, the user granted access, the callback was never delivered, and GIDSignIn reported kGIDSignInErrorCodeCanceled — which this app maps to 'cancelled', the one path that shows NO error. Symptom: a spinner, then the same screen, no message, no user created. The AppCheckCore → GoogleUtilities/RecaptchaInterop static-linkage pod failure that originally motivated the exclusion is now fixed properly in the Podfile by plugins/withGoogleSignInPods.js. IF YOU EVER EXCLUDE THIS AGAIN: scope it to `apple`, never top-level — expo-modules-autolinking applies a top-level exclude to every platform, which also strips RNGoogleSignin from Android and crashes startup with \"TurboModuleRegistry.getEnforcing('RNGoogleSignin') could not be found\"."
     }
   }
 }

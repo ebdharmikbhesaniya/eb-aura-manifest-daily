@@ -6,7 +6,14 @@
   "build": {
     "base": {
       "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://iaxfkgbfaguevlbuunve.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlheGZrZ2JmYWd1ZXZsYnV1bnZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODY3NTMsImV4cCI6MjA5OTg2Mjc1M30.hVmz7InfxJGZI-WVByeP4Ea2WzTCKK2uLLIJqOn2beA",
+        "EXPO_PUBLIC_API_URL": "https://eb-aura-manifest-daily.onrender.com",
+        "EXPO_PUBLIC_TERMS_URL": "https://eb-aura-manifest-daily.onrender.com/terms",
+        "EXPO_PUBLIC_PRIVACY_URL": "https://eb-aura-manifest-daily.onrender.com/privacy",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1026671088815-iq0qt119umtkrsn90pib0lefn1kqlasr.apps.googleusercontent.com",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "goog_DBUAXpBZGVmVPUTIGZSsWVgpMil"
       },
       "ios": {
         "resourceClass": "m-medium"
@@ -37,14 +44,7 @@
         "buildType": "apk"
       },
       "env": {
-        "APP_ENV": "production",
-        "EXPO_PUBLIC_SUPABASE_URL": "https://iaxfkgbfaguevlbuunve.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlheGZrZ2JmYWd1ZXZsYnV1bnZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODY3NTMsImV4cCI6MjA5OTg2Mjc1M30.hVmz7InfxJGZI-WVByeP4Ea2WzTCKK2uLLIJqOn2beA",
-        "EXPO_PUBLIC_API_URL": "https://eb-aura-manifest-daily.onrender.com",
-        "EXPO_PUBLIC_TERMS_URL": "https://eb-aura-manifest-daily.onrender.com/terms",
-        "EXPO_PUBLIC_PRIVACY_URL": "https://eb-aura-manifest-daily.onrender.com/privacy",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1026671088815-iq0qt119umtkrsn90pib0lefn1kqlasr.apps.googleusercontent.com",
-        "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "goog_DBUAXpBZGVmVPUTIGZSsWVgpMil"
+        "APP_ENV": "production"
       }
     },
     "production": {
@@ -53,22 +53,15 @@
       "channel": "production",
       "autoIncrement": true,
       "env": {
-        "APP_ENV": "production",
-        "EXPO_PUBLIC_SUPABASE_URL": "https://iaxfkgbfaguevlbuunve.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlheGZrZ2JmYWd1ZXZsYnV1bnZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODY3NTMsImV4cCI6MjA5OTg2Mjc1M30.hVmz7InfxJGZI-WVByeP4Ea2WzTCKK2uLLIJqOn2beA",
-        "EXPO_PUBLIC_API_URL": "https://eb-aura-manifest-daily.onrender.com",
-        "EXPO_PUBLIC_TERMS_URL": "https://eb-aura-manifest-daily.onrender.com/terms",
-        "EXPO_PUBLIC_PRIVACY_URL": "https://eb-aura-manifest-daily.onrender.com/privacy",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1026671088815-iq0qt119umtkrsn90pib0lefn1kqlasr.apps.googleusercontent.com",
-        "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "goog_DBUAXpBZGVmVPUTIGZSsWVgpMil"
+        "APP_ENV": "production"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "ascAppId": "TODO_PHASE_10",
-        "appleTeamId": "TODO_PHASE_10"
+        "ascAppId": "TODO_APP_STORE_CONNECT",
+        "appleTeamId": "Q8Z48Q7K2B"
       }
     }
   }

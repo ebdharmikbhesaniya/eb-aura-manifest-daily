@@ -16,29 +16,104 @@ const BRAND = {
   scheme: 'aura',
 } as const;
 
-/** EAS profile driving this build (16 §2). */
+/**
+ * EAS profile driving this build (16 §2).
+ *
+ * Tags the Sentry environment (src/lib/instrument.ts) and rides along in `extra`.
+ * It does NOT vary the app identity — see below.
+ */
 type BuildEnv = 'development' | 'staging' | 'production';
 const buildEnv = (process.env.APP_ENV ?? 'development') as BuildEnv;
 
 /**
- * One identity across every environment (founder decision, 2026-07-29): local
- * dev, staging, preview and production all build `com.aura.manifestdaily` with
- * the name "Aura". The earlier per-variant `.dev`/`.staging` suffixes are gone,
- * so the variants no longer coexist on a device — installing one replaces the
- * others. Firebase/Google sign-in therefore needs every signing SHA-1 that can
- * produce this package (debug keystore for local dev, EAS keystore for
- * internal/preview, Play App Signing for the store) on the one Firebase app.
+ * Store-build env guard.
+ *
+ * `src/lib/env.ts` treats the RevenueCat keys and legal URLs as OPTIONAL, and for
+ * a dev build that is right: the paywall degrades to free tier and the footer
+ * omits a link it has no URL for. For a build real people pay money in it is
+ * wrong — an unset RevenueCat key ships a paywall that can never complete a
+ * purchase, absent legal links fail store review, and a missing Google config
+ * file ships a sign-in button that fails on every tap. None of those announce
+ * themselves at build time, which is how they reach a store in the first place.
+ *
+ * Keyed off `EAS_BUILD_PROFILE` — set only on an EAS builder — so local
+ * `expo run:ios` / `run:android` are completely unaffected. Keyed off
+ * `EAS_BUILD_PLATFORM` too, so an Android build is never blocked by a missing
+ * iOS credential or the reverse.
+ *
+ * Deliberately scoped to the `production` profile only: `preview` is internal
+ * distribution and is allowed to be partially configured. Add 'preview' here if
+ * you want the same protection for internal testers.
  */
-const variant: Record<BuildEnv, { suffix: string; nameSuffix: string }> = {
-  development: { suffix: '', nameSuffix: '' },
-  staging: { suffix: '', nameSuffix: '' },
-  production: { suffix: '', nameSuffix: '' },
-};
+const STORE_BUILD_PROFILES = new Set(['production']);
 
-const { suffix, nameSuffix } = variant[buildEnv];
+if (STORE_BUILD_PROFILES.has(process.env.EAS_BUILD_PROFILE ?? '')) {
+  const platform = process.env.EAS_BUILD_PLATFORM;
 
+  const required: Record<string, string | undefined> = {
+    EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+    EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
+    // Both are required before a subscription build passes review (product 12 §6).
+    EXPO_PUBLIC_TERMS_URL: process.env.EXPO_PUBLIC_TERMS_URL,
+    EXPO_PUBLIC_PRIVACY_URL: process.env.EXPO_PUBLIC_PRIVACY_URL,
+    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    // RevenueCat issues one key PER STORE and rejects the other platform's key,
+    // so each is required only for its own build.
+    ...(platform === 'ios'
+      ? {
+          EXPO_PUBLIC_REVENUECAT_IOS_KEY: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
+          GOOGLE_SERVICES_INFO_PLIST: process.env.GOOGLE_SERVICES_INFO_PLIST,
+        }
+      : {}),
+    ...(platform === 'android'
+      ? {
+          EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
+          GOOGLE_SERVICES_JSON: process.env.GOOGLE_SERVICES_JSON,
+        }
+      : {}),
+  };
+
+  const missing = Object.entries(required)
+    .filter(([, value]) => !value)
+    .map(([name]) => name);
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Store build (profile=production, platform=${platform ?? 'unknown'}) is missing ` +
+        `required env: ${missing.join(', ')}.\n` +
+        `Public EXPO_PUBLIC_* values belong in eas.json's "base.env"; the two Google ` +
+        `config files must be uploaded as EAS file secrets:\n` +
+        `  eas secret:create --scope project --name GOOGLE_SERVICES_INFO_PLIST --type file --value ./apps/mobile/GoogleService-Info.plist\n` +
+        `  eas secret:create --scope project --name GOOGLE_SERVICES_JSON --type file --value ./apps/mobile/google-services.json\n` +
+        `See .env.example for what each one is.`,
+    );
+  }
+}
+
+/**
+ * ONE IDENTITY, EVERY ENVIRONMENT (founder decision, 2026-07-29).
+ *
+ * Local dev, staging, preview and production all build `com.aura.manifestdaily`
+ * named "Aura". The per-variant `.dev`/`.staging` suffixes that used to derive
+ * these are gone — not defaulted to empty, removed — because a suffix here is
+ * not a cosmetic choice: the bundle id is the join key for Firebase's OAuth
+ * client, the Google id_token audience, RevenueCat's app, and App Store Connect.
+ * A build whose id drifts by one suffix cannot sign in with Google at all, which
+ * is exactly how the stale `com.aura.manifestdaily.dev` native project ended up
+ * with no Google URL scheme.
+ *
+ * The value is pinned to `BUNDLE_ID` in GoogleService-Info.plist / the package
+ * name in google-services.json. If it ever changes, both Firebase apps must be
+ * re-registered — it is not a local edit.
+ *
+ * Consequence to keep in mind: the variants no longer coexist on a device —
+ * installing one replaces the others. And Firebase needs every signing SHA-1
+ * that can produce this package (debug keystore for local dev, EAS keystore for
+ * internal/preview, Play App Signing for the store) on the one Android app.
+ */
 const config: ExpoConfig = {
-  name: `${BRAND.displayName}${nameSuffix}`,
+  name: BRAND.displayName,
   description: BRAND.storeTitle,
   slug: 'aura',
   version: '1.0.2',
@@ -60,7 +135,8 @@ const config: ExpoConfig = {
   icon: './assets/brand/icon.png',
 
   android: {
-    package: `${BRAND.bundleIdentifier}${suffix}`,
+    // Must equal `client_info.android_client_info.package_name` in google-services.json.
+    package: BRAND.bundleIdentifier,
     adaptiveIcon: {
       foregroundImage: './assets/brand/adaptive-icon.png',
       backgroundColor: '#ECE9DF',
@@ -88,7 +164,9 @@ const config: ExpoConfig = {
   },
 
   ios: {
-    bundleIdentifier: `${BRAND.bundleIdentifier}${suffix}`,
+    // Must equal `BUNDLE_ID` in GoogleService-Info.plist, or the native Google
+    // module resolves a CLIENT_ID that does not belong to this app.
+    bundleIdentifier: BRAND.bundleIdentifier,
     supportsTablet: false,
     icon: './assets/brand/icon.png',
     // Sign in with Apple — the primary claim path (03 §2.2) and required by the
@@ -104,6 +182,19 @@ const config: ExpoConfig = {
       // The Letter and daily moments keep playing when she locks the screen (05 §7, 10 §4).
       UIBackgroundModes: ['audio'],
     },
+
+    // The iOS counterpart to `android.googleServicesFile`, and the reason Google
+    // sign-in works on iOS at all. The google-signin plugin's iOS half reads
+    // REVERSED_CLIENT_ID out of this plist and appends it as a CFBundleURLScheme
+    // — that scheme is where Google's OAuth callback lands. With this key unset
+    // the plugin's iOS mod silently no-ops: the button renders and every tap
+    // fails, because the native module also reads its CLIENT_ID from here.
+    //
+    // Spread for the same `exactOptionalPropertyTypes` reason as Android above.
+    // The file is a credential: never commit it.
+    ...(process.env.GOOGLE_SERVICES_INFO_PLIST
+      ? { googleServicesFile: process.env.GOOGLE_SERVICES_INFO_PLIST }
+      : {}),
   },
 
   plugins: [
@@ -180,21 +271,30 @@ const config: ExpoConfig = {
         enableBackgroundPlayback: true,
       },
     ],
-    // Sign-in is the first screen now (03 §2.1), and Google is its Android
-    // half — Apple covers iOS and neither exists on the other platform.
+    // Sign-in is the first screen now (03 §2.1), and Google is offered on BOTH
+    // platforms — Android via google-services.json, iOS via GoogleService-Info.plist.
     //
-    // The plugin reads the reversed client id out of GOOGLE_SERVICES_JSON /
-    // GoogleService-Info.plist, which is why no id is passed here. The WEB
-    // client id the JS side needs is a separate value and lives in
-    // EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (see src/lib/env.ts).
+    // Registered with NO OPTIONS on purpose. Passing an options object (e.g.
+    // `iosUrlScheme`) switches the plugin to its "without Firebase" mode, which
+    // sets the iOS URL scheme and DROPS all three Android Gradle mods — that
+    // would silently break the working Android build. No-options mode runs the
+    // Firebase path for both platforms, reading the reversed client id out of
+    // whichever config file each platform has. The WEB client id the JS side
+    // sends is a separate value in EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (src/lib/env.ts).
     //
-    // Added ONLY when that file exists. The plugin pulls in the
-    // `com.google.gms.google-services` Gradle plugin, which fails the Android
-    // build outright if no google-services.json is present — so including it
-    // unconditionally would mean no Google project, no build at all. Without
-    // it the gate hides the Google button and offers email (features/auth/google).
-    ...(process.env.GOOGLE_SERVICES_JSON
-      ? (['@react-native-google-signin/google-signin'] as const)
+    // Added ONLY when at least one platform's config file exists. The plugin
+    // pulls in the `com.google.gms.google-services` Gradle plugin, which fails
+    // the Android build outright if google-services.json is absent — so
+    // including it unconditionally would mean no Google project, no build at
+    // all. With neither file the gate hides the button (features/auth/google).
+    ...(process.env.GOOGLE_SERVICES_JSON || process.env.GOOGLE_SERVICES_INFO_PLIST
+      ? ([
+          '@react-native-google-signin/google-signin',
+          // Must accompany the plugin above on iOS: without it `pod install`
+          // fails on AppCheckCore's non-modular dependencies and there is no
+          // iOS build at all. See plugins/withGoogleSignInPods.js.
+          './plugins/withGoogleSignInPods',
+        ] as const)
       : []),
   ],
 
