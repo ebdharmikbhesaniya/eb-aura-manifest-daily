@@ -4,7 +4,7 @@ import { ScrollView, Text } from 'react-native';
 
 import { Card, ListRow, RowGroup, Screen, ScreenHeader } from '@/components';
 import { momentsCopy } from '@/copy/moments';
-import { toPlayable, useRecentMoments } from '@/features/moments/useMoments';
+import { toPlayable, useCollectionMoments } from '@/features/moments/useMoments';
 import { usePlayerStore } from '@/features/player/playerStore';
 import { supabase } from '@/lib/supabase';
 import { useAppState } from '@/stores/appState';
@@ -26,7 +26,7 @@ export default function CollectionRoute() {
   const scale = clampedFontScale();
   const userId = useAppState((s) => s.userId);
   const open = usePlayerStore((s) => s.open);
-  const { data: moments } = useRecentMoments(userId ?? undefined, COLLECTION_SCAN_LIMIT);
+  const { data: moments } = useCollectionMoments(userId ?? undefined, COLLECTION_SCAN_LIMIT);
 
   const ondemand = id === 'ondemand';
   const title = ondemand ? momentsCopy.collections.ondemand : momentsCopy.collections.favorites;

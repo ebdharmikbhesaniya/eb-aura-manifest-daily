@@ -12,6 +12,7 @@ export const momentKeys = {
   today: (userId: string) => [...momentKeys.all, 'today', userId] as const,
   recent: (userId: string) => [...momentKeys.all, 'recent', userId] as const,
   forming: (userId: string) => [...momentKeys.all, 'forming', userId] as const,
+  collections: (userId: string) => [...momentKeys.all, 'collections', userId] as const,
 };
 
 export interface PlayableMoment {
@@ -83,6 +84,33 @@ export function useRecentMoments(userId: string | undefined, limit = 5) {
         .eq('status', 'ready')
         .not('played_at', 'is', null)
         .order('played_at', { ascending: false })
+        .limit(limit);
+
+      return data ?? [];
+    },
+    enabled: Boolean(userId),
+  });
+}
+
+/**
+ * The library behind the Home collections and `collection/[id]` — everything she
+ * has KEPT or asked Manifest for, whether or not she has played it yet.
+ *
+ * Deliberately NOT `useRecentMoments`: that one filters to `played_at IS NOT
+ * NULL` for the "Recently played" row, which silently hid a moment she just
+ * favourited (or a fresh Manifest) from its own collection until she happened to
+ * play it. Collections are about what she owns, not what she has replayed.
+ */
+export function useCollectionMoments(userId: string | undefined, limit = 50) {
+  return useQuery({
+    queryKey: momentKeys.collections(userId ?? 'anonymous'),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('moments')
+        .select('id, title, type, duration_ms, favorited_at, played_at, created_at')
+        .eq('user_id', userId as string)
+        .eq('status', 'ready')
+        .order('created_at', { ascending: false })
         .limit(limit);
 
       return data ?? [];

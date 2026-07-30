@@ -9,6 +9,7 @@ import { resolveHomeMoment } from '@/features/moments/momentState';
 import {
   localDateToday,
   toPlayable,
+  useCollectionMoments,
   useFormingMoments,
   useRecentMoments,
   useTodaysMoment,
@@ -34,7 +35,7 @@ import { LIMITS } from '@aura/shared';
 
 import { analytics } from '@/lib/analytics';
 import { api } from '@/lib/api';
-import { errorCopyFor, errorKeyOf } from '@/lib/errorCopy';
+import { errorCopyFor, errorCopyForKey, errorKeyOf } from '@/lib/errorCopy';
 import { supabase } from '@/lib/supabase';
 import { useAppState } from '@/stores/appState';
 import { haptic } from '@/theme/haptics';
@@ -57,7 +58,10 @@ export default function HomeRoute() {
 
   const today = useTodaysMoment(userId ?? undefined);
   const forming = useFormingMoments(userId ?? undefined);
-  const recent = useRecentMoments(userId ?? undefined, COLLECTION_SCAN_LIMIT);
+  const recent = useRecentMoments(userId ?? undefined, RECENT_ROWS);
+  // Collections count what she owns (kept / on-demand), played or not — the
+  // "Recently played" list above is the only surface that needs `played_at`.
+  const collections = useCollectionMoments(userId ?? undefined, COLLECTION_SCAN_LIMIT);
 
   const open = usePlayerStore((s) => s.open);
   const manifestRef = useRef<BottomSheetModal>(null);
@@ -137,6 +141,34 @@ export default function HomeRoute() {
     if (fallbackStatus === 'failed' || fallbackStatus === 'qa_failed') setFailed(true);
   }, [fallbackStatus, today]);
 
+  /**
+   * Manifest Anything reveal (product 09 §9.2).
+   *
+   * `POST /manifest` only ENQUEUES the job, so the on-demand moment is not
+   * written when the request returns. Without polling, the sheet dismissed onto
+   * an unchanged Home and the moment she just asked for was invisible until the
+   * next cold start. We keep the sheet on "Writing it…" until the job lands, then
+   * refetch — the new moment is the newest one, so it becomes Home's hero card.
+   */
+  const [manifestJobId, setManifestJobId] = useState<string | undefined>();
+  const manifestJob = useGenerationJob(manifestJobId);
+  const manifestStatus = manifestJob.data?.status;
+  useEffect(() => {
+    if (!manifestStatus) return;
+    if (manifestStatus === 'succeeded') {
+      void today.refetch();
+      // A manifest is an on-demand moment, so the On demand collection re-reads.
+      void collections.refetch();
+      manifestRef.current?.dismiss();
+    }
+    if (manifestStatus === 'failed' || manifestStatus === 'qa_failed') {
+      setManifestError(errorCopyForKey('generation_failed'));
+    }
+    // Terminal either way: stop the spinner and the poll.
+    setManifestJobId(undefined);
+    setBusy(false);
+  }, [manifestStatus, today, collections]);
+
   const play = useCallback(
     (momentId: string) => {
       const moment = today.data;
@@ -194,10 +226,10 @@ export default function HomeRoute() {
 
       void haptic('favorite');
       await today.refetch();
-      // The Collections count reads the same column, so it has to re-read too.
-      await recent.refetch();
+      // The Favorites collection reads the same column, so it re-reads too.
+      await collections.refetch();
     },
-    [entitlement, today, recent],
+    [entitlement, today, collections],
   );
 
   const onManifest = useCallback(() => {
@@ -221,8 +253,8 @@ export default function HomeRoute() {
           title: m.title,
           durationMs: m.duration_ms,
         }))}
-        favoritesCount={(recent.data ?? []).filter((m) => m.favorited_at !== null).length}
-        onDemandCount={(recent.data ?? []).filter((m) => m.type === 'ondemand').length}
+        favoritesCount={(collections.data ?? []).filter((m) => m.favorited_at !== null).length}
+        onDemandCount={(collections.data ?? []).filter((m) => m.type === 'ondemand').length}
         onPlay={play}
         onRetry={() => void retry()}
         onFavorite={(id) => void onFavorite(id)}
@@ -253,7 +285,11 @@ export default function HomeRoute() {
                 credits_remaining: result.creditsRemaining,
               });
               setCredits(result.creditsRemaining);
-              manifestRef.current?.dismiss();
+              // Do NOT dismiss yet — the moment is still being written. Hand off
+              // to the poll; the sheet stays on "Writing it…" and closes onto the
+              // finished moment (see the manifest reveal effect above). `busy`
+              // stays true, so it is only cleared when the job is terminal.
+              setManifestJobId(result.jobId);
             })
             .catch((error: unknown) => {
               // Every documented failure lands here now: 402, 429 credits,
@@ -261,12 +297,13 @@ export default function HomeRoute() {
               if (errorKeyOf(error) === 'entitlement_required') {
                 manifestRef.current?.dismiss();
                 lockedRef.current?.present();
-                return;
+              } else {
+                if (errorKeyOf(error) === 'credits_exhausted') setCredits(0);
+                setManifestError(errorCopyFor(error));
               }
-              if (errorKeyOf(error) === 'credits_exhausted') setCredits(0);
-              setManifestError(errorCopyFor(error));
-            })
-            .finally(() => setBusy(false));
+              // Only the enqueue failed here; the poll owns the success path's spinner.
+              setBusy(false);
+            });
         }}
       />
 
