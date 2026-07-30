@@ -16,15 +16,10 @@ describe('KeptRow (v4 §saved)', () => {
     expect(screen.getByText('“I am steady in my work”')).toBeTruthy();
   });
 
-  it('marks the row with a heart the screen reader skips', async () => {
-    // The heart is decoration on a row whose text already says what it is —
-    // announcing "black heart suit" before every kept line is noise. It is
-    // drawn, but it is out of the accessibility tree, so the default query
-    // (which honours that tree) must not see it.
+  it('no longer draws the decorative heart (it read as a broken like button)', async () => {
     await render(<KeptRow text="I am enough" />, { wrapper });
 
-    expect(screen.getByText('♥', { includeHiddenElements: true })).toBeTruthy();
-    expect(screen.queryByText('♥')).toBeNull();
+    expect(screen.queryByText('♥', { includeHiddenElements: true })).toBeNull();
   });
 
   it('holds its type size when the OS font scale is cranked', async () => {
