@@ -136,21 +136,25 @@ describe('golden personas', () => {
     });
   });
 
-  describe('the affirmation anchor (PROMPT_VERSION 2026-07-20.1)', () => {
-    it('does not accept a preset value chip as her words', async () => {
-      // Values come from a fixed onboarding list (S06), so they are the same for
-      // every user. The prompt must not offer one as a sufficient anchor, or the
-      // gate rejects an affirmation the model was told to write.
-      const context = buildContext({ values: ['honesty', 'craft'] });
-      const { built } = await generate('affirmation_daily', context);
+  describe('the affirmation voice (no forced token-stuffing)', () => {
+    it('no longer forces her name or exact phrase, word-for-word, into a 20-word line', () => {
+      // A 20-word affirmation carrying her name/city/phrase verbatim reads like a
+      // filled-in template. Affirmations are personalized by THEME in the prompt
+      // (her goal, how she describes herself), not by a verbatim token floor.
+      const { prompt } = prompts.build('affirmation_daily', buildContext());
 
-      expect(built.prompt).toContain('QA gate will not count it');
+      expect(prompt).not.toContain('word-for-word');
+      expect(prompt).toContain('do not paste her exact phrases');
     });
 
-    it.each(PERSONAS)('$id anchors on something the gate counts', async ({ context }: Persona) => {
-      const { result } = await generate('affirmation_daily', context);
+    it('accepts a natural affirmation that quotes none of her exact words', () => {
+      const result = qa.check(
+        'affirmation_daily',
+        { title: 'Becoming', body: 'I am becoming the calm I keep looking for in other people.' },
+        buildContext({ values: ['honesty', 'craft'] }),
+      );
 
-      expect(result.tokensFound.length).toBeGreaterThanOrEqual(1);
+      expect(result.flaggedRules).not.toContain('verbatim_tokens');
     });
   });
 

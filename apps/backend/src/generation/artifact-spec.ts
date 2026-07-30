@@ -70,10 +70,19 @@ export const ARTIFACT_SPEC: Record<JobArtifact, ArtifactSpec> = {
     hasAudio: true,
   },
   // Affirmations: ≤20 words, text-only (no TTS at V1, 10 §7). Word floor is 1.
+  //
+  // minVerbatimTokens is 0 — deliberately NOT 1 like the longer artifacts. A
+  // 20-word affirmation cannot carry her name/city/exact-phrase verbatim without
+  // reading like a filled-in template ("Jenny, I am someone who values feeling
+  // truly fulfilled…"), which is the opposite of what an affirmation should feel
+  // like. Effective affirmations are believable, specific and first-person, and
+  // are personalized by THEME (her goal, how she describes herself) rather than
+  // by quoting her literally. That personalization is carried by the prompt, not
+  // enforced by a token floor here (research: present-tense, believable-stretch).
   affirmation_daily: {
     minWords: 1,
     maxWords: 20,
-    minVerbatimTokens: 1,
+    minVerbatimTokens: 0,
     requiresDateClose: false,
     requiresNameFirst: false,
     hasAudio: false,
@@ -81,7 +90,7 @@ export const ARTIFACT_SPEC: Record<JobArtifact, ArtifactSpec> = {
   affirmation_guided: {
     minWords: 1,
     maxWords: 20,
-    minVerbatimTokens: 1,
+    minVerbatimTokens: 0,
     requiresDateClose: false,
     requiresNameFirst: false,
     hasAudio: false,

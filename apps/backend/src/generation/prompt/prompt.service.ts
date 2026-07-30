@@ -162,44 +162,20 @@ Return JSON: { "title": "a short italic-serif title", "body": "the moment" }`,
     );
   }
 
-  /**
-   * The exact strings that satisfy the QA verbatim gate — the SAME set the gate
-   * itself collects (name, dream city, people, exact phrases). Affirmations are
-   * short, and the model reliably drops the anchor unless it is handed the literal
-   * list and told the line is rejected without one. Making the gate's requirement
-   * explicit is what turns the recurring `verbatim_tokens` failure into a pass.
-   */
-  private verbatimAnchors(context: MemoryContext): string[] {
-    return [
-      context.name,
-      context.dreamCity,
-      ...context.people.map((person) => person.name),
-      ...context.exactPhrases,
-    ].filter((value): value is string => Boolean(value && value.trim()));
-  }
-
-  /** The hard-requirement line naming the anchors; empty when there are none to name. */
-  private anchorRequirement(context: MemoryContext, where: string): string {
-    const anchors = this.verbatimAnchors(context);
-    if (anchors.length === 0) return '';
-    const list = anchors.map((anchor) => `"${anchor}"`).join(', ');
-    return `\nHARD REQUIREMENT — ${where} must contain at least one of these exact strings, word-for-word and unchanged: ${list}. A line without one is rejected.\n`;
-  }
-
   private affirmationDaily(context: MemoryContext): BuiltPrompt {
     const spec = ARTIFACT_SPEC.affirmation_daily;
     return this.assemble(
       spec,
-      `Write her one affirmation for today.
+      `Write her ONE affirmation for today — a single line she could say to herself and actually believe.
 
-Requirements:
-- Present tense, positive frame (never "I am not..."), identity form preferred ("I am someone who...").
-- Anchored to one of her exact phrases or a specific detail she gave you, reused literally. Her values may colour the tone, but they come from a fixed list every user sees — echoing one back is not quoting her, and the QA gate will not count it.
-- If the phrase you reach for is negatively framed or too long to fit, reach for a different one of her words rather than bending this into a negative or over-long line.
-- A plausible stretch — a truth she is growing into, not a lie.
-- ${spec.maxWords} words or fewer.
-${this.anchorRequirement(context, 'the affirmation')}
-Return JSON: { "title": "a two-or-three word mantra", "body": "the affirmation", "whyLine": "one line explaining why this works, grounded not mystical" }`,
+What makes it land as an affirmation, and hers — not a generic quote:
+- First person, present tense: "I am…", "I trust…", "I let myself…". Never future ("I will…"), never negated.
+- A BELIEVABLE stretch, not a fantasy. A grand claim she cannot yet feel ("I am wildly successful") backfires and rings hollow; a truth she is growing into lands. When it reaches, soften it — "I am becoming…", "I am learning to…", "I am allowed to…".
+- SPECIFIC and FELT, tied to her real life — her goal, how she describes herself, what she is moving toward — with one concrete detail or feeling word, not an abstract slogan. "I meet hard mornings with a steadiness that is mine" beats "I am strong."
+- In her own natural voice. Draw on what you know about her for the SUBJECT, but an affirmation is too short to quote her verbatim without sounding stiff — do not paste her exact phrases in, and never use the flat "I am someone who values…" template.
+- One breath, ${spec.maxWords} words or fewer, easy to repeat aloud.
+
+Return JSON: { "title": "a two-or-three word mantra", "body": "the affirmation", "whyLine": "one grounded line on why it works — present-tense identity rehearsal, never mystical" }`,
       context,
       { words: spec.maxWords + AFFIRMATION_WHYLINE_WORDS },
     );
@@ -210,17 +186,22 @@ Return JSON: { "title": "a two-or-three word mantra", "body": "the affirmation",
     // Her studio selections steer the set; goalText is her own free words, so it
     // is offered as a phrase to anchor on, not as an instruction.
     const steer = guided
-      ? `\nShe chose this for ${guided.goalArea}.${
+      ? `She asked for one about ${guided.goalArea}.${
           guided.goalText ? ` In her words: "${guided.goalText}".` : ''
-        }\n`
+        } Let that be the subject.\n`
       : '';
     return this.assemble(
       spec,
-      `Write her three affirmation candidates to choose from.
+      `Write her three affirmation candidates to choose from — each a single line she could say and believe.
 ${steer}
-Each: present tense, positive frame, identity form preferred, ≤${spec.maxWords} words, a plausible stretch, and anchored to one of her exact phrases or a specific detail she gave you, reused literally — a value word from the fixed list is not quoting her and the QA gate will not count it.
-${this.anchorRequirement(context, 'EACH of the three affirmations')}
-Return JSON: { "candidates": [ { "text": "...", "whyLine": "why it works", "technique": "identity|present_tense|three_six_nine|scripting" }, ... three of them ] }`,
+Make each one:
+- First person, present tense, positive (no "not"/"never"); ${spec.maxWords} words or fewer, one breath.
+- A believable stretch toward what she asked for — soften a reach with "I am becoming / learning to / allowed to" so it rings true, not hollow.
+- Specific and felt: tie it to her goal and her real life with a concrete image or a feeling word. "Money moves toward the calm, clear work I already do" beats "I am wealthy."
+- In her own natural voice — no "I am someone who values…" template, and do not paste her exact words in verbatim; write her goal plainly as the subject.
+- Genuinely DISTINCT from each other: vary the angle — one as identity ("I am…"), one as a daily action ("Each morning I…"), one as a feeling ("I feel…") — so the three read as real choices, not rewordings of one line.
+
+Return JSON: { "candidates": [ { "text": "...", "whyLine": "why it works, grounded", "technique": "identity|present_tense|three_six_nine|scripting" }, ... three of them ] }`,
       context,
       {
         words: GUIDED_CANDIDATES * (spec.maxWords + AFFIRMATION_WHYLINE_WORDS),

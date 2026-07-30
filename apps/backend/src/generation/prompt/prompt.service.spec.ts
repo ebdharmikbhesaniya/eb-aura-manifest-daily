@@ -275,7 +275,8 @@ describe('PromptService', () => {
     it('asks for a positive present-tense frame the QA gate will check', () => {
       const { prompt } = prompts.build('affirmation_daily', buildContext());
 
-      expect(prompt).toContain('positive frame');
+      expect(prompt).toContain('present tense');
+      expect(prompt).toContain('never negated');
       expect(prompt).toContain(`${ARTIFACT_SPEC.affirmation_daily.maxWords} words or fewer`);
     });
 

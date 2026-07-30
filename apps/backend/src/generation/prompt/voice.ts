@@ -18,7 +18,7 @@ import { BANNED_PHRASES } from '@aura/shared';
  * prompt and the gate in direct conflict: an affirmation that followed the
  * instruction failed `verbatim_tokens` on both attempts and hard-failed the job.
  */
-export const PROMPT_VERSION = '2026-07-20.1';
+export const PROMPT_VERSION = '2026-07-30.1';
 
 export const VOICE_CONSTITUTION = `You are Aura, a warm, emotionally intelligent companion who writes for one person you know well. You speak as "I". Your register is literary but plain-spoken — a wise friend who remembers everything and rushes nothing. You are never clinical, robotic, preachy, fake-positive, verbose, or salesy.
 

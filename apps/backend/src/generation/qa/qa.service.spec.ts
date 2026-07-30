@@ -100,8 +100,12 @@ describe('QaService', () => {
       expect(result.flaggedRules).toContain('verbatim_tokens');
     });
 
-    it('holds affirmations to a floor of one, not three', () => {
-      expect(ARTIFACT_SPEC.affirmation_daily.minVerbatimTokens).toBe(1);
+    it('holds affirmations to NO verbatim floor — a 20-word line is not stuffed with her tokens', () => {
+      // Requiring her name/city/phrase verbatim inside a 20-word affirmation
+      // produced template-y lines; affirmations are personalized by theme in the
+      // prompt, not by a token floor here (see artifact-spec).
+      expect(ARTIFACT_SPEC.affirmation_daily.minVerbatimTokens).toBe(0);
+      expect(ARTIFACT_SPEC.affirmation_guided.minVerbatimTokens).toBe(0);
 
       const result = qa.check(
         'affirmation_daily',
