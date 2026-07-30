@@ -131,7 +131,13 @@ export async function loadPlans(): Promise<OfferedPlan[]> {
   const plans: OfferedPlan[] = [];
 
   for (const [id, productId] of Object.entries(PRODUCT_IDS) as [PlanId, string][]) {
-    const pkg = current.availablePackages.find((p) => p.product.identifier === productId);
+    // Google Play reports a subscription's product as `<productId>:<basePlanId>`
+    // (e.g. `aura_premium_annual:annual`); Apple reports the bare `productId`.
+    // Match both so the offering resolves on either store (without this, Android
+    // never matched and every plan silently fell back to the display-only table).
+    const pkg = current.availablePackages.find(
+      (p) => p.product.identifier === productId || p.product.identifier.startsWith(`${productId}:`),
+    );
     if (!pkg) continue;
 
     plans.push({

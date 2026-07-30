@@ -41,7 +41,7 @@ const config: ExpoConfig = {
   name: `${BRAND.displayName}${nameSuffix}`,
   description: BRAND.storeTitle,
   slug: 'aura',
-  version: '1.0.0',
+  version: '1.0.2',
   orientation: 'portrait',
   scheme: BRAND.scheme,
 
