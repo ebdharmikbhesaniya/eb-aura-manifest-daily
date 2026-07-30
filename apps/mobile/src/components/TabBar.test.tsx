@@ -51,16 +51,16 @@ function iconColor(tab: string): unknown {
 const light = colorSchemes.light;
 
 describe('TabBar', () => {
-  it('renders one icon per route, and no captions', async () => {
+  it('renders one icon and its label per route', async () => {
     await render(<TabBar {...makeProps()} />, { wrapper });
 
     expect(screen.getAllByRole('tab')).toHaveLength(4);
     for (const tab of ['home', 'affirmations', 'gratitude', 'profile']) {
       expect(screen.getByTestId(`tab-icon-${tab}`)).toBeTruthy();
     }
-    // The bar is glyphs only — a stray caption would break the pill's rhythm.
-    expect(screen.queryByText('Home')).toBeNull();
-    expect(screen.queryByText('Gratitude')).toBeNull();
+    // WhatsApp-style: each tab carries a visible caption under its glyph.
+    expect(screen.getByText('Home')).toBeTruthy();
+    expect(screen.getByText('Gratitude')).toBeTruthy();
   });
 
   it('keeps the title on the accessibility label once the caption is gone', async () => {
@@ -73,18 +73,18 @@ describe('TabBar', () => {
     expect(screen.getByTestId('tab-profile').props.accessibilityLabel).toBe('profile');
   });
 
-  it('tints only the active tab periwinkle (product 12)', async () => {
+  it('fills the active glyph ember and leaves the rest dark ink', async () => {
     await render(<TabBar {...makeProps({ index: 0 })} />, { wrapper });
 
-    expect(iconColor('home')).toBe(light.cta.background);
-    expect(iconColor('gratitude')).toBe(light.text.secondary);
+    expect(iconColor('home')).toBe(light.accent.emberDeep);
+    expect(iconColor('gratitude')).toBe(light.text.primary);
   });
 
-  it('moves the tint when the active index moves', async () => {
+  it('moves the active mark when the active index moves', async () => {
     await render(<TabBar {...makeProps({ index: 2 })} />, { wrapper });
 
-    expect(iconColor('home')).toBe(light.text.secondary);
-    expect(iconColor('gratitude')).toBe(light.cta.background);
+    expect(iconColor('home')).toBe(light.text.primary);
+    expect(iconColor('gratitude')).toBe(light.accent.emberDeep);
   });
 
   it('reports selection to assistive tech', async () => {
