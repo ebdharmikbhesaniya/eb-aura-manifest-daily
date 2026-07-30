@@ -28,6 +28,7 @@ import { LockedFeatureSheet } from '@/features/paywall/LockedFeatureSheet';
 import { canUse } from '@/features/paywall/gating';
 import { useEntitlement } from '@/features/paywall/useEntitlement';
 import { usePlayerStore } from '@/features/player/playerStore';
+import { useGenerationJob } from '@/features/letter/useGenerationJob';
 import { useProfile } from '@/hooks/useProfile';
 import { LIMITS } from '@aura/shared';
 
@@ -94,6 +95,47 @@ export default function HomeRoute() {
     generating: today.isFetching,
     failed,
   });
+
+  /**
+   * The on-open fallback (product 09 §9.1, 04 §5).
+   *
+   * The scheduler pre-generates a daily moment ~30 min before her arrival time,
+   * but anyone who opens Home BEFORE that window — most obviously right after
+   * onboarding — would otherwise land on an empty first-run Home with no audio.
+   * `momentState` and the scheduler both defer to "the on-open fallback" for
+   * exactly this gap; this is that fallback. When nothing is here yet, generate
+   * today's on demand. The request is keyed to her local date server-side
+   * (07 §1), so repeat opens — and a racing cron — collapse to a single job.
+   */
+  const [fallbackJobId, setFallbackJobId] = useState<string | undefined>();
+  const fallbackJob = useGenerationJob(fallbackJobId);
+  const fallbackTriggered = useRef(false);
+
+  useEffect(() => {
+    if (!userId || !today.isSuccess || state.kind !== 'first_run') return;
+    if (fallbackTriggered.current) return;
+    fallbackTriggered.current = true;
+
+    void (async () => {
+      try {
+        const { jobId } = await api.requestMoment(localDateToday());
+        setFallbackJobId(jobId);
+      } catch (error) {
+        // A moment already exists (409): just re-read it. Anything else is a
+        // real failure, so Home shows the honest retry rather than spinning.
+        if (errorKeyOf(error) === 'already_ready') void today.refetch();
+        else setFailed(true);
+      }
+    })();
+  }, [userId, today.isSuccess, state.kind, today]);
+
+  // When the fallback job lands, surface the moment (or the honest failed state).
+  const fallbackStatus = fallbackJob.data?.status;
+  useEffect(() => {
+    if (!fallbackStatus) return;
+    if (fallbackStatus === 'succeeded') void today.refetch();
+    if (fallbackStatus === 'failed' || fallbackStatus === 'qa_failed') setFailed(true);
+  }, [fallbackStatus, today]);
 
   const play = useCallback(
     (momentId: string) => {

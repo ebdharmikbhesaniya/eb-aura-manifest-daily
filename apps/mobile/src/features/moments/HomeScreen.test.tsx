@@ -177,6 +177,9 @@ describe('HomeScreen', () => {
       await renderHome({ kind: 'first_run' });
 
       expect(screen.getByTestId('home-first-run')).toBeTruthy();
+      // A filled empty state, not a bare card: a warm serif line and a promise.
+      expect(screen.getByText(momentsCopy.states.firstRunTitle)).toBeTruthy();
+      expect(screen.getByText(momentsCopy.states.firstRunBody)).toBeTruthy();
     });
   });
 

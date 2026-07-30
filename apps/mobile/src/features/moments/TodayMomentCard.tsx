@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 
-import { Card, PlayCircle, SerifDisplay, TextButton } from '@/components';
+import { Card, Orb, PlayCircle, SerifDisplay, TextButton } from '@/components';
 import { momentsCopy } from '@/copy/moments';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
@@ -62,9 +62,31 @@ export function TodayMomentCard({
   }
 
   if (state.kind === 'first_run') {
+    // A genuine, filled empty state — never a bare screen (product 09 §9.1, 12
+    // §empty states): the orb (presence, in its writing state since the on-open
+    // fallback is generating now) over one warm serif line and a quiet promise.
     return (
       <View testID="home-first-run">
-        <Card variant="glassy">{quiet(momentsCopy.states.stillForming)}</Card>
+        <Card
+          variant="glassy"
+          style={{
+            alignItems: 'center',
+            gap: spacing.md,
+            paddingVertical: spacing.xl,
+          }}
+        >
+          <Orb state="generating" size={72} testID="home-first-run-orb" />
+          <SerifDisplay variant="momentTitle">{momentsCopy.states.firstRunTitle}</SerifDisplay>
+          <Text
+            allowFontScaling={false}
+            style={[
+              scaledType('body', scale),
+              { color: colors.text.secondary, textAlign: 'center' },
+            ]}
+          >
+            {momentsCopy.states.firstRunBody}
+          </Text>
+        </Card>
       </View>
     );
   }

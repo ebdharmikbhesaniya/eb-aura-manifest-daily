@@ -40,6 +40,13 @@ export const momentsCopy = {
   },
 
   states: {
+    /**
+     * First run: she has no moment yet and the on-open fallback is writing her
+     * first one. A filled, in-voice card (orb + these two lines) rather than a
+     * bare screen — product 09's "no empty state" made literal.
+     */
+    firstRunTitle: 'Your first moment is on its way.',
+    firstRunBody: 'I’m writing it now, from everything you told me. It’ll be here in a moment.',
     /** Cron missed it and the fallback is generating. Honest, unhurried. */
     stillForming: 'Today’s is still forming.',
     /** Shown alongside yesterday's moment while today's is written. */
