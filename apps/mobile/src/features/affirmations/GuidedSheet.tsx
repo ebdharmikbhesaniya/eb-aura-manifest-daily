@@ -1,15 +1,14 @@
-import type { AffirmationTone } from '@aura/shared';
 import { BottomSheetScrollView, type BottomSheetModal } from '@gorhom/bottom-sheet';
 import { forwardRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { Chip, Input, PillButton, SerifDisplay, TextButton } from '@/components';
+import { Chip, Input, PillButton, SerifDisplay } from '@/components';
 import { Sheet } from '@/components';
 import { affirmationsCopy } from '@/copy/affirmations';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
 
-export type GuidedStep = 'goal' | 'feeling' | 'tone' | 'candidates';
+export type GuidedStep = 'goal' | 'candidates';
 
 export interface GuidedCandidate {
   id: string;
@@ -30,32 +29,25 @@ export interface GuidedSheetProps {
    * end back into a step she can act from.
    */
   error?: string | null;
-  onGenerate: (input: {
-    goalArea: string;
-    goalText?: string;
-    feeling: string;
-    tone: AffirmationTone;
-  }) => void;
+  onGenerate: (input: { goalArea: string; goalText?: string }) => void;
   onKeep: (candidateId: string) => void;
-  onStep: (step: GuidedStep) => void;
 }
-
-const TONES: AffirmationTone[] = ['gentle', 'bold', 'grounded'];
 
 /**
  * The guided studio (product 09 §9.3b).
  *
- * Three short questions, then three candidates each carrying its own why-line —
- * the education layer no competitor has. The selections are kept in sheet state
- * rather than a store on purpose: product 09's edge case says an abandoned flow
- * keeps its draft for the SESSION, not forever, and sheet state expresses that
- * exactly without anything to clean up.
+ * One question — what it is for — then three candidates each carrying its own
+ * why-line, the education layer no competitor has. The "how do you want to feel"
+ * and "how should it sound" steps were removed (2026-07-30). The goal is kept in
+ * sheet state rather than a store on purpose: product 09's edge case says an
+ * abandoned flow keeps its draft for the SESSION, not forever, and sheet state
+ * expresses that exactly without anything to clean up.
  *
  * There is deliberately no "regenerate": one set per pass is the documented cost
  * cap, and three candidates is already three generations.
  */
 export const GuidedSheet = forwardRef<BottomSheetModal, GuidedSheetProps>(function GuidedSheet(
-  { step, candidates, busy = false, error = null, onGenerate, onKeep, onStep },
+  { step, candidates, busy = false, error = null, onGenerate, onKeep },
   ref,
 ) {
   const { colors, spacing } = useTheme();
@@ -63,7 +55,6 @@ export const GuidedSheet = forwardRef<BottomSheetModal, GuidedSheetProps>(functi
 
   const [goalArea, setGoalArea] = useState<string | null>(null);
   const [goalText, setGoalText] = useState('');
-  const [feeling, setFeeling] = useState<string | null>(null);
 
   const label = (text: string) => <SerifDisplay variant="title">{text}</SerifDisplay>;
 
@@ -116,74 +107,18 @@ export const GuidedSheet = forwardRef<BottomSheetModal, GuidedSheetProps>(functi
             />
 
             <PillButton
-              title={affirmationsCopy.guided.next}
+              // The goal is now the only question, so this button generates
+              // rather than advancing to a next step.
+              title={affirmationsCopy.guided.create}
               disabled={goalArea === null && goalText.trim() === ''}
-              onPress={() => onStep('feeling')}
+              onPress={() =>
+                onGenerate({
+                  goalArea: goalArea ?? 'Confidence',
+                  ...(goalText.trim() ? { goalText: goalText.trim() } : {}),
+                })
+              }
               testID="guided-goal-next"
             />
-          </View>
-        )}
-
-        {step === 'feeling' && (
-          <View style={{ gap: spacing.md }} testID="guided-feeling">
-            {label(affirmationsCopy.guided.feelingTitle)}
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-              {affirmationsCopy.guided.feelings.map((option) => (
-                <Chip
-                  key={option}
-                  label={option}
-                  selected={feeling === option}
-                  onPress={() => setFeeling(option)}
-                />
-              ))}
-            </View>
-
-            <PillButton
-              title={affirmationsCopy.guided.next}
-              disabled={feeling === null}
-              onPress={() => onStep('tone')}
-              testID="guided-feeling-next"
-            />
-            <View style={{ alignItems: 'center' }}>
-              <TextButton
-                title={affirmationsCopy.guided.back}
-                onPress={() => onStep('goal')}
-                testID="guided-feeling-back"
-              />
-            </View>
-          </View>
-        )}
-
-        {step === 'tone' && (
-          <View style={{ gap: spacing.md }} testID="guided-tone">
-            {label(affirmationsCopy.guided.toneTitle)}
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-              {TONES.map((tone) => (
-                <Chip
-                  key={tone}
-                  label={affirmationsCopy.guided.tones[tone]}
-                  selected={false}
-                  onPress={() =>
-                    onGenerate({
-                      goalArea: goalArea ?? 'Confidence',
-                      ...(goalText.trim() ? { goalText: goalText.trim() } : {}),
-                      feeling: feeling ?? 'Calm',
-                      tone,
-                    })
-                  }
-                />
-              ))}
-            </View>
-
-            <View style={{ alignItems: 'center' }}>
-              <TextButton
-                title={affirmationsCopy.guided.back}
-                onPress={() => onStep('feeling')}
-                testID="guided-tone-back"
-              />
-            </View>
           </View>
         )}
 

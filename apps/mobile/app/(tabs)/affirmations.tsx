@@ -105,7 +105,6 @@ export default function AffirmationsRoute() {
         .then((res) => {
           analytics.capture('affirmation_generated_guided', {
             goal_area: input.goalArea,
-            tone: input.tone,
           });
           // Hand off to the poll; busy stays true until the job is terminal.
           setGuidedJobId(res.jobId);
@@ -128,10 +127,10 @@ export default function AffirmationsRoute() {
     // A failed pass wrote no candidate rows, so the candidate step would render
     // its title over an empty panel with nothing to tap — a dead end she can
     // only escape by dismissing the sheet and starting over. Say what happened
-    // and put her back on the tone step, where one tap retries.
+    // and put her back on the goal step, where she can generate again.
     if (guidedStatus === 'failed' || guidedStatus === 'qa_failed') {
       setGuidedError(errorCopyForKey('generation_failed'));
-      setStep('tone');
+      setStep('goal');
       // Clearing the id stops the poll; a retry sets a fresh one.
       setGuidedJobId(undefined);
     }
@@ -332,7 +331,6 @@ export default function AffirmationsRoute() {
           whyLine: c.why_line,
         }))}
         error={guidedError}
-        onStep={setStep}
         onGenerate={generate}
         onKeep={keep}
       />

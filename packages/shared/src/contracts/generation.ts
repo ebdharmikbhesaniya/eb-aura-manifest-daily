@@ -95,17 +95,15 @@ export type JobStatusResponse = z.infer<typeof jobStatusResponseSchema>;
 /** `POST /v1/generation/affirmation/daily` (07 §1) — on-open fallback, body empty. */
 export const affirmationDailyRequestSchema = z.object({}).strict();
 
-/** Guided studio inputs (product 09 §9.3): what it is for, how she wants to feel, how it should sound. */
-export const AFFIRMATION_TONES = ['gentle', 'bold', 'grounded'] as const;
-export const affirmationToneSchema = z.enum(AFFIRMATION_TONES);
-export type AffirmationTone = z.infer<typeof affirmationToneSchema>;
-
+/**
+ * Guided studio input (product 09 §9.3): just what it is for. The "how she wants
+ * to feel" and "how it should sound" steps were removed (2026-07-30) — the flow
+ * is one question then three candidates.
+ */
 export const affirmationGuidedRequestSchema = z
   .object({
     goalArea: z.string().min(1).max(60),
     goalText: z.string().max(LIMITS.DESIRE_TEXT_MAX).optional(),
-    feeling: z.string().min(1).max(60),
-    tone: affirmationToneSchema,
   })
   .strict();
 export type AffirmationGuidedRequest = z.infer<typeof affirmationGuidedRequestSchema>;

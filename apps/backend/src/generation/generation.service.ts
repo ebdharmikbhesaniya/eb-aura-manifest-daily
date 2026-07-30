@@ -311,8 +311,6 @@ export class GenerationService implements OnModuleInit {
       text: candidate.text,
       why_line: candidate.whyLine,
       technique: candidate.technique,
-      tone: guided?.tone ?? null,
-      feeling: guided?.feeling ?? null,
       goal_area: guided?.goalArea ?? null,
     }));
 
@@ -446,7 +444,6 @@ interface GuidedCandidate {
 }
 
 const REFINE_DIRECTIONS = new Set(['more_realistic', 'softer', 'more_ambitious', 'note']);
-const AFFIRMATION_TONES = new Set(['gentle', 'bold', 'grounded']);
 
 function parseJobInput(raw: unknown): ParsedJobInput {
   if (!raw || typeof raw !== 'object')
@@ -458,15 +455,9 @@ function parseJobInput(raw: unknown): ParsedJobInput {
 
   const guidedRaw = value.guided as Record<string, unknown> | undefined;
   const guided =
-    guidedRaw &&
-    typeof guidedRaw.goalArea === 'string' &&
-    typeof guidedRaw.feeling === 'string' &&
-    typeof guidedRaw.tone === 'string' &&
-    AFFIRMATION_TONES.has(guidedRaw.tone)
+    guidedRaw && typeof guidedRaw.goalArea === 'string'
       ? {
           goalArea: guidedRaw.goalArea,
-          feeling: guidedRaw.feeling,
-          tone: guidedRaw.tone as GuidedPromptInput['tone'],
           ...(typeof guidedRaw.goalText === 'string' ? { goalText: guidedRaw.goalText } : {}),
         }
       : undefined;

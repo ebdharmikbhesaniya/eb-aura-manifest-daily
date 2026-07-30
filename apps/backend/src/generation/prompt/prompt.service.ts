@@ -1,4 +1,4 @@
-import type { AffirmationTone, JobArtifact } from '@aura/shared';
+import type { JobArtifact } from '@aura/shared';
 import { Injectable } from '@nestjs/common';
 
 import { ARTIFACT_SPEC } from '../artifact-spec';
@@ -210,7 +210,7 @@ Return JSON: { "title": "a two-or-three word mantra", "body": "the affirmation",
     // Her studio selections steer the set; goalText is her own free words, so it
     // is offered as a phrase to anchor on, not as an instruction.
     const steer = guided
-      ? `\nShe chose this for ${guided.goalArea}, wants to feel ${guided.feeling}, and picked a ${guided.tone} tone.${
+      ? `\nShe chose this for ${guided.goalArea}.${
           guided.goalText ? ` In her words: "${guided.goalText}".` : ''
         }\n`
       : '';
@@ -262,15 +262,13 @@ export interface RefineInput {
 }
 
 /**
- * The three choices she made in the guided studio (product 09 §9.3b). Threaded
- * into the candidate prompt so the three affirmations actually answer the goal,
- * feeling, and tone she picked — without it the candidates ignore her selections.
+ * What she chose in the guided studio (product 09 §9.3b). Threaded into the
+ * candidate prompt so the three affirmations answer her goal — and, when she
+ * typed one, anchor to her own words.
  */
 export interface GuidedPromptInput {
   goalArea: string;
   goalText?: string;
-  feeling: string;
-  tone: AffirmationTone;
 }
 
 const REFINE_DIRECTION_COPY: Record<RefineInput['direction'], string> = {

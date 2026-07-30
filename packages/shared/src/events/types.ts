@@ -236,8 +236,8 @@ export interface EventCatalog {
   // ─── Affirmations & gratitude (Phase 8, mobile) ────────────────────────
   /** Mobile. */
   affirmation_revealed: Record<string, never>;
-  /** Mobile. Structural inputs only — her free-text goal never leaves the device. */
-  affirmation_generated_guided: { goal_area: string; tone: AffirmationToneName };
+  /** Mobile. Structural input only — her free-text goal never leaves the device. */
+  affirmation_generated_guided: { goal_area: string };
   /** Mobile. */
   affirmation_saved: Record<string, never>;
   /** Mobile. */
@@ -274,7 +274,6 @@ export interface EventCatalog {
 
 export type CallbackType = 'remembered_detail' | 'explicit_callback';
 
-export type AffirmationToneName = 'gentle' | 'bold' | 'grounded';
 export type ShareFormat = 'image' | 'text';
 export type TechniqueName = 'identity' | 'present_tense' | 'three_six_nine' | 'scripting';
 

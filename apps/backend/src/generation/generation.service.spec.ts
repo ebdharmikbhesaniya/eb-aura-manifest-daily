@@ -227,7 +227,7 @@ describe('GenerationService (pipeline)', () => {
     const guidedJob = () =>
       job({
         artifact: 'affirmation_guided',
-        input: { guided: { goalArea: 'Love', feeling: 'Certain', tone: 'gentle' } },
+        input: { guided: { goalArea: 'Love' } },
       });
 
     it('parses the candidate set and writes affirmation rows, not a moment', async () => {
@@ -247,8 +247,6 @@ describe('GenerationService (pipeline)', () => {
         kind: 'guided',
         status: 'candidate',
         goal_area: 'Love',
-        feeling: 'Certain',
-        tone: 'gentle',
         text: expect.any(String),
       });
     });

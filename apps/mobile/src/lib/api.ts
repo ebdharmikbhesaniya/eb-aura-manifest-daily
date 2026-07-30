@@ -4,7 +4,6 @@ import {
   jobAcceptedSchema,
   jobStatusResponseSchema,
   manifestAcceptedSchema,
-  type AffirmationTone,
   type ApiErrorKey,
   type RefineDirection,
 } from '@aura/shared';
@@ -166,12 +165,7 @@ export const api = {
     }),
 
   /** The guided studio's one generation per pass (07 §1, product 09 §9.3b). */
-  generateGuidedAffirmation: (input: {
-    goalArea: string;
-    goalText?: string;
-    feeling: string;
-    tone: AffirmationTone;
-  }) =>
+  generateGuidedAffirmation: (input: { goalArea: string; goalText?: string }) =>
     request({
       path: '/v1/generation/affirmation/guided',
       method: 'POST',

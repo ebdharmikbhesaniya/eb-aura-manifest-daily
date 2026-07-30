@@ -38,20 +38,13 @@ export const affirmationsCopy = {
   guided: {
     goalTitle: 'What’s this for?',
     goalPlaceholder: 'Or tell me in your words',
-    feelingTitle: 'How do you want to feel?',
-    toneTitle: 'How should it sound?',
     candidatesTitle: 'Three ways to say it',
     generating: 'Writing them…',
-    back: 'Back',
-    next: 'Next',
+    // The single-question flow (2026-07-30) generates straight from the goal —
+    // the "how do you want to feel" and "how should it sound" steps are gone.
+    create: 'Write my three',
 
     goalAreas: ['Work', 'Money', 'Health', 'Love', 'Home', 'Confidence'],
-    feelings: ['Calm', 'Certain', 'Held', 'Awake', 'Enough', 'Ready'],
-    tones: {
-      gentle: 'Gentle',
-      bold: 'Bold',
-      grounded: 'Grounded',
-    },
   },
 
   /**

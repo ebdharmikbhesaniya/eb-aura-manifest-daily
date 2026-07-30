@@ -31,7 +31,6 @@ export type Database = {
       affirmations: {
         Row: {
           created_at: string;
-          feeling: string | null;
           goal_area: string | null;
           id: string;
           kind: Database['public']['Enums']['affirmation_kind'];
@@ -40,14 +39,12 @@ export type Database = {
           status: Database['public']['Enums']['affirmation_status'];
           technique: string | null;
           text: string;
-          tone: string | null;
           updated_at: string;
           user_id: string;
           why_line: string | null;
         };
         Insert: {
           created_at?: string;
-          feeling?: string | null;
           goal_area?: string | null;
           id?: string;
           kind: Database['public']['Enums']['affirmation_kind'];
@@ -56,14 +53,12 @@ export type Database = {
           status?: Database['public']['Enums']['affirmation_status'];
           technique?: string | null;
           text: string;
-          tone?: string | null;
           updated_at?: string;
           user_id: string;
           why_line?: string | null;
         };
         Update: {
           created_at?: string;
-          feeling?: string | null;
           goal_area?: string | null;
           id?: string;
           kind?: Database['public']['Enums']['affirmation_kind'];
@@ -72,7 +67,6 @@ export type Database = {
           status?: Database['public']['Enums']['affirmation_status'];
           technique?: string | null;
           text?: string;
-          tone?: string | null;
           updated_at?: string;
           user_id?: string;
           why_line?: string | null;
