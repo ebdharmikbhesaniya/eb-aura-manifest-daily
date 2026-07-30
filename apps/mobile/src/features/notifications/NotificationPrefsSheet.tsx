@@ -36,9 +36,14 @@ export const NotificationPrefsSheet = forwardRef<BottomSheetModal, NotificationP
     const { prefs, update } = useNotificationPrefs(userId ?? undefined);
 
     return (
-      <Sheet ref={ref} snapPoints={['46%']}>
+      <Sheet ref={ref} fitContent>
         <BottomSheetView
-          style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.lg }}
+          style={{
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.md,
+            paddingBottom: spacing.xxl,
+            gap: spacing.lg,
+          }}
         >
           <SerifDisplay variant="sheetTitle">{notificationsCopy.prefs.title}</SerifDisplay>
 

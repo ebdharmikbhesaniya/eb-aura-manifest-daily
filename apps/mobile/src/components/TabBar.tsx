@@ -1,8 +1,9 @@
-import { Pressable, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabIcon } from '@/components/TabIcon';
 import { useTheme } from '@/theme/ThemeProvider';
+import { clampedFontScale } from '@/theme/typography';
 
 /**
  * Structural subset of react-navigation's `BottomTabBarProps`. The real type
@@ -22,68 +23,64 @@ export interface TabBarProps {
   };
 }
 
-/**
- * The pill's own height, from the styles below: spacing.sm × 2 vertical padding
- * (16) + a 20pt icon + spacing.xs (4) + the 3pt underline + 1pt border × 2.
- * Keep in step with the padding and icon size used further down.
- */
-const TAB_BAR_HEIGHT = 45;
+/** The bar's content height above the safe-area inset — drives scroll clearance. */
+const BAR_CONTENT_HEIGHT = 58;
 
 /**
- * Bottom space a scrolling tab screen must leave clear, for THIS device.
- *
- * Measured, not guessed. The bar floats `spacing.lg` above the safe-area
- * inset, so the space it actually occupies is inset + float + its own height —
- * on a phone with a tall navigation bar that comes to well over the flat 88pt
- * this replaced, which is how Home's last control ended up underneath the pill.
+ * Bottom space a scrolling tab screen must leave clear, for THIS device. The bar
+ * docks to the bottom edge, so a screen must clear its content height plus the
+ * safe-area inset it pads itself with.
  */
 export function useTabBarClearance(): number {
   const insets = useSafeAreaInsets();
   const { spacing } = useTheme();
-  return insets.bottom + spacing.lg + TAB_BAR_HEIGHT + spacing.lg;
+  return insets.bottom + BAR_CONTENT_HEIGHT + spacing.md;
 }
 
 /**
- * The floating pill tab bar (product 12 §navigation, 06 §6): four tabs, no
- * more — the IA does not grow tabs. It floats clear of the edges rather than
- * docking, so screens keep their full-bleed gradient underneath.
- *
- * Icons, no captions. The four destinations are fixed and their glyphs are
- * conventional, so a caption under each one is a label she reads once and then
- * never again — and product 12 asks for quiet chrome. The title has NOT been
- * dropped though: it still rides on `accessibilityLabel`, which is what
- * VoiceOver announces, so nothing is lost for anyone navigating by voice.
+ * The bottom tab bar (product 12 §navigation, 06 §6): four tabs, no more — the
+ * IA does not grow tabs. A clean docked bar with a rounded top edge, each tab a
+ * glyph over its label. The active tab FILLS its glyph in and colours it ember,
+ * with a soft ember chip behind it — the modern bottom-nav idiom, the clearest
+ * "you are here". The title is the label AND the `accessibilityLabel`, so voice
+ * and sighted users read the same word.
  */
 export function TabBar({ state, descriptors, navigation }: TabBarProps) {
-  const { colors, radii, spacing, iconSizes } = useTheme();
+  const { colors, radii, spacing, iconSizes, shadows } = useTheme();
   const insets = useSafeAreaInsets();
+  const scale = clampedFontScale();
 
   return (
     <View
       accessibilityRole="tablist"
       style={{
         position: 'absolute',
-        left: spacing.lg,
-        right: spacing.lg,
-        // spacing.lg clear of the safe-area edge — above the home indicator on
-        // notch devices, above the physical edge elsewhere. Floats, never docks.
-        bottom: insets.bottom + spacing.lg,
+        left: 0,
+        right: 0,
+        bottom: 0,
         flexDirection: 'row',
-        borderRadius: radii.pill,
-        backgroundColor: colors.surface.cardGlassy,
-        // Same hairline as glassy cards — the bar is a glassy surface, not chrome.
-        borderWidth: 1,
+        backgroundColor: colors.surface.card,
+        borderTopLeftRadius: radii.sheet,
+        borderTopRightRadius: radii.sheet,
+        // A hairline at the seam, and the safe-area inset padded into the bar.
+        borderTopWidth: 1,
         borderColor: colors.surface.border,
-        // A slim pill, per v4: the ONLY vertical padding lives on each tab
-        // (below) so it isn't doubled here — a second layer of it is what made
-        // the bar read as a thick block. Horizontal padding keeps the outer
-        // icons off the pill's rounded ends.
+        paddingTop: spacing.sm,
+        paddingBottom: insets.bottom + spacing.xs,
         paddingHorizontal: spacing.sm,
+        // Soft lift so the bar reads above the screen it caps — the field preset,
+        // flipped to throw its shadow UP from the docked edge.
+        ...shadows.field,
+        shadowOffset: { width: 0, height: -4 },
       }}
     >
-      {state.routes.map((route, index) => {
-        const focused = index === state.index;
+      {state.routes.map((route) => {
+        const focused = state.routes.indexOf(route) === state.index;
         const title = descriptors[route.key]?.options.title ?? route.name;
+        // Resting glyphs are dark ink (the reference's crisp outline); the active
+        // one turns ember. Labels stay a step quieter than their glyph.
+        const iconColor = focused ? colors.accent.emberDeep : colors.text.primary;
+        const labelColor = focused ? colors.accent.emberDeep : colors.text.secondary;
 
         return (
           <Pressable
@@ -92,7 +89,12 @@ export function TabBar({ state, descriptors, navigation }: TabBarProps) {
             accessibilityState={{ selected: focused }}
             accessibilityLabel={title}
             testID={`tab-${route.name}`}
-            style={{ flex: 1, alignItems: 'center', paddingVertical: spacing.sm }}
+            style={({ pressed }) => ({
+              flex: 1,
+              alignItems: 'center',
+              gap: 4,
+              opacity: pressed ? 0.6 : 1,
+            })}
             onPress={() => {
               // Standard react-navigation contract: a screen may intercept its
               // own tab press (scroll-to-top et al.) by preventing default.
@@ -106,28 +108,25 @@ export function TabBar({ state, descriptors, navigation }: TabBarProps) {
               }
             }}
           >
-            <TabIcon
-              name={route.name}
-              // 20pt to match the v4 tab bar (iconSizes.md); the 22pt default
-              // was part of what made the bar sit tall.
-              size={iconSizes.md}
-              // Ink is the action colour (v3: actions are ink pills); the
-              // active tab is one of its few sanctioned uses.
-              color={focused ? colors.cta.background : colors.text.secondary}
-            />
-            {/* The ember underline is v4's active mark — one of ember's few
-                sanctioned appearances outside voice, because the bar IS where
-                the app speaks from. Always rendered so rows don't reflow;
-                transparent when resting. */}
-            <View
+            {/* The active mark is the FILLED, ember glyph itself — no chip behind
+                it. The reference's highlight reads as noise on our warm surface,
+                and the fill + colour already says "you are here" cleanly. */}
+            <View style={{ paddingVertical: 5 }}>
+              <TabIcon name={route.name} size={iconSizes.lg} color={iconColor} focused={focused} />
+            </View>
+
+            <Text
+              numberOfLines={1}
+              allowFontScaling={false}
               style={{
-                width: spacing.md,
-                height: 3,
-                marginTop: spacing.xs,
-                borderRadius: radii.pill,
-                backgroundColor: focused ? colors.accent.ember : 'transparent',
+                fontSize: 11 * scale,
+                letterSpacing: 0.1,
+                color: labelColor,
+                fontWeight: focused ? '600' : '400',
               }}
-            />
+            >
+              {title}
+            </Text>
           </Pressable>
         );
       })}

@@ -20,6 +20,12 @@ export interface SheetProps {
   children: ReactNode;
   /** Defaults to the medium/large detents; override only with a product reason. */
   snapPoints?: (string | number)[];
+  /**
+   * Size the sheet to its content instead of a detent (product 12 allows this
+   * for a SHORT settings/confirm sheet — a fixed detent leaves dead white space
+   * under a few rows). Ignored when `snapPoints` is passed.
+   */
+  fitContent?: boolean;
   onDismiss?: () => void;
 }
 
@@ -34,9 +40,12 @@ export interface SheetProps {
  * `BottomSheetView`/`BottomSheetScrollView` as needed.
  */
 export const Sheet = forwardRef<BottomSheetModal, SheetProps>(function Sheet(
-  { children, snapPoints = [...DETENTS], onDismiss },
+  { children, snapPoints, fitContent = false, onDismiss },
   ref,
 ) {
+  // Content-fit: hand no detents and let dynamic sizing measure the content.
+  // Otherwise, the caller's detents or the medium/large default.
+  const resolvedSnapPoints = fitContent ? undefined : (snapPoints ?? [...DETENTS]);
   const { colors, durations, radii } = useTheme();
   const motion = useMotion();
 
@@ -65,10 +74,12 @@ export const Sheet = forwardRef<BottomSheetModal, SheetProps>(function Sheet(
   return (
     <BottomSheetModal
       ref={ref}
-      snapPoints={snapPoints}
-      // Detents are fixed medium/large per product 12 — content-driven sizing
-      // would let each sheet pick its own height and break the native feel.
-      enableDynamicSizing={false}
+      // Omitted entirely when content-fit (exactOptionalPropertyTypes forbids an
+      // explicit `undefined`); otherwise the caller's detents or the default.
+      {...(resolvedSnapPoints ? { snapPoints: resolvedSnapPoints } : {})}
+      // Detents are fixed medium/large per product 12 by default; a short sheet
+      // may opt into content-driven sizing via `fitContent` to shed dead space.
+      enableDynamicSizing={fitContent}
       animationConfigs={motion.reduceMotion ? reducedTiming : spring}
       // Every input flow in the app lives in one of these (product 12), so the
       // keyboard contract belongs here rather than in each caller.
