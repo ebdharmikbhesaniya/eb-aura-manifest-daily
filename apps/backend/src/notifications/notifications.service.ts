@@ -73,6 +73,12 @@ export class NotificationsService {
       body: content.body,
       data: { ...content.data, url: content.url },
       sound: 'default',
+      // Android delivery (11 §3): `high` tells FCM to wake the device now rather
+      // than batching in Doze — an arrival note must land at her chosen time.
+      priority: 'high' as const,
+      // Must match ANDROID_NOTIFICATION_CHANNEL_ID in the app (useNotifications.ts):
+      // the channel owns importance/sound, and a mismatched id drops to a silent one.
+      channelId: 'default',
     }));
 
     try {

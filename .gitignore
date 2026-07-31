@@ -51,6 +51,10 @@ GoogleService-Info.plist
 /aura-*.json
 *service-account*.json
 *serviceaccount*.json
+# Firebase Admin SDK / FCM V1 service-account keys (downloaded from Firebase
+# console for EAS push). The name has no "service-account" substring and can be
+# saved in any dir, so match it explicitly — a private key must never be commit.
+*firebase-adminsdk*.json
 
 # Google OAuth client secret JSONs (downloaded from Cloud Console) — NEVER commit
 client_secret*.json

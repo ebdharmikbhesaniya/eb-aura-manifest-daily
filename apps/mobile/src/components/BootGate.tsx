@@ -5,6 +5,7 @@ import { Text, View } from 'react-native';
 import { bootCopy } from '@/copy/boot';
 import { useAccountStatus } from '@/features/auth/useAccountStatus';
 import { hasSeenLetter } from '@/features/letter/keepLetter';
+import { configureNotifications } from '@/features/notifications/useNotifications';
 import { useNotificationRouting } from '@/features/notifications/useNotificationRouting';
 import { hasSeenPaywall } from '@/features/paywall/paywallSeen';
 import { useLetter } from '@/features/letter/useLetter';
@@ -26,6 +27,13 @@ export function BootGate({ children }: { children: ReactNode }) {
   const { colors, spacing, typography } = useTheme();
 
   useBoot();
+
+  // Sets the foreground handler and the Android notification channel once, up
+  // front (11 §2) — the channel must exist before any push can render, and this
+  // needs neither a session nor permission, so it runs on every boot.
+  useEffect(() => {
+    void configureNotifications();
+  }, []);
 
   // Re-asked on every boot (and after a sign-out bumps the nonce), because it
   // is what decides whether she meets the gate at all.

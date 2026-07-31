@@ -250,7 +250,20 @@ const config: ExpoConfig = {
     ],
     // Push arrives from the backend only — the app never local-schedules
     // content (11 §1), so no permission strings beyond the OS default are added.
-    'expo-notifications',
+    //
+    // `icon` + `color` control the Android status-bar notification: Android
+    // renders only the icon's ALPHA as a silhouette and tints it with `color`,
+    // so a full-colour app icon would show as a white square. The monochrome
+    // brand mark is already a transparent silhouette, so it doubles as the
+    // notification icon; the ember tint matches the app's voice accent. (The
+    // channel — importance/sound — is created at runtime, see useNotifications.)
+    [
+      'expo-notifications',
+      {
+        icon: './assets/brand/monochrome-icon.png',
+        color: '#E2682F',
+      },
+    ],
     [
       // The Letter's playback (10 §4). `microphonePermission: false` DELETES
       // NSMicrophoneUsageDescription, which the plugin would otherwise add by

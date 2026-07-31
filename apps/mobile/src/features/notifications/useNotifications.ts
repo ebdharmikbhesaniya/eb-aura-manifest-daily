@@ -2,9 +2,53 @@ import * as Sentry from '@sentry/react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { analytics } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
+import { palette } from '@/theme/palette';
+
+/**
+ * The Android notification channel id (11 §2).
+ *
+ * Android 8+ DROPS any notification whose channel does not exist, and the
+ * channel — not the message — owns importance, sound and heads-up behaviour.
+ * Named `default` so a push that omits `channelId` (Expo's own fallback) still
+ * lands in this configured channel rather than an OS-created silent one. The
+ * backend sends this exact id (see notifications.service.ts).
+ */
+export const ANDROID_NOTIFICATION_CHANNEL_ID = 'default';
+
+/**
+ * Configures how notifications DISPLAY — the foreground handler and the Android
+ * channel — separately from asking for permission or registering a token.
+ *
+ * Idempotent and permission-free, so it is called once on every boot before the
+ * token is ever requested: the channel must exist before any push can render,
+ * and the handler must be set before one can arrive while the app is open.
+ */
+export async function configureNotifications(): Promise<void> {
+  Notifications.setNotificationHandler({
+    // Show the moment even if she is already in the app — it is content she
+    // asked for, not an interruption. No badge (11 §1: no unread scorekeeping).
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync(ANDROID_NOTIFICATION_CHANNEL_ID, {
+      name: 'Your moments',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'default',
+      vibrationPattern: [0, 200, 100, 200],
+      lightColor: palette.ember,
+    });
+  }
+}
 
 /**
  * Permission, token registration and open attribution (11 §1–§2, §5).
