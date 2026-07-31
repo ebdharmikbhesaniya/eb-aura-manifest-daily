@@ -118,6 +118,15 @@ export default function SettingsRoute() {
           />
         </RowGroup>
 
+        <RowGroup separatorInset="edge">
+          <ListRow
+            title={settingsCopy.support.title}
+            subtitle={settingsCopy.support.subtitle}
+            onPress={() => router.push('/settings/support')}
+            testID="settings-support-row"
+          />
+        </RowGroup>
+
         <LegalRowGroup />
       </ScrollView>
 

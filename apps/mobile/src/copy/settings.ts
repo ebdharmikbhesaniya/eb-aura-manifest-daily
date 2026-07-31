@@ -34,5 +34,23 @@ export const settingsCopy = {
     },
   },
 
+  /** The Support & Connect screen and its Settings row (settings/support). */
+  support: {
+    title: 'Support & Connect',
+    /** Subtitle on the Settings row. */
+    subtitle: 'Reach us, or find us out there',
+    intro:
+      'Something on your mind — a problem, an idea, a kind word? Send it our way and a real person will read it.',
+    form: {
+      emailLabel: 'YOUR EMAIL',
+      emailPlaceholder: 'So we can write back',
+      messagePlaceholder: 'How can we help?',
+      send: 'Send message',
+    },
+    connectLabel: 'FIND US',
+    /** Subject line on the composed email. */
+    emailSubject: 'Aura — a message from the app',
+  },
+
   deleteAccount: 'Delete account',
 } as const;
