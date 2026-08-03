@@ -25,6 +25,7 @@ export function ProfilePlanChip({ label, tint, onPress }: ProfilePlanChipProps) 
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityHint="Opens your subscription"
       onPress={onPress}
       testID="profile-plan-chip"
       style={({ pressed }) => ({

@@ -20,11 +20,18 @@ jest.mock('@/stores/appState', () => ({
     selector({ status: 'ready', userId: 'user-1' }),
 }));
 jest.mock('./api');
+// Controllable so tests can drive the entitlement and claim-status branches
+// (the `mock`-prefix lets the jest factory close over them).
+let mockEntitlement = { premium: false, inTrial: false, loading: false, info: null };
+let mockAccount: { claimed: boolean | undefined; appleAvailable: boolean } = {
+  claimed: false,
+  appleAvailable: false,
+};
 jest.mock('@/features/paywall/useEntitlement', () => ({
-  useEntitlement: () => ({ premium: false, inTrial: false, loading: false, info: null }),
+  useEntitlement: () => mockEntitlement,
 }));
 jest.mock('@/features/auth/useAccountStatus', () => ({
-  useAccountStatus: () => ({ claimed: false, appleAvailable: false }),
+  useAccountStatus: () => mockAccount,
 }));
 // ClaimSheet is a @gorhom bottom sheet needing a provider this minimal wrapper
 // lacks; its claim behavior is covered by ProfileAccountSection's own test.
@@ -57,6 +64,9 @@ function wrapper({ children }: { children: ReactNode }) {
 describe('ProfileTab (product 11: trust center)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset to the default: free + anonymous.
+    mockEntitlement = { premium: false, inTrial: false, loading: false, info: null };
+    mockAccount = { claimed: false, appleAvailable: false };
     mockedApi.fetchPeople.mockResolvedValue([
       {
         id: 'p1',
@@ -82,6 +92,32 @@ describe('ProfileTab (product 11: trust center)', () => {
     expect(view.getByTestId('profile-plan-chip')).toBeTruthy();
     expect(view.getByText(profileCopy.account.plan.free)).toBeTruthy();
     expect(view.getByText(profileCopy.account.secure.title)).toBeTruthy();
+  });
+
+  it('maps a premium entitlement to the Premium chip through the real derivation', async () => {
+    mockEntitlement = { premium: true, inTrial: false, loading: false, info: null };
+    const view = await render(<ProfileTab />, { wrapper });
+
+    expect(await view.findByText(profileCopy.account.plan.premium)).toBeTruthy();
+    expect(view.queryByText(profileCopy.account.plan.free)).toBeNull();
+  });
+
+  it('hides "Secure your account" while the claim check is IN FLIGHT (claimed undefined)', async () => {
+    // Guards the spec's `claimed === false` gate against a regression to `!claimed`,
+    // which would wrongly show the row before the check settles.
+    mockAccount = { claimed: undefined, appleAvailable: false };
+    const view = await render(<ProfileTab />, { wrapper });
+
+    await view.findByText(profileCopy.account.label);
+    expect(view.queryByText(profileCopy.account.secure.title)).toBeNull();
+  });
+
+  it('hides "Secure your account" for a claimed (signed-in) account', async () => {
+    mockAccount = { claimed: true, appleAvailable: false };
+    const view = await render(<ProfileTab />, { wrapper });
+
+    await view.findByText(profileCopy.account.label);
+    expect(view.queryByText(profileCopy.account.secure.title)).toBeNull();
   });
 
   it('shows what Aura currently believes, field by field', async () => {
