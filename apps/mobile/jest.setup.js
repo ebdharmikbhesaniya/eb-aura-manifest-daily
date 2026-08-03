@@ -229,3 +229,13 @@ jest.mock('@sentry/react-native', () => ({
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
 process.env.EXPO_PUBLIC_API_URL = 'http://127.0.0.1:3000';
+
+// Firebase Analytics has no JS implementation under jest. v26 is the modular
+// API — named exports, no default — so mock getAnalytics/logEvent/
+// setAnalyticsCollectionEnabled as jest.fns tests can assert on.
+jest.mock('@react-native-firebase/analytics', () => ({
+  __esModule: true,
+  getAnalytics: jest.fn(() => ({})),
+  logEvent: jest.fn(() => Promise.resolve()),
+  setAnalyticsCollectionEnabled: jest.fn(() => Promise.resolve()),
+}));
