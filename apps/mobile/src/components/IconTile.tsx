@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -8,7 +9,9 @@ import { clampedFontScale, scaledType } from '@/theme/typography';
 export interface IconTileProps {
   /** Soft accent washes (v4 profile rows); 'orb' is the ember gradient reserved for memory/voice rows. */
   tint: 'parchment' | 'blush' | 'olive' | 'bone' | 'orb';
-  /** Optional small text glyph centered in the tile (✕, ♥ …). */
+  /** A centred Ionicons glyph — the row's category at a glance. */
+  icon?: keyof typeof Ionicons.glyphMap;
+  /** Optional small text glyph centered in the tile (✕, ♥ …). Prefer `icon`. */
   glyph?: string;
   testID?: string;
 }
@@ -17,9 +20,12 @@ export interface IconTileProps {
  * The small rounded tile that leads a v4 row. One job: a quiet colour swatch
  * that tells the row's category at a glance — never an action.
  */
-export function IconTile({ tint, glyph, testID }: IconTileProps) {
+export function IconTile({ tint, icon, glyph, testID }: IconTileProps) {
   const { colors, radii } = useTheme();
   const scale = clampedFontScale();
+
+  // On the ember orb the glyph reads cream; on the soft washes it reads ink.
+  const contentColor = tint === 'orb' ? colors.text.onCta : colors.text.primary;
 
   const frame = {
     width: ICON_TILE_SIZE,
@@ -37,12 +43,14 @@ export function IconTile({ tint, glyph, testID }: IconTileProps) {
     bone: colors.bg.base,
   };
 
-  const label = glyph ? (
+  const label = icon ? (
+    <Ionicons name={icon} size={18} color={contentColor} />
+  ) : glyph ? (
     <Text
       accessibilityElementsHidden
       importantForAccessibility="no"
       allowFontScaling={false}
-      style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
+      style={[scaledType('bodySmall', scale), { color: contentColor }]}
     >
       {glyph}
     </Text>

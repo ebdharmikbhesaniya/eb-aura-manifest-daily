@@ -43,7 +43,10 @@ export async function configureNotifications(): Promise<void> {
     await Notifications.setNotificationChannelAsync(ANDROID_NOTIFICATION_CHANNEL_ID, {
       name: 'Your moments',
       importance: Notifications.AndroidImportance.HIGH,
-      sound: 'default',
+      // No `sound` key: the channel falls back to the system default tone. A
+      // string here is read as a CUSTOM sound file (default.wav) that would have
+      // to be bundled via the expo-notifications plugin `sounds` array — which we
+      // don't ship, so passing 'default' only logged a "sound not found" warning.
       vibrationPattern: [0, 200, 100, 200],
       lightColor: palette.ember,
     });

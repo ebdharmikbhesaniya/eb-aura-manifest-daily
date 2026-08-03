@@ -11,6 +11,12 @@ export const profileCopy = {
   /** The gear in the header — Settings lives behind Profile, never on Home. */
   settings: 'Settings',
 
+  /** Section headers that group the memory front door from the trust centre. */
+  sections: {
+    memory: 'What I know about you',
+    trust: 'Privacy & trust',
+  },
+
   /** Row titles in the memory front door (v4 §profile). */
   rows: {
     basics: 'Basics',

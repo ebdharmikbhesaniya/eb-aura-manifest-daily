@@ -20,13 +20,13 @@ export function ProfileTrustLinks() {
         <ListRow
           title={profileCopy.links.neverInclude}
           subtitle={profileCopy.links.neverIncludeHint}
-          leading={<IconTile tint="bone" glyph="✕" />}
+          leading={<IconTile tint="bone" icon="ban-outline" />}
           onPress={() => router.push('/profile/never-include' as never)}
         />
         <ListRow
           title={profileCopy.links.whatAuraKnows}
           subtitle={profileCopy.links.whatAuraKnowsHint}
-          leading={<IconTile tint="orb" />}
+          leading={<IconTile tint="orb" icon="sparkles" />}
           onPress={() => router.push('/profile/what-aura-knows' as never)}
         />
       </RowGroup>

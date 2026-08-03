@@ -45,7 +45,7 @@ export function ProfileMemoryRows({
       <ListRow
         title={profileCopy.rows.basics}
         subtitle={snippet('self_description')}
-        leading={<IconTile tint="parchment" />}
+        leading={<IconTile tint="parchment" icon="sparkles-outline" />}
         onPress={() =>
           onEdit({
             key: 'self_description',
@@ -57,25 +57,25 @@ export function ProfileMemoryRows({
       <ListRow
         title={profileCopy.rows.dreamCity}
         subtitle={snippet('dream_city')}
-        leading={<IconTile tint="blush" />}
+        leading={<IconTile tint="blush" icon="location-outline" />}
         onPress={() => onEdit({ key: 'dream_city', title: profileCopy.fields.dreamCity })}
       />
       <ListRow
         title={profileCopy.rows.dreamHome}
         subtitle={snippet('dream_home')}
-        leading={<IconTile tint="blush" />}
+        leading={<IconTile tint="blush" icon="home-outline" />}
         onPress={() => onEdit({ key: 'dream_home', title: profileCopy.fields.dreamHome })}
       />
       <ListRow
         title={profileCopy.rows.people}
         subtitle={peopleLine}
-        leading={<IconTile tint="olive" />}
+        leading={<IconTile tint="olive" icon="people-outline" />}
         onPress={onOpenPeople}
       />
       <ListRow
         title={profileCopy.rows.note}
         subtitle={snippet('note')}
-        leading={<IconTile tint="parchment" />}
+        leading={<IconTile tint="parchment" icon="create-outline" />}
         onPress={() => onEdit({ key: 'note', title: profileCopy.fields.note, multiline: true })}
       />
     </RowGroup>

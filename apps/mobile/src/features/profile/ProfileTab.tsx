@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
 
-import { Screen, useTabBarClearance } from '@/components';
+import { Label, Screen, useTabBarClearance } from '@/components';
 import { profileCopy } from '@/copy/profile';
 import { profileKeys, useProfile } from '@/hooks/useProfile';
 import { useAppState } from '@/stores/appState';
@@ -84,6 +84,9 @@ export function ProfileTab() {
           onOpenSettings={() => router.push('/settings' as never)}
         />
 
+        <Label style={{ marginTop: spacing.sm, marginBottom: -spacing.xs }}>
+          {profileCopy.sections.memory}
+        </Label>
         <ProfileMemoryRows
           fieldValue={fieldValue}
           people={people ?? []}
@@ -91,6 +94,9 @@ export function ProfileTab() {
           onOpenPeople={() => setPeopleOpen(true)}
         />
 
+        <Label style={{ marginTop: spacing.sm, marginBottom: -spacing.xs }}>
+          {profileCopy.sections.trust}
+        </Label>
         <ProfileTrustLinks />
       </ScrollView>
 
