@@ -8,6 +8,22 @@
 export const profileCopy = {
   tagline: 'The more I know, the realer it feels.',
 
+  /** Control-center sections (spec 2026-07-31). Section headings + plan words. */
+  account: {
+    label: 'Account',
+    memoryLabel: 'Memory',
+    trustLabel: 'Trust & privacy',
+    plan: {
+      premium: 'Premium',
+      trial: 'Trial',
+      free: 'Free',
+    },
+    secure: {
+      title: 'Secure your account',
+      subtitle: 'Sign in so it’s waiting on any phone.',
+    },
+  },
+
   /** The gear in the header — Settings lives behind Profile, never on Home. */
   settings: 'Settings',
 
