@@ -1,17 +1,23 @@
 import type { Update } from '@aura/shared';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ScrollView } from 'react-native';
 
-import { Label, Screen, useTabBarClearance } from '@/components';
+import { Screen, useTabBarClearance } from '@/components';
+import { paywallCopy } from '@/copy/paywall';
 import { profileCopy } from '@/copy/profile';
+import { useAccountStatus } from '@/features/auth/useAccountStatus';
+import { ClaimSheet } from '@/features/paywall/ClaimSheet';
+import { useEntitlement } from '@/features/paywall/useEntitlement';
 import { profileKeys, useProfile } from '@/hooks/useProfile';
 import { useAppState } from '@/stores/appState';
 import { useTheme } from '@/theme/ThemeProvider';
 
 import { deactivatePerson, fetchPeople, saveFreeTextNote, updateProfileField } from './api';
 import { EditFieldSheet } from './EditFieldSheet';
+import { ProfileAccountSection } from './ProfileAccountSection';
 import { ProfileHeader } from './ProfileHeader';
 import { ProfileMemoryRows, type EditableField } from './ProfileMemoryRows';
 import { ProfilePeopleSheet } from './ProfilePeopleSheet';
@@ -43,6 +49,26 @@ export function ProfileTab() {
 
   const [editing, setEditing] = useState<EditableField | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
+
+  // Control-center wiring (spec §5) — reuses the exact hooks/flows Settings uses.
+  const { premium, inTrial } = useEntitlement();
+  const { claimed, appleAvailable } = useAccountStatus();
+  const claimRef = useRef<BottomSheetModal>(null);
+
+  const planLabel = premium
+    ? inTrial
+      ? profileCopy.account.plan.trial
+      : profileCopy.account.plan.premium
+    : profileCopy.account.plan.free;
+  const planTint: 'accent' | 'neutral' = premium ? 'accent' : 'neutral';
+
+  const subscriptionSubtitle = premium
+    ? inTrial
+      ? paywallCopy.subscription.trial
+      : paywallCopy.subscription.premium
+    : paywallCopy.subscription.free;
+
+  const openSubscription = () => router.push('/settings/subscription' as never);
 
   const fieldValue = (key: EditableField['key']): string => {
     if (!profile) return '';
@@ -82,11 +108,18 @@ export function ProfileTab() {
           name={name}
           onEditName={() => setEditing({ key: 'name', title: profileCopy.fields.name })}
           onOpenSettings={() => router.push('/settings' as never)}
+          planLabel={planLabel}
+          planTint={planTint}
+          onPressPlan={openSubscription}
         />
 
-        <Label style={{ marginTop: spacing.sm, marginBottom: -spacing.xs }}>
-          {profileCopy.sections.memory}
-        </Label>
+        <ProfileAccountSection
+          subscriptionSubtitle={subscriptionSubtitle}
+          showClaim={claimed === false}
+          onManage={openSubscription}
+          onSecure={() => claimRef.current?.present()}
+        />
+
         <ProfileMemoryRows
           fieldValue={fieldValue}
           people={people ?? []}
@@ -94,9 +127,6 @@ export function ProfileTab() {
           onOpenPeople={() => setPeopleOpen(true)}
         />
 
-        <Label style={{ marginTop: spacing.sm, marginBottom: -spacing.xs }}>
-          {profileCopy.sections.trust}
-        </Label>
         <ProfileTrustLinks />
       </ScrollView>
 
@@ -114,6 +144,12 @@ export function ProfileTab() {
         people={people ?? []}
         onRemove={(id) => void removePerson(id)}
         onClose={() => setPeopleOpen(false)}
+      />
+
+      <ClaimSheet
+        ref={claimRef}
+        appleAvailable={appleAvailable}
+        onDone={() => claimRef.current?.dismiss()}
       />
     </Screen>
   );

@@ -1,5 +1,8 @@
-import { IconTile, ListRow, RowGroup } from '@/components';
+import { View } from 'react-native';
+
+import { IconTile, Label, ListRow, RowGroup } from '@/components';
 import { profileCopy } from '@/copy/profile';
+import { useTheme } from '@/theme/ThemeProvider';
 
 import type { Person } from './api';
 
@@ -35,49 +38,53 @@ export function ProfileMemoryRows({
   onEdit,
   onOpenPeople,
 }: ProfileMemoryRowsProps) {
+  const { spacing } = useTheme();
   const snippet = (key: EditableField['key']) => fieldValue(key) || profileCopy.edit.empty;
 
   const peopleLine =
     people.length > 0 ? people.map(personLine).join(' · ') : profileCopy.people.empty;
 
   return (
-    <RowGroup separatorInset="leading">
-      <ListRow
-        title={profileCopy.rows.basics}
-        subtitle={snippet('self_description')}
-        leading={<IconTile tint="parchment" icon="sparkles-outline" />}
-        onPress={() =>
-          onEdit({
-            key: 'self_description',
-            title: profileCopy.fields.selfDescription,
-            multiline: true,
-          })
-        }
-      />
-      <ListRow
-        title={profileCopy.rows.dreamCity}
-        subtitle={snippet('dream_city')}
-        leading={<IconTile tint="blush" icon="location-outline" />}
-        onPress={() => onEdit({ key: 'dream_city', title: profileCopy.fields.dreamCity })}
-      />
-      <ListRow
-        title={profileCopy.rows.dreamHome}
-        subtitle={snippet('dream_home')}
-        leading={<IconTile tint="blush" icon="home-outline" />}
-        onPress={() => onEdit({ key: 'dream_home', title: profileCopy.fields.dreamHome })}
-      />
-      <ListRow
-        title={profileCopy.rows.people}
-        subtitle={peopleLine}
-        leading={<IconTile tint="olive" icon="people-outline" />}
-        onPress={onOpenPeople}
-      />
-      <ListRow
-        title={profileCopy.rows.note}
-        subtitle={snippet('note')}
-        leading={<IconTile tint="parchment" icon="create-outline" />}
-        onPress={() => onEdit({ key: 'note', title: profileCopy.fields.note, multiline: true })}
-      />
-    </RowGroup>
+    <View style={{ gap: spacing.sm }}>
+      <Label>{profileCopy.account.memoryLabel}</Label>
+      <RowGroup separatorInset="leading">
+        <ListRow
+          title={profileCopy.rows.basics}
+          subtitle={snippet('self_description')}
+          leading={<IconTile tint="parchment" icon="sparkles-outline" />}
+          onPress={() =>
+            onEdit({
+              key: 'self_description',
+              title: profileCopy.fields.selfDescription,
+              multiline: true,
+            })
+          }
+        />
+        <ListRow
+          title={profileCopy.rows.dreamCity}
+          subtitle={snippet('dream_city')}
+          leading={<IconTile tint="blush" icon="location-outline" />}
+          onPress={() => onEdit({ key: 'dream_city', title: profileCopy.fields.dreamCity })}
+        />
+        <ListRow
+          title={profileCopy.rows.dreamHome}
+          subtitle={snippet('dream_home')}
+          leading={<IconTile tint="blush" icon="home-outline" />}
+          onPress={() => onEdit({ key: 'dream_home', title: profileCopy.fields.dreamHome })}
+        />
+        <ListRow
+          title={profileCopy.rows.people}
+          subtitle={peopleLine}
+          leading={<IconTile tint="olive" icon="people-outline" />}
+          onPress={onOpenPeople}
+        />
+        <ListRow
+          title={profileCopy.rows.note}
+          subtitle={snippet('note')}
+          leading={<IconTile tint="parchment" icon="create-outline" />}
+          onPress={() => onEdit({ key: 'note', title: profileCopy.fields.note, multiline: true })}
+        />
+      </RowGroup>
+    </View>
   );
 }

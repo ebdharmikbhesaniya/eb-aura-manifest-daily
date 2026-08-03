@@ -5,11 +5,17 @@ import { SerifDisplay } from '@/components';
 import { profileCopy } from '@/copy/profile';
 import { useTheme } from '@/theme/ThemeProvider';
 
+import { ProfilePlanChip } from './ProfilePlanChip';
+
 export interface ProfileHeaderProps {
   /** Trimmed name; empty string falls back to the in-voice empty prompt. */
   name: string;
   onEditName: () => void;
   onOpenSettings: () => void;
+  /** Subscription status pill (spec §3). */
+  planLabel: string;
+  planTint: 'accent' | 'neutral';
+  onPressPlan: () => void;
 }
 
 /**
@@ -20,7 +26,14 @@ export interface ProfileHeaderProps {
  * belongs in one place, and repeating it as both the page's title and a
  * labelled field would be the page telling her the same thing twice.
  */
-export function ProfileHeader({ name, onEditName, onOpenSettings }: ProfileHeaderProps) {
+export function ProfileHeader({
+  name,
+  onEditName,
+  onOpenSettings,
+  planLabel,
+  planTint,
+  onPressPlan,
+}: ProfileHeaderProps) {
   const { colors, spacing, typography } = useTheme();
 
   return (
@@ -47,6 +60,8 @@ export function ProfileHeader({ name, onEditName, onOpenSettings }: ProfileHeade
             </Text>
           )}
         </Pressable>
+
+        <ProfilePlanChip label={planLabel} tint={planTint} onPress={onPressPlan} />
 
         <Pressable
           accessibilityRole="button"

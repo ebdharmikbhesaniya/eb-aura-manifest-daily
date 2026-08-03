@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 
-import { Card, IconTile, ListRow, RowGroup } from '@/components';
+import { Card, IconTile, Label, ListRow, RowGroup } from '@/components';
 import { profileCopy } from '@/copy/profile';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -12,24 +12,27 @@ import { useTheme } from '@/theme/ThemeProvider';
  */
 export function ProfileTrustLinks() {
   const router = useRouter();
-  const { colors, layout, radii, typography } = useTheme();
+  const { colors, layout, radii, spacing, typography } = useTheme();
 
   return (
     <>
-      <RowGroup separatorInset="leading">
-        <ListRow
-          title={profileCopy.links.neverInclude}
-          subtitle={profileCopy.links.neverIncludeHint}
-          leading={<IconTile tint="bone" icon="ban-outline" />}
-          onPress={() => router.push('/profile/never-include' as never)}
-        />
-        <ListRow
-          title={profileCopy.links.whatAuraKnows}
-          subtitle={profileCopy.links.whatAuraKnowsHint}
-          leading={<IconTile tint="orb" icon="sparkles" />}
-          onPress={() => router.push('/profile/what-aura-knows' as never)}
-        />
-      </RowGroup>
+      <View style={{ gap: spacing.sm }}>
+        <Label>{profileCopy.account.trustLabel}</Label>
+        <RowGroup separatorInset="leading">
+          <ListRow
+            title={profileCopy.links.neverInclude}
+            subtitle={profileCopy.links.neverIncludeHint}
+            leading={<IconTile tint="bone" icon="ban-outline" />}
+            onPress={() => router.push('/profile/never-include' as never)}
+          />
+          <ListRow
+            title={profileCopy.links.whatAuraKnows}
+            subtitle={profileCopy.links.whatAuraKnowsHint}
+            leading={<IconTile tint="orb" icon="sparkles" />}
+            onPress={() => router.push('/profile/what-aura-knows' as never)}
+          />
+        </RowGroup>
+      </View>
 
       {/* Parchment, not white: a statement from Aura, not another tappable row.
           v4 gives it the tighter 16pt surface rather than a full card. */}

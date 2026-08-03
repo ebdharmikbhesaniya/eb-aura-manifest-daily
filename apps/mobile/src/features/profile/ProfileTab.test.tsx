@@ -20,6 +20,15 @@ jest.mock('@/stores/appState', () => ({
     selector({ status: 'ready', userId: 'user-1' }),
 }));
 jest.mock('./api');
+jest.mock('@/features/paywall/useEntitlement', () => ({
+  useEntitlement: () => ({ premium: false, inTrial: false, loading: false, info: null }),
+}));
+jest.mock('@/features/auth/useAccountStatus', () => ({
+  useAccountStatus: () => ({ claimed: false, appleAvailable: false }),
+}));
+// ClaimSheet is a @gorhom bottom sheet needing a provider this minimal wrapper
+// lacks; its claim behavior is covered by ProfileAccountSection's own test.
+jest.mock('@/features/paywall/ClaimSheet', () => ({ ClaimSheet: () => null }));
 jest.mock('@/hooks/useProfile', () => ({
   profileKeys: { detail: (id: string) => ['profile', id] },
   useProfile: () => ({
@@ -59,6 +68,20 @@ describe('ProfileTab (product 11: trust center)', () => {
         updated_at: '',
       },
     ]);
+  });
+
+  it('shows the control-center sections and a plan chip', async () => {
+    const view = await render(<ProfileTab />, { wrapper });
+
+    // Section labels are the "clearer" win.
+    expect(await view.findByText(profileCopy.account.label)).toBeTruthy();
+    expect(view.getByText(profileCopy.account.memoryLabel)).toBeTruthy();
+    expect(view.getByText(profileCopy.account.trustLabel)).toBeTruthy();
+
+    // Free + anonymous: the chip says Free and the secure-account row is present.
+    expect(view.getByTestId('profile-plan-chip')).toBeTruthy();
+    expect(view.getByText(profileCopy.account.plan.free)).toBeTruthy();
+    expect(view.getByText(profileCopy.account.secure.title)).toBeTruthy();
   });
 
   it('shows what Aura currently believes, field by field', async () => {
