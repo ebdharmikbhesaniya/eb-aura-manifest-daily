@@ -2,6 +2,7 @@ import type { AnalyticsClient, SuperProperties } from '@aura/shared';
 import PostHog from 'posthog-react-native';
 
 import { env } from './env';
+import { logGa4Event } from './ga4';
 
 /**
  * PostHog wrapper (13 §1).
@@ -22,6 +23,19 @@ let client: PostHog | null = null;
 let superProperties: Partial<SuperProperties> = {};
 
 /**
+ * The ONLY catalog events forwarded to GA4 (spec §3, funnel-only). Kept as data
+ * next to the emitter so "what Google receives" is one auditable list.
+ *
+ * `app_first_open` is deliberately absent — GA4 logs `first_open` automatically,
+ * so forwarding it would double-count installs. `purchase_completed` maps to
+ * GA4's recommended `purchase` name so Google Ads recognises the conversion.
+ */
+const GA4_EVENT_NAMES: Record<string, string> = {
+  onboarding_completed: 'onboarding_completed',
+  purchase_completed: 'purchase',
+};
+
+/**
  * Called once during boot (05 §9). Without a key — local dev — analytics stays a
  * no-op rather than failing: PostHog is disabled locally by design (16 §1).
  */
@@ -38,6 +52,11 @@ export function initAnalytics(): void {
 
 function capture(event: string, payload?: Record<string, unknown>): void {
   client?.capture(event, { ...superProperties, ...payload });
+
+  // Fan out the ad-conversion funnel to GA4 — by NAME only, never the payload
+  // (spec §6: no content reaches GA4). ga4.ts no-ops unless collection is on.
+  const ga4Name = GA4_EVENT_NAMES[event];
+  if (ga4Name) void logGa4Event(ga4Name);
 }
 
 export const analytics: AnalyticsClient = {
