@@ -309,6 +309,19 @@ const config: ExpoConfig = {
           './plugins/withGoogleSignInPods',
         ] as const)
       : []),
+
+    // Firebase Analytics → GA4 ad-conversion tracking (spec 2026-07-31). Reads
+    // the same google-services.json / GoogleService-Info.plist already wired for
+    // auth/FCM; the JS side stays a no-op until initGa4() enables collection.
+    '@react-native-firebase/app',
+    '@react-native-firebase/analytics',
+    [
+      // React Native Firebase requires STATIC frameworks on iOS. Same
+      // static-linkage class of issue already handled for AppCheckCore in
+      // plugins/withGoogleSignInPods.js — verify a clean `pod install`.
+      'expo-build-properties',
+      { ios: { useFrameworks: 'static' } },
+    ],
   ],
 
   experiments: {
