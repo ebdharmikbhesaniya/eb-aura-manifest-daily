@@ -58,7 +58,13 @@ export const PRIVACY: LegalDocument = {
     {
       heading: 'Service Providers',
       body: [
-        'We share data only with the providers that run the app on our behalf: Supabase (authentication, database, file storage), OpenAI (text generation), ElevenLabs (voice), RevenueCat (subscription management), PostHog (product analytics), and Sentry (crash diagnostics). We do not sell your personal information.',
+        'We share data only with the providers that run the app on our behalf: Supabase (authentication, database, file storage), OpenAI (text generation), ElevenLabs (voice), RevenueCat (subscription management), PostHog (product analytics), Google (analytics and advertising measurement, described below), and Sentry (crash diagnostics). We do not sell your personal information.',
+      ],
+    },
+    {
+      heading: 'Advertising and Measurement',
+      body: [
+        'We use Google Analytics for Firebase and Google Ads to measure how people find Aura — for example, which ad led to an install — and to understand aggregate usage. This shares app and device identifiers with Google. It never includes the personal content you share with Aura: your name, your struggles, or your words. You can limit ad tracking in your device settings, and on iOS you will be asked before any advertising identifier is used.',
       ],
     },
     {
