@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { ScrollView, Text } from 'react-native';
 
-import { Card, ListRow, RowGroup, Screen, ScreenHeader } from '@/components';
+import { Card, ListRow, RowGroup, Screen, ScreenHeader, SkeletonList } from '@/components';
 import { momentsCopy } from '@/copy/moments';
 import { toPlayable, useCollectionMoments } from '@/features/moments/useMoments';
 import { usePlayerStore } from '@/features/player/playerStore';
@@ -26,7 +26,10 @@ export default function CollectionRoute() {
   const scale = clampedFontScale();
   const userId = useAppState((s) => s.userId);
   const open = usePlayerStore((s) => s.open);
-  const { data: moments } = useCollectionMoments(userId ?? undefined, COLLECTION_SCAN_LIMIT);
+  const { data: moments, isLoading } = useCollectionMoments(
+    userId ?? undefined,
+    COLLECTION_SCAN_LIMIT,
+  );
 
   const ondemand = id === 'ondemand';
   const title = ondemand ? momentsCopy.collections.ondemand : momentsCopy.collections.favorites;
@@ -62,7 +65,11 @@ export default function CollectionRoute() {
         {/* A collection's name is DATA, so the header carries no ember mark. */}
         <ScreenHeader title={title} onBack={() => router.back()} emberMark={false} />
 
-        {items.length === 0 ? (
+        {isLoading ? (
+          // Skeleton, not the empty card: while the query is in flight `items`
+          // is [] and would otherwise flash "nothing here yet" before her list.
+          <SkeletonList rows={5} testID="collection-loading" />
+        ) : items.length === 0 ? (
           <Card variant="solid">
             <Text
               testID={`collection-empty-${id}`}

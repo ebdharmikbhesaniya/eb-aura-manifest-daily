@@ -12,6 +12,7 @@ import {
   RowGroup,
   Screen,
   SerifDisplay,
+  SkeletonList,
   TextButton,
   useTabBarClearance,
 } from '@/components';
@@ -293,7 +294,9 @@ export default function AffirmationsRoute() {
         <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
           <Label>{`${affirmationsCopy.savedLabel} · ${keptItems.length}`}</Label>
 
-          {keptItems.length === 0 ? (
+          {kept.isLoading ? (
+            <SkeletonList rows={3} rowHeight={72} testID="affirmations-saved-loading" />
+          ) : keptItems.length === 0 ? (
             <Card variant="solid">
               <Text
                 testID="affirmations-collection-empty"

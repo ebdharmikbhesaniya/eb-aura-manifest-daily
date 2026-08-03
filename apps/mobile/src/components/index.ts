@@ -23,6 +23,7 @@ export * from './SelectCard';
 export * from './SerifDisplay';
 export * from './Sheet';
 export * from './Skeleton';
+export * from './SkeletonList';
 export * from './TabBar';
 export * from './TextButton';
 export * from './WeekDots';

@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, Text } from 'react-native';
 
-import { Card, Screen, ScreenHeader } from '@/components';
+import { Card, Screen, ScreenHeader, SkeletonList } from '@/components';
 import { affirmationsCopy } from '@/copy/affirmations';
 import { KeptRow } from '@/features/affirmations/KeptRow';
 import { useKeptAffirmations } from '@/features/affirmations/useAffirmations';
@@ -22,7 +22,7 @@ export default function SavedAffirmationsRoute() {
   const { colors, spacing } = useTheme();
   const scale = clampedFontScale();
   const userId = useAppState((s) => s.userId);
-  const { data: kept } = useKeptAffirmations(userId ?? undefined);
+  const { data: kept, isLoading } = useKeptAffirmations(userId ?? undefined);
   const items = kept ?? [];
 
   return (
@@ -33,7 +33,10 @@ export default function SavedAffirmationsRoute() {
       >
         <ScreenHeader title={affirmationsCopy.collectionTitle} onBack={() => router.back()} />
 
-        {items.length === 0 ? (
+        {isLoading ? (
+          // Kept words are multi-line serif rows, so taller placeholders.
+          <SkeletonList rows={6} rowHeight={72} testID="affirmations-saved-loading" />
+        ) : items.length === 0 ? (
           <Card variant="solid">
             <Text
               testID="affirmations-saved-empty"

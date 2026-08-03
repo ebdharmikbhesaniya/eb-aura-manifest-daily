@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { Label, ScreenHeader } from '@/components';
+import { Label, ScreenHeader, SkeletonList } from '@/components';
 import { memoryCopy } from '@/copy/memory';
 import { analytics } from '@/lib/analytics';
 import { useAppState } from '@/stores/appState';
@@ -61,7 +61,23 @@ export function WhatAuraKnows({ onBack }: WhatAuraKnowsProps = {}) {
 
   const container = { flex: 1, padding: spacing.lg, gap: spacing.md } as const;
 
-  if (isLoading) return <View testID="what-aura-knows-loading" style={container} />;
+  if (isLoading) {
+    // Keep the header and contract line, but skeleton the memory rows rather
+    // than showing a blank screen while the first fetch is in flight.
+    return (
+      <View testID="what-aura-knows-loading" style={container}>
+        <ScreenHeader
+          title={memoryCopy.whatAuraKnows.title}
+          {...(onBack ? { onBack } : {})}
+          testID="memory-header"
+        />
+        <Text style={[typography.memoryContract, { color: colors.text.secondary }]}>
+          {memoryCopy.whatAuraKnows.contract}
+        </Text>
+        <SkeletonList rows={6} testID="what-aura-knows-skeleton" />
+      </View>
+    );
+  }
 
   const groups = GROUP_ORDER.map((category) => ({
     category,
