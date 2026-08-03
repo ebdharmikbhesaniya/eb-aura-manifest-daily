@@ -29,18 +29,15 @@ describe('ga4', () => {
     jest.clearAllMocks();
   });
 
-  it('enables collection in a production build', () => {
+  // Both the production AND preview EAS profiles bake APP_ENV=production, so a
+  // store-bound build (including a preview verification build) resolves to
+  // 'production' here — that single value is the enable gate.
+  it('enables collection in a store-bound build (buildEnv=production)', () => {
     setBuildEnv('production');
     initGa4();
 
     expect(isGa4Enabled()).toBe(true);
     expect(mockSetEnabled).toHaveBeenCalledWith(expect.anything(), true);
-  });
-
-  it('enables collection in a preview build', () => {
-    setBuildEnv('preview');
-    initGa4();
-    expect(isGa4Enabled()).toBe(true);
   });
 
   it('disables collection in development — a complete no-op', async () => {
@@ -50,6 +47,15 @@ describe('ga4', () => {
     expect(isGa4Enabled()).toBe(false);
     expect(mockSetEnabled).toHaveBeenCalledWith(expect.anything(), false);
 
+    await logGa4Event('purchase');
+    expect(mockLogEvent).not.toHaveBeenCalled();
+  });
+
+  it('disables collection on staging — internal builds never report to GA4', async () => {
+    setBuildEnv('staging');
+    initGa4();
+
+    expect(isGa4Enabled()).toBe(false);
     await logGa4Event('purchase');
     expect(mockLogEvent).not.toHaveBeenCalled();
   });

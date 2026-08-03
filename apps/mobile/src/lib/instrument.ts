@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react-native';
+import Constants from 'expo-constants';
 
 /**
  * Sentry init, imported first from the root layout (05 §8: Sentry captures the
@@ -10,7 +11,11 @@ import * as Sentry from '@sentry/react-native';
  */
 Sentry.init({
   dsn: process.env.SENTRY_DSN_MOBILE,
-  environment: process.env.APP_ENV ?? 'development',
+  // From the build-time-baked `extra.buildEnv`, not `process.env.APP_ENV`: Metro
+  // does not inline non-EXPO_PUBLIC_ vars, so `process.env.APP_ENV` is undefined
+  // on-device and every crash was mislabelled 'development' (same class of bug as
+  // the GA4 gate, see src/lib/ga4.ts).
+  environment: (Constants.expoConfig?.extra?.buildEnv as string | undefined) ?? 'development',
 
   // A crash report must never carry her name, city, struggle or letter text.
   sendDefaultPii: false,

@@ -32,13 +32,15 @@ let enabled = false;
  * runtime and would keep GA4 permanently off in every real build. `app.config.ts`
  * bakes `APP_ENV` into `extra.buildEnv` at build time; that is the runtime source.
  *
- * The `preview` EAS profile sets `APP_ENV=production`, so preview builds resolve
- * to `'production'` here and are covered by that branch; the explicit `preview`
- * check is kept as a guard in case the profile mapping ever changes.
+ * Gated on `'production'` only, which is the exact set of store-bound builds:
+ * both the `production` AND the `preview` EAS profiles set `APP_ENV=production`
+ * (see eas.json), so this covers preview verification builds too. `development`
+ * and `staging` carry their own value and stay off — local dev, jest and staging
+ * never report to GA4.
  */
 function shouldEnable(): boolean {
   const env = Constants.expoConfig?.extra?.buildEnv as string | undefined;
-  return env === 'production' || env === 'preview';
+  return env === 'production';
 }
 
 export function initGa4(): void {

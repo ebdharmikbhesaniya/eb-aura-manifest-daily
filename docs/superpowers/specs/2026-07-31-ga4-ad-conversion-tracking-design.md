@@ -130,11 +130,15 @@ native rebuild — the app already ships a custom dev client.
 
 ## 8. Environment gating
 
-- GA4 initializes with collection **enabled only** when `APP_ENV` is
-  `production` or `preview` (read via `process.env.APP_ENV`, the pattern already
-  used in `src/lib/instrument.ts`). Local `development` calls
-  `setAnalyticsCollectionEnabled(false)` → complete no-op, so local dev and the
-  test suite never emit to Google.
+- GA4 initializes with collection **enabled only** for store-bound builds. The
+  env is read at runtime from `Constants.expoConfig.extra.buildEnv` (baked in by
+  `app.config.ts` at build time) — **not** `process.env.APP_ENV`, which Metro
+  does not inline into the device bundle (only `EXPO_PUBLIC_*` vars are inlined),
+  so it is `undefined` on-device and would keep GA4 permanently off.
+- The gate is `buildEnv === 'production'`. Per `eas.json`, **both** the
+  `production` and `preview` profiles set `APP_ENV=production`, so this covers
+  preview verification builds too; `development` and `staging` carry their own
+  value and stay off, so local dev, jest and staging never emit to Google.
 - No new secret in the repo — GA4 config comes from the Google config files
   already present on EAS.
 
