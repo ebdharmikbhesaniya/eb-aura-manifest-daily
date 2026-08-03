@@ -1,4 +1,5 @@
 import { Modal, Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TextButton } from '@/components';
 import { profileCopy } from '@/copy/profile';
@@ -24,6 +25,7 @@ export interface ProfilePeopleSheetProps {
  */
 export function ProfilePeopleSheet({ open, people, onRemove, onClose }: ProfilePeopleSheetProps) {
   const { colors, radii, spacing, typography } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
@@ -38,7 +40,10 @@ export function ProfilePeopleSheet({ open, people, onRemove, onClose }: ProfileP
             backgroundColor: colors.surface.sheet,
             borderTopLeftRadius: radii.sheet,
             borderTopRightRadius: radii.sheet,
-            padding: spacing.lg,
+            paddingTop: spacing.lg,
+            paddingHorizontal: spacing.lg,
+            // Clear the home indicator / nav bar, so "Done" is never cut off.
+            paddingBottom: spacing.lg + insets.bottom,
             gap: spacing.md,
           }}
         >

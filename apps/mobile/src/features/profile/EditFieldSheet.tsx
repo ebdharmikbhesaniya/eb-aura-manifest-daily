@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Input, PillButton, TextButton } from '@/components';
 import { profileCopy } from '@/copy/profile';
@@ -31,6 +32,7 @@ export function EditFieldSheet({
   onClose,
 }: EditFieldSheetProps) {
   const { colors, radii, spacing, typography } = useTheme();
+  const insets = useSafeAreaInsets();
   const [value, setValue] = useState(initialValue);
   const [saved, setSaved] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -79,7 +81,10 @@ export function EditFieldSheet({
               backgroundColor: colors.surface.sheet,
               borderTopLeftRadius: radii.sheet,
               borderTopRightRadius: radii.sheet,
-              padding: spacing.lg,
+              paddingTop: spacing.lg,
+              paddingHorizontal: spacing.lg,
+              // Clear the home indicator / nav bar so the save button isn't cut.
+              paddingBottom: spacing.lg + insets.bottom,
               gap: spacing.md,
             }}
           >

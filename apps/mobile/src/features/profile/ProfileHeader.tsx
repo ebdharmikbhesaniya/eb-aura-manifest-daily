@@ -1,9 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 
 import { SerifDisplay } from '@/components';
 import { profileCopy } from '@/copy/profile';
 import { useTheme } from '@/theme/ThemeProvider';
-import { clampedFontScale, scaledType } from '@/theme/typography';
 
 export interface ProfileHeaderProps {
   /** Trimmed name; empty string falls back to the in-voice empty prompt. */
@@ -22,7 +22,6 @@ export interface ProfileHeaderProps {
  */
 export function ProfileHeader({ name, onEditName, onOpenSettings }: ProfileHeaderProps) {
   const { colors, spacing, typography } = useTheme();
-  const scale = clampedFontScale();
 
   return (
     <View style={{ gap: spacing.xs }}>
@@ -66,15 +65,13 @@ export function ProfileHeader({ name, onEditName, onOpenSettings }: ProfileHeade
             opacity: pressed ? 0.6 : 1,
           })}
         >
-          {/* Text glyph — no icon set ships at V1 (product 12 §icons). */}
-          <Text
+          <Ionicons
+            name="settings-outline"
+            size={18}
+            color={colors.text.secondary}
             accessibilityElementsHidden
             importantForAccessibility="no"
-            allowFontScaling={false}
-            style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
-          >
-            ⚙
-          </Text>
+          />
         </Pressable>
       </View>
 
