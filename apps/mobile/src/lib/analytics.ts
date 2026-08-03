@@ -55,8 +55,15 @@ function capture(event: string, payload?: Record<string, unknown>): void {
 
   // Fan out the ad-conversion funnel to GA4 — by NAME only, never the payload
   // (spec §6: no content reaches GA4). ga4.ts no-ops unless collection is on.
-  const ga4Name = GA4_EVENT_NAMES[event];
-  if (ga4Name) void logGa4Event(ga4Name);
+  //
+  // `hasOwnProperty` guard so an event named after an Object prototype member
+  // ("toString", "constructor") can't resolve to an inherited function. `.catch`
+  // so a native GA4 rejection never surfaces as an unhandled rejection — the
+  // PostHog emit above has already happened regardless.
+  const ga4Name = Object.prototype.hasOwnProperty.call(GA4_EVENT_NAMES, event)
+    ? GA4_EVENT_NAMES[event]
+    : undefined;
+  if (ga4Name) void logGa4Event(ga4Name).catch(() => {});
 }
 
 export const analytics: AnalyticsClient = {
