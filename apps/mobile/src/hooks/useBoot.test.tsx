@@ -30,8 +30,14 @@ jest.mock('@/lib/analytics', () => ({
   analytics: { register: jest.fn(), identify: jest.fn(), capture: jest.fn() },
 }));
 jest.mock('@/lib/superProperties', () => ({ buildSuperProperties: jest.fn(() => ({})) }));
+jest.mock('@/lib/ga4', () => ({
+  initGa4: jest.fn(),
+  logGa4Event: jest.fn(),
+  isGa4Enabled: jest.fn(() => false),
+}));
 
 const { ensureSession } = jest.requireMock('@/lib/auth') as { ensureSession: jest.Mock };
+const { initGa4 } = jest.requireMock('@/lib/ga4') as { initGa4: jest.Mock };
 const { configurePurchases } = jest.requireMock('@/features/paywall/purchases') as {
   configurePurchases: jest.Mock;
 };
@@ -67,5 +73,6 @@ describe('useBoot', () => {
     expect(useAppState.getState().userId).toBe('user-1');
     expect(configurePurchases).toHaveBeenCalledWith('user-1');
     expect(analytics.identify).toHaveBeenCalledWith('user-1');
+    expect(initGa4).toHaveBeenCalled();
   });
 });
