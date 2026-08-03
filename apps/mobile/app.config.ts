@@ -181,6 +181,13 @@ const config: ExpoConfig = {
     infoPlist: {
       // The Letter and daily moments keep playing when she locks the screen (05 §7, 10 §4).
       UIBackgroundModes: ['audio'],
+      // App Tracking Transparency (spec §7): shown once before GA4 uses the IDFA
+      // for ad attribution. A denial is fine — GA4 works without it.
+      NSUserTrackingUsageDescription:
+        'Aura uses this to measure which ads led people here, so we can reach the right people. It never accesses your personal content.',
+      // SKAdNetwork lets iOS attribute installs to ads without the IDFA. Google's
+      // network id; add ad partners' ids here as campaigns expand.
+      SKAdNetworkItems: [{ SKAdNetworkIdentifier: 'cstr6suwn9.skadnetwork' }],
     },
 
     // The iOS counterpart to `android.googleServicesFile`, and the reason Google
@@ -322,6 +329,9 @@ const config: ExpoConfig = {
       'expo-build-properties',
       { ios: { useFrameworks: 'static' } },
     ],
+    // The App Tracking Transparency prompt (spec §7); the usage string is in
+    // ios.infoPlist above.
+    'expo-tracking-transparency',
   ],
 
   experiments: {

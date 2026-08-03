@@ -239,3 +239,9 @@ jest.mock('@react-native-firebase/analytics', () => ({
   logEvent: jest.fn(() => Promise.resolve()),
   setAnalyticsCollectionEnabled: jest.fn(() => Promise.resolve()),
 }));
+
+// expo-tracking-transparency has no native impl under jest.
+jest.mock('expo-tracking-transparency', () => ({
+  getTrackingPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'undetermined' })),
+  requestTrackingPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+}));

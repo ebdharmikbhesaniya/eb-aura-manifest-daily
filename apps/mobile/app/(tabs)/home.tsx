@@ -36,6 +36,7 @@ import { LIMITS } from '@aura/shared';
 import { analytics } from '@/lib/analytics';
 import { api } from '@/lib/api';
 import { errorCopyFor, errorCopyForKey, errorKeyOf } from '@/lib/errorCopy';
+import { requestTrackingPermission } from '@/lib/tracking';
 import { supabase } from '@/lib/supabase';
 import { useAppState } from '@/stores/appState';
 import { haptic } from '@/theme/haptics';
@@ -76,6 +77,14 @@ export default function HomeRoute() {
   // honest 429 that the sheet now renders.
   const [credits, setCredits] = useState<number>(LIMITS.MANIFEST_WEEKLY_LIMIT);
   const [deniedHint, setDeniedHint] = useState(false);
+
+  // iOS ad-attribution consent (spec §7). Asked once, on the first Home landing
+  // after the Letter/paywall — never mid-onboarding. No-op on Android and after
+  // any prior decision. Kept separate from the notification ask below so the two
+  // stay independent.
+  useEffect(() => {
+    void requestTrackingPermission();
+  }, []);
 
   // The permission ask lands HERE — the first Home landing after the paywall
   // (11 §2), which is the earliest moment product 08's "nothing between the
