@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { useWindowDimensions } from 'react-native';
+import { View } from 'react-native';
 import Animated, {
   runOnJS,
-  scrollTo,
   useAnimatedReaction,
-  useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
+  withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 
@@ -22,6 +21,10 @@ const PAST_LINE_OPACITY = 0.45;
 const UPCOMING_LINE_OPACITY = 0.3;
 /** A not-yet-spoken word inside the active line still half-shows so the line reads as filling in. */
 const UPCOMING_WORD_OPACITY = 0.5;
+/** The active line parks a touch above centre, leaving room for the look-ahead below. */
+const CENTER_FRACTION = 0.42;
+/** How long the glide to the next line takes. */
+const SCROLL_MS = 450;
 
 export interface SyncedLyricsProps {
   lines: KaraokeLine[];
@@ -35,46 +38,39 @@ export interface SyncedLyricsProps {
  * ember word-by-word glow sweeping the active line. Distinct from the Letter's
  * `KaraokeLetter` "materialize with the voice" reveal, which is untouched.
  *
- * Per-frame work is on the UI thread (worklets read `positionMs`); the only JS
- * transition is the active-line index changing every few seconds, which re-splits
- * the newly-active line into per-word nodes.
+ * Centering is a `translateY` on the content, NOT a ScrollView + `scrollTo`: a
+ * programmatic scroll does not move a `scrollEnabled={false}` list on Android,
+ * which is why the karaoke used to sit low. The transform runs on the UI thread;
+ * the only JS transition is the active-line index changing every few seconds,
+ * which re-splits the newly-active line into per-word nodes for the glow.
  */
 export function SyncedLyrics({ lines, positionMs, testID }: SyncedLyricsProps) {
   const { colors, spacing } = useTheme();
   const motion = useMotion();
-  const { height: windowHeight } = useWindowDimensions();
   const scale = clampedFontScale();
 
-  const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const offsets = useSharedValue<number[]>([]);
-  // The lyrics area is shorter than the window (header + controls take the rest),
-  // so centering must use THIS view's measured height, not the window's, or the
-  // active line lands low with the look-ahead pushed off screen.
-  const [viewHeight, setViewHeight] = useState(0);
   const svHeight = useSharedValue(0);
+  const translateY = useSharedValue(0);
   const [active, setActive] = useState(-1);
 
-  // Where the active line parks inside the lyrics area — a touch above centre, so
-  // there is room for the upcoming lines below it.
-  const CENTER_FRACTION = 0.42;
-
-  // One reaction: recompute the spoken line on the UI thread, scroll it toward
-  // centre, and (only on change) re-split it into words on the JS thread.
+  // Glide the content so the spoken line rests near the centre; re-split it into
+  // words (for the glow) only when the index actually changes.
   useAnimatedReaction(
     () => activeLineIndex(lines, positionMs.value),
     (index, previous) => {
       if (index < 0 || index === previous) return;
-      const y = offsets.value[index];
-      const park = svHeight.value > 0 ? svHeight.value * CENTER_FRACTION : 0;
-      if (y !== undefined) {
-        scrollTo(scrollRef, 0, Math.max(0, y - park), !motion.reduceMotion);
-      }
+      const y = offsets.value[index] ?? 0;
+      const target = -(y - svHeight.value * CENTER_FRACTION);
+      translateY.value = motion.reduceMotion ? target : withTiming(target, { duration: SCROLL_MS });
       runOnJS(setActive)(index);
     },
     [lines, motion.reduceMotion],
   );
 
-  const padHeight = viewHeight > 0 ? viewHeight : windowHeight;
+  const containerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   const lineTextStyle = {
     fontFamily: fonts.serifItalic,
@@ -92,54 +88,47 @@ export function SyncedLyrics({ lines, positionMs, testID }: SyncedLyricsProps) {
   };
 
   return (
-    <Animated.ScrollView
-      ref={scrollRef}
+    <View
       testID={testID}
-      scrollEnabled={false}
-      showsVerticalScrollIndicator={false}
+      style={{ flex: 1, overflow: 'hidden' }}
       onLayout={(e) => {
-        const h = e.nativeEvent.layout.height;
-        if (h > 0 && h !== viewHeight) {
-          setViewHeight(h);
-          svHeight.value = h;
-        }
-      }}
-      contentContainerStyle={{
-        // Half a screenful of padding at both ends so the first and last lines can
-        // also reach the centre (spec §4).
-        paddingTop: padHeight * CENTER_FRACTION,
-        paddingBottom: padHeight * 0.5,
-        paddingHorizontal: spacing.lg,
+        svHeight.value = e.nativeEvent.layout.height;
       }}
     >
-      {lines.map((line, index) =>
-        index === active && !motion.reduceMotion ? (
-          <ActiveLine
-            key={line.index}
-            line={line}
-            positionMs={positionMs}
-            textStyle={lineTextStyle}
-            onLayoutY={(y) => onLayoutY(index, y)}
-          />
-        ) : (
-          <Animated.Text
-            key={line.index}
-            accessibilityRole="text"
-            allowFontScaling={false}
-            onLayout={(e) => onLayoutY(index, e.nativeEvent.layout.y)}
-            style={[
-              lineTextStyle,
-              {
-                opacity:
-                  index === active ? 1 : index < active ? PAST_LINE_OPACITY : UPCOMING_LINE_OPACITY,
-              },
-            ]}
-          >
-            {line.text}
-          </Animated.Text>
-        ),
-      )}
-    </Animated.ScrollView>
+      <Animated.View style={[containerStyle, { paddingHorizontal: spacing.lg }]}>
+        {lines.map((line, index) =>
+          index === active && !motion.reduceMotion ? (
+            <ActiveLine
+              key={line.index}
+              line={line}
+              positionMs={positionMs}
+              textStyle={lineTextStyle}
+              onLayoutY={(y) => onLayoutY(index, y)}
+            />
+          ) : (
+            <Animated.Text
+              key={line.index}
+              accessibilityRole="text"
+              allowFontScaling={false}
+              onLayout={(e) => onLayoutY(index, e.nativeEvent.layout.y)}
+              style={[
+                lineTextStyle,
+                {
+                  opacity:
+                    index === active
+                      ? 1
+                      : index < active
+                        ? PAST_LINE_OPACITY
+                        : UPCOMING_LINE_OPACITY,
+                },
+              ]}
+            >
+              {line.text}
+            </Animated.Text>
+          ),
+        )}
+      </Animated.View>
+    </View>
   );
 }
 
