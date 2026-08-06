@@ -158,20 +158,23 @@ describe('golden personas', () => {
     });
   });
 
-  describe('sparse profiles reject rather than leak', () => {
+  describe('sparse profiles: a name is required, but few words no longer blocks', () => {
     it('fails a letter for a user who never gave a name', async () => {
       const { result } = await generate('letter', buildContext({ name: null }));
 
       expect(result.flaggedRules).toContain('name_first');
     });
 
-    it('fails a letter when there are too few of her words to quote', async () => {
+    it('generates a letter for a name-only profile — the floor caps at what she gave', async () => {
+      // Previously this rejected: the floor of three was unsatisfiable with one
+      // word. Now the floor caps at her one word (her name), which the letter
+      // reuses, so she gets her letter instead of nothing.
       const { result } = await generate(
         'letter',
         buildContext({ dreamCity: null, people: [], exactPhrases: [] }),
       );
 
-      expect(result.flaggedRules).toContain('verbatim_tokens');
+      expect(result.flaggedRules).not.toContain('verbatim_tokens');
     });
 
     it('still emits no banned language for a nearly-empty profile', async () => {

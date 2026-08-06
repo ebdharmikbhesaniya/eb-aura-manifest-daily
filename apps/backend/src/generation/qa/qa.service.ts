@@ -45,15 +45,24 @@ export class QaService {
     // 1. Verbatim tokens (14 §rule 3): the artifact must quote her, not paraphrase
     // her into template language. Falling below the floor means it stopped being
     // about her specifically.
+    //
+    // The floor is CAPPED at how many of her words actually exist: you cannot
+    // require three quotes from a profile that only holds one. Leaving the floor
+    // uncapped made every long-form generation (daily/letter/manifest) IMPOSSIBLE
+    // to pass for a sparse profile — the model could write the perfect line and
+    // still be rejected for a third word she never gave. A profile with only her
+    // name now must reuse her name (still hers, not template), and a fuller
+    // profile is still held to the full floor of three.
     const candidateTokens = collectVerbatimCandidates(context);
     const tokensFound = candidateTokens.filter((token) =>
       body.toLowerCase().includes(token.toLowerCase()),
     );
-    if (tokensFound.length < spec.minVerbatimTokens) {
+    const requiredTokens = Math.min(spec.minVerbatimTokens, candidateTokens.length);
+    if (tokensFound.length < requiredTokens) {
       const available = candidateTokens.length > 0 ? `: ${candidateTokens.join(', ')}` : '';
       flagged.push({
         rule: 'verbatim_tokens',
-        note: `Use at least ${spec.minVerbatimTokens} of her own words${available}.`,
+        note: `Use at least ${requiredTokens} of her own words${available}.`,
       });
     }
 

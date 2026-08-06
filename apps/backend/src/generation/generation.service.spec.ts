@@ -331,9 +331,16 @@ describe('GenerationService (pipeline)', () => {
     });
 
     it('emits one qa_flagged event per broken rule', async () => {
-      assemble.mockResolvedValue(
-        buildContext({ name: null, dreamCity: null, people: [], exactPhrases: [] }),
-      );
+      // A rich profile whose generated body quotes none of her words and does not
+      // open with her name breaks both verbatim_tokens and name_first at once.
+      assemble.mockResolvedValue(buildContext());
+      jest.spyOn(llm, 'generate').mockResolvedValue({
+        text: JSON.stringify({
+          title: 'A quiet morning',
+          body: Array.from({ length: 160 }, () => 'light').join(' '),
+        }),
+        usage: { inputTokens: 10, outputTokens: 160 },
+      });
 
       await runner(job()).catch(() => undefined);
 
@@ -519,9 +526,12 @@ describe('GenerationService (pipeline)', () => {
     });
 
     it('refunds after the final QA retry, which is one attempt earlier', async () => {
-      assemble.mockResolvedValue(
-        buildContext({ name: null, dreamCity: null, people: [], exactPhrases: [] }),
-      );
+      // Force a QA failure deterministically (a body far under the length floor);
+      // a QaFailedError at attempt 2 is the terminal QA attempt for ondemand.
+      jest.spyOn(llm, 'generate').mockResolvedValue({
+        text: JSON.stringify({ title: 'x', body: 'too short to pass the floor' }),
+        usage: { inputTokens: 5, outputTokens: 6 },
+      });
 
       await runner(job({ artifact: 'ondemand', attempt: 2 })).catch(() => undefined);
 

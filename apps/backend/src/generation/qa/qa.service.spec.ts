@@ -66,9 +66,9 @@ describe('QaService', () => {
       expect(result.tokensFound).toContain('LISBON');
     });
 
-    it('does not let a repeated token inflate the count past the floor', () => {
-      // Same phrase listed three times must still count once, leaving the letter
-      // (floor 3) short with only name + that phrase available.
+    it('counts a repeated phrase once — two distinct words, not three', () => {
+      // Same phrase listed three times still counts once: name + that one phrase
+      // = two distinct candidates.
       const context = buildContext({
         dreamCity: null,
         people: [],
@@ -82,7 +82,19 @@ describe('QaService', () => {
       const result = qa.check('letter', letter(), context);
 
       expect(result.tokensFound).toHaveLength(2);
-      expect(result.flaggedRules).toContain('verbatim_tokens');
+      // Two is all she gave, so the floor caps at two; the passing letter quotes
+      // both, so it is not blocked for lacking an impossible third.
+      expect(result.flaggedRules).not.toContain('verbatim_tokens');
+    });
+
+    it('caps the floor at the words she gave — a sparse profile is not an impossible gate', () => {
+      // Only her name exists; the letter floor is three. Requiring three would be
+      // unsatisfiable, so it caps at one, and her name in the body clears it.
+      const context = buildContext({ dreamCity: null, people: [], exactPhrases: [] });
+      const result = qa.check('letter', letter(bodyOfLength(150)), context);
+
+      expect(result.tokensFound).toEqual(['Maya']);
+      expect(result.flaggedRules).not.toContain('verbatim_tokens');
     });
 
     it('ignores empty and whitespace-only tokens', () => {
@@ -93,9 +105,13 @@ describe('QaService', () => {
       expect(result.tokensFound).not.toContain('   ');
     });
 
-    it('counts the title as not-her-words — only the body can satisfy the floor', () => {
+    it('counts the title as not-her-words — only the body can satisfy the (capped) floor', () => {
+      // Candidate is her name only; the body has none of her words, and the title
+      // carries her name but the title never counts — so the one required token
+      // is unmet.
       const context = buildContext({ dreamCity: null, people: [], exactPhrases: [] });
-      const result = qa.check('letter', letter(bodyOfLength(160), 'Maya Lisbon Nadia'), context);
+      const plainBody = Array.from({ length: 160 }, () => 'light').join(' ');
+      const result = qa.check('letter', letter(plainBody, 'Maya Lisbon Nadia'), context);
 
       expect(result.flaggedRules).toContain('verbatim_tokens');
     });
