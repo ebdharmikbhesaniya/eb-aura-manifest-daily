@@ -72,6 +72,7 @@ export default function PlayerRoute() {
         onToggle={playback.toggle}
         onBack15={playback.back15}
         onForward15={playback.forward15}
+        onSeek={playback.seekTo}
         onFavorite={() => void onFavorite()}
         onRefine={onRefine}
         onMinimize={onMinimize}

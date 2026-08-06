@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { View } from 'react-native';
 import Animated, {
@@ -25,6 +26,8 @@ const UPCOMING_WORD_OPACITY = 0.5;
 const CENTER_FRACTION = 0.42;
 /** How long the glide to the next line takes. */
 const SCROLL_MS = 450;
+/** Height of the soft fades that dissolve lines into the header / controls. */
+const FADE_HEIGHT = 64;
 
 export interface SyncedLyricsProps {
   lines: KaraokeLine[];
@@ -61,7 +64,11 @@ export function SyncedLyrics({ lines, positionMs, testID }: SyncedLyricsProps) {
     (index, previous) => {
       if (index < 0 || index === previous) return;
       const y = offsets.value[index] ?? 0;
-      const target = -(y - svHeight.value * CENTER_FRACTION);
+      // Never push the content DOWN past its natural top (clamp at 0): the first
+      // lines fill from the top of the area, the active line rises to the centre
+      // as the voice moves, and only then does the list scroll up — so there is
+      // no dead space above the opening line and no line hides below the controls.
+      const target = Math.min(0, -(y - svHeight.value * CENTER_FRACTION));
       translateY.value = motion.reduceMotion ? target : withTiming(target, { duration: SCROLL_MS });
       runOnJS(setActive)(index);
     },
@@ -101,7 +108,14 @@ export function SyncedLyrics({ lines, positionMs, testID }: SyncedLyricsProps) {
         svHeight.value = e.nativeEvent.layout.height;
       }}
     >
-      <Animated.View style={[containerStyle, { paddingHorizontal: spacing.lg }]}>
+      <Animated.View
+        style={[
+          containerStyle,
+          // Top/bottom room so the opening line clears the header fade and the
+          // tail can scroll up clear of the controls fade.
+          { paddingHorizontal: spacing.lg, paddingTop: FADE_HEIGHT, paddingBottom: FADE_HEIGHT },
+        ]}
+      >
         {lines.map((line, index) =>
           index === active && !motion.reduceMotion ? (
             <ActiveLine
@@ -134,6 +148,19 @@ export function SyncedLyrics({ lines, positionMs, testID }: SyncedLyricsProps) {
           ),
         )}
       </Animated.View>
+
+      {/* Soft edges: lines dissolve into the header above and the controls below
+          instead of hard-cutting, matching the page's own gradient at each end. */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[colors.bg.gradientTop, 'transparent']}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: FADE_HEIGHT }}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        colors={['transparent', colors.bg.gradientBottom]}
+        style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FADE_HEIGHT }}
+      />
     </View>
   );
 }

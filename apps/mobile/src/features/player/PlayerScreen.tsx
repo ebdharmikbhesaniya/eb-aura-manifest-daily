@@ -25,6 +25,8 @@ export interface PlayerScreenProps {
   onToggle: () => void;
   onBack15: () => void;
   onForward15: () => void;
+  /** Scrub: absolute position in ms (from tapping/dragging the waveform). */
+  onSeek: (positionMs: number) => void;
   onFavorite: () => void;
   onRefine: () => void;
   onMinimize: () => void;
@@ -49,6 +51,7 @@ export function PlayerScreen({
   onToggle,
   onBack15,
   onForward15,
+  onSeek,
   onFavorite,
   onRefine,
   onMinimize,
@@ -170,7 +173,11 @@ export function PlayerScreen({
         )}
 
         <View style={{ paddingHorizontal: layout.coverMargin, gap: spacing.md }}>
-          <WaveBars progress={progressOf(positionMs, durationMs)} testID="player-progress" />
+          <WaveBars
+            progress={progressOf(positionMs, durationMs)}
+            onSeek={durationMs > 0 ? (fraction) => onSeek(fraction * durationMs) : undefined}
+            testID="player-progress"
+          />
 
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             {/* Monospaced: a proportional face makes the elapsed time jitter
