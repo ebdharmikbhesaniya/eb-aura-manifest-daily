@@ -13,6 +13,21 @@ export const SKIP_MS = 15_000;
 
 export type PlayerMode = 'listen' | 'read';
 
+/**
+ * Imperative transport, registered by the ONE `usePlayback` instance (mounted
+ * in the tab layout). The player screen calls these instead of mounting its own
+ * `usePlayback` — a second hook would spin up a second `AudioPlayer` and play
+ * the moment twice. These are callbacks, not the native player: the store still
+ * never owns the instance, only a handle to drive the one that exists.
+ */
+export interface PlayerControls {
+  toggle: () => void;
+  back15: () => void;
+  forward15: () => void;
+  seekTo: (positionMs: number) => void;
+  reportDropOff: () => void;
+}
+
 interface PlayerState {
   /** What is loaded. Null means nothing has been played this session. */
   moment: PlayableMoment | null;
@@ -26,6 +41,9 @@ interface PlayerState {
 
   /** How she reached this moment — drives `moment_playback_started {source}`. */
   source: PlaybackSource;
+  /** Null until the single `usePlayback` instance registers its transport. */
+  controls: PlayerControls | null;
+  setControls: (controls: PlayerControls | null) => void;
   open: (moment: PlayableMoment, source?: PlaybackSource) => void;
   close: () => void;
   minimize: () => void;
@@ -60,6 +78,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   speed: 1.0,
   mode: 'listen',
   source: 'home',
+  controls: null,
+
+  setControls: (controls) => set({ controls }),
 
   open: (moment, source = 'home') =>
     set({

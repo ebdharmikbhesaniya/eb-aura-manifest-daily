@@ -1,5 +1,5 @@
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { configureLetterAudio } from '@/features/letter/audioMode';
 import { touchCachedAudio } from '@/features/letter/audioCache';
@@ -26,12 +26,20 @@ export function usePlayback() {
   const setPlaying = usePlayerStore((s) => s.setPlaying);
   const setPosition = usePlayerStore((s) => s.setPosition);
 
+  const setControls = usePlayerStore((s) => s.setControls);
+
   const player = useAudioPlayer(moment?.audioSource ?? null, { updateInterval: 250 });
   const status = useAudioPlayerStatus(player);
 
   const startedRef = useRef<string | null>(null);
   const completedRef = useRef<string | null>(null);
   const openedAtRef = useRef<number>(0);
+
+  // The transport callbacks read position/duration through this ref so they stay
+  // stable across the 4Hz status ticks — otherwise every tick would rebuild them
+  // and re-register a new controls object into the store.
+  const statusRef = useRef(status);
+  statusRef.current = status;
 
   useEffect(() => {
     void configureLetterAudio();
@@ -108,41 +116,58 @@ export function usePlayback() {
   }, [status.didJustFinish, moment]);
 
   const toggle = useCallback(() => {
-    if (status.playing) player.pause();
+    if (statusRef.current.playing) player.pause();
     else player.play();
-  }, [status.playing, player]);
+  }, [player]);
 
   const seekBy = useCallback(
     (deltaMs: number) => {
-      const durationMs = status.duration * 1000;
-      const target = clampSeek(status.currentTime * 1000 + deltaMs, durationMs);
+      const s = statusRef.current;
+      const durationMs = s.duration * 1000;
+      const target = clampSeek(s.currentTime * 1000 + deltaMs, durationMs);
       void player.seekTo(target / 1000);
     },
-    [player, status.currentTime, status.duration],
+    [player],
   );
 
   const seekTo = useCallback(
     (positionMs: number) => {
-      void player.seekTo(clampSeek(positionMs, status.duration * 1000) / 1000);
+      void player.seekTo(clampSeek(positionMs, statusRef.current.duration * 1000) / 1000);
     },
-    [player, status.duration],
+    [player],
   );
 
   /** Fired when she leaves mid-moment, so drop-off is measurable. */
   const reportDropOff = useCallback(() => {
+    const s = statusRef.current;
     if (!moment || completedRef.current === moment.id || startedRef.current !== moment.id) return;
     completedRef.current = moment.id;
     analytics.capture('moment_playback_completed', {
-      listened_pct: listenedPct(status.currentTime * 1000, status.duration * 1000),
+      listened_pct: listenedPct(s.currentTime * 1000, s.duration * 1000),
     });
-  }, [moment, status.currentTime, status.duration]);
+  }, [moment]);
 
-  return {
-    toggle,
-    back15: () => seekBy(-SKIP_MS),
-    forward15: () => seekBy(SKIP_MS),
-    seekTo,
-    reportDropOff,
-    playing: status.playing,
-  };
+  // One transport object, driving the one AudioPlayer. The player screen pulls
+  // this from the store rather than mounting its own usePlayback (which would
+  // start a second player and play the moment twice).
+  const controls = useMemo(
+    () => ({
+      toggle,
+      back15: () => seekBy(-SKIP_MS),
+      forward15: () => seekBy(SKIP_MS),
+      seekTo,
+      reportDropOff,
+    }),
+    [toggle, seekBy, seekTo, reportDropOff],
+  );
+
+  useEffect(() => {
+    setControls(controls);
+  }, [controls, setControls]);
+
+  // Only the true unmount (app teardown) clears the transport; a re-register
+  // above must not blank it in between.
+  useEffect(() => () => setControls(null), [setControls]);
+
+  return { ...controls, playing: status.playing };
 }

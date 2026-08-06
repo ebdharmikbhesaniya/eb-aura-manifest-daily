@@ -8,7 +8,6 @@ import { canUse } from '@/features/paywall/gating';
 import { useEntitlement } from '@/features/paywall/useEntitlement';
 import { PlayerScreen } from '@/features/player/PlayerScreen';
 import { usePlayerStore } from '@/features/player/playerStore';
-import { usePlayback } from '@/features/player/usePlayback';
 import { analytics } from '@/lib/analytics';
 import { api } from '@/lib/api';
 import { errorCopyFor, errorKeyOf } from '@/lib/errorCopy';
@@ -28,18 +27,19 @@ export default function PlayerRoute() {
   const entitlement = useEntitlement();
   const moment = usePlayerStore((s) => s.moment);
   const minimize = usePlayerStore((s) => s.minimize);
-
-  const playback = usePlayback();
+  // The single AudioPlayer lives in the tab layout's usePlayback; we only drive
+  // it. Mounting usePlayback here again would play the moment on a second player.
+  const controls = usePlayerStore((s) => s.controls);
   const refineRef = useRef<BottomSheetModal>(null);
   const lockedRef = useRef<BottomSheetModal>(null);
   const [busy, setBusy] = useState(false);
   const [refineError, setRefineError] = useState<string | null>(null);
 
   const onMinimize = useCallback(() => {
-    playback.reportDropOff();
+    controls?.reportDropOff();
     minimize();
     router.back();
-  }, [playback, minimize, router]);
+  }, [controls, minimize, router]);
 
   const onFavorite = useCallback(async () => {
     if (!moment) return;
@@ -69,10 +69,10 @@ export default function PlayerRoute() {
     <>
       <PlayerScreen
         testID="player"
-        onToggle={playback.toggle}
-        onBack15={playback.back15}
-        onForward15={playback.forward15}
-        onSeek={playback.seekTo}
+        onToggle={() => controls?.toggle()}
+        onBack15={() => controls?.back15()}
+        onForward15={() => controls?.forward15()}
+        onSeek={(positionMs) => controls?.seekTo(positionMs)}
         onFavorite={() => void onFavorite()}
         onRefine={onRefine}
         onMinimize={onMinimize}
