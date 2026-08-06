@@ -22,6 +22,8 @@ export type PlayerMode = 'listen' | 'read';
  */
 export interface PlayerControls {
   toggle: () => void;
+  play: () => void;
+  pause: () => void;
   back15: () => void;
   forward15: () => void;
   seekTo: (positionMs: number) => void;

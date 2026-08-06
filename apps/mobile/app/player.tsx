@@ -1,5 +1,5 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 
 import { RefineSheet } from '@/features/moments/RefineSheet';
@@ -34,6 +34,17 @@ export default function PlayerRoute() {
   const lockedRef = useRef<BottomSheetModal>(null);
   const [busy, setBusy] = useState(false);
   const [refineError, setRefineError] = useState<string | null>(null);
+
+  // Playback lives only while the cover is open. Closing it — the chevron, the
+  // hardware back, or the swipe-down dismiss — pauses the voice, so nothing plays
+  // on in the background; re-opening the cover resumes it. (Departs from the old
+  // 06 §2 "keeps playing behind the tab bar" behaviour, by request.)
+  useFocusEffect(
+    useCallback(() => {
+      controls?.play();
+      return () => controls?.pause();
+    }, [controls]),
+  );
 
   const onMinimize = useCallback(() => {
     controls?.reportDropOff();

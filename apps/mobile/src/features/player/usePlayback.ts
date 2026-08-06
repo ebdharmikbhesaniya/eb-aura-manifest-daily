@@ -1,5 +1,6 @@
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { AppState } from 'react-native';
 
 import { configureLetterAudio } from '@/features/letter/audioMode';
 import { touchCachedAudio } from '@/features/letter/audioCache';
@@ -120,6 +121,19 @@ export function usePlayback() {
     else player.play();
   }, [player]);
 
+  const play = useCallback(() => player.play(), [player]);
+  const pause = useCallback(() => player.pause(), [player]);
+
+  // No background playback: when the app leaves the foreground, pause the voice.
+  // This is the moment player only — the Letter runs its own player/session and
+  // is not touched, so a locked screen mid-letter still continues (its design).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background') player.pause();
+    });
+    return () => sub.remove();
+  }, [player]);
+
   const seekBy = useCallback(
     (deltaMs: number) => {
       const s = statusRef.current;
@@ -153,12 +167,14 @@ export function usePlayback() {
   const controls = useMemo(
     () => ({
       toggle,
+      play,
+      pause,
       back15: () => seekBy(-SKIP_MS),
       forward15: () => seekBy(SKIP_MS),
       seekTo,
       reportDropOff,
     }),
-    [toggle, seekBy, seekTo, reportDropOff],
+    [toggle, play, pause, seekBy, seekTo, reportDropOff],
   );
 
   useEffect(() => {
