@@ -13,6 +13,13 @@ interface ElevenLabsConfig {
 }
 
 /**
+ * A single synthesis must not hang a generation worker (10 §2). ~1000 characters
+ * of audio returns well inside this; a stall past it is a provider fault the
+ * pipeline should classify as a provider error and retry (08 §4), not a hung job.
+ */
+const SYNTHESIZE_TIMEOUT_MS = 30_000;
+
+/**
  * ElevenLabs adapter (10 §2). Uses the with-timestamps endpoint so audio and
  * character-level timings arrive in one call — the timings drive the Letter's
  * karaoke sync (10 §5), which is product, not telemetry.
@@ -28,20 +35,38 @@ export class ElevenLabsTtsProvider implements TtsProvider {
   constructor(private readonly config: ElevenLabsConfig) {}
 
   async synthesize(req: TtsSynthesizeRequest): Promise<TtsSynthesizeResponse> {
-    const res = await fetch(`${this.baseUrl}/text-to-speech/${req.voiceId}/with-timestamps`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'xi-api-key': this.config.apiKey,
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        text: req.text,
-        model_id: this.config.model,
-        // mp3 44.1kHz 128kbps — voice-optimized (10 §2).
-        output_format: 'mp3_44100_128',
-      }),
-    });
+    // Bound the call, like the LLM call and ping() are: an unbounded fetch lets a
+    // stalled ElevenLabs response hang the generation worker indefinitely.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), SYNTHESIZE_TIMEOUT_MS);
+
+    let res: Response;
+    try {
+      res = await fetch(`${this.baseUrl}/text-to-speech/${req.voiceId}/with-timestamps`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'xi-api-key': this.config.apiKey,
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          text: req.text,
+          model_id: this.config.model,
+          // mp3 44.1kHz 128kbps — voice-optimized (10 §2).
+          output_format: 'mp3_44100_128',
+        }),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      // The abort surfaces as an AbortError; name it so the log says "timed out"
+      // rather than a bare "aborted".
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error(`ElevenLabs timed out after ${SYNTHESIZE_TIMEOUT_MS}ms`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
