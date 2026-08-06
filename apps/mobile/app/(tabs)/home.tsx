@@ -29,7 +29,7 @@ import { LockedFeatureSheet } from '@/features/paywall/LockedFeatureSheet';
 import { canUse } from '@/features/paywall/gating';
 import { useEntitlement } from '@/features/paywall/useEntitlement';
 import { usePlayerStore } from '@/features/player/playerStore';
-import { useGenerationJob } from '@/features/letter/useGenerationJob';
+import { isTerminalJobStatus, useGenerationJob } from '@/features/letter/useGenerationJob';
 import { useProfile } from '@/hooks/useProfile';
 import { LIMITS } from '@aura/shared';
 
@@ -163,7 +163,11 @@ export default function HomeRoute() {
   const manifestJob = useGenerationJob(manifestJobId);
   const manifestStatus = manifestJob.data?.status;
   useEffect(() => {
-    if (!manifestStatus) return;
+    // Only react once the job is DONE. The poll reports `queued`/`running` first,
+    // and treating those as terminal cleared the job id — killing the poll before
+    // it ever saw `succeeded`, so the sheet never closed and the list never
+    // refreshed. Stay put until the status is genuinely terminal.
+    if (!isTerminalJobStatus(manifestStatus)) return;
     if (manifestStatus === 'succeeded') {
       void today.refetch();
       // A manifest is an on-demand moment, so the On demand collection re-reads.
