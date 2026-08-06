@@ -42,12 +42,21 @@ export interface SyncedLyricsProps {
 export function SyncedLyrics({ lines, positionMs, testID }: SyncedLyricsProps) {
   const { colors, spacing } = useTheme();
   const motion = useMotion();
-  const { height } = useWindowDimensions();
+  const { height: windowHeight } = useWindowDimensions();
   const scale = clampedFontScale();
 
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const offsets = useSharedValue<number[]>([]);
+  // The lyrics area is shorter than the window (header + controls take the rest),
+  // so centering must use THIS view's measured height, not the window's, or the
+  // active line lands low with the look-ahead pushed off screen.
+  const [viewHeight, setViewHeight] = useState(0);
+  const svHeight = useSharedValue(0);
   const [active, setActive] = useState(-1);
+
+  // Where the active line parks inside the lyrics area — a touch above centre, so
+  // there is room for the upcoming lines below it.
+  const CENTER_FRACTION = 0.42;
 
   // One reaction: recompute the spoken line on the UI thread, scroll it toward
   // centre, and (only on change) re-split it into words on the JS thread.
@@ -56,14 +65,16 @@ export function SyncedLyrics({ lines, positionMs, testID }: SyncedLyricsProps) {
     (index, previous) => {
       if (index < 0 || index === previous) return;
       const y = offsets.value[index];
+      const park = svHeight.value > 0 ? svHeight.value * CENTER_FRACTION : 0;
       if (y !== undefined) {
-        // Park the spoken line a little above centre — reading sits naturally high.
-        scrollTo(scrollRef, 0, Math.max(0, y - height * 0.4), !motion.reduceMotion);
+        scrollTo(scrollRef, 0, Math.max(0, y - park), !motion.reduceMotion);
       }
       runOnJS(setActive)(index);
     },
-    [lines, height, motion.reduceMotion],
+    [lines, motion.reduceMotion],
   );
+
+  const padHeight = viewHeight > 0 ? viewHeight : windowHeight;
 
   const lineTextStyle = {
     fontFamily: fonts.serifItalic,
@@ -86,9 +97,18 @@ export function SyncedLyrics({ lines, positionMs, testID }: SyncedLyricsProps) {
       testID={testID}
       scrollEnabled={false}
       showsVerticalScrollIndicator={false}
+      onLayout={(e) => {
+        const h = e.nativeEvent.layout.height;
+        if (h > 0 && h !== viewHeight) {
+          setViewHeight(h);
+          svHeight.value = h;
+        }
+      }}
       contentContainerStyle={{
-        paddingTop: height * 0.4,
-        paddingBottom: height * 0.5,
+        // Half a screenful of padding at both ends so the first and last lines can
+        // also reach the centre (spec §4).
+        paddingTop: padHeight * CENTER_FRACTION,
+        paddingBottom: padHeight * 0.5,
         paddingHorizontal: spacing.lg,
       }}
     >

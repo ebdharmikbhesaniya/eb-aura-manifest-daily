@@ -1,7 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Label, Orb } from '@/components';
@@ -12,6 +10,7 @@ import { clampedFontScale, scaledType } from '@/theme/typography';
 
 import { ReadMode } from './ReadMode';
 import { SyncedLyrics } from './SyncedLyrics';
+import { useSmoothPosition } from './useSmoothPosition';
 import { TransportRow } from './TransportRow';
 import { WaveBars } from './WaveBars';
 import { formatTime, progressOf, usePlayerStore } from './playerStore';
@@ -68,12 +67,9 @@ export function PlayerScreen({
   const cycleSpeed = usePlayerStore((s) => s.cycleSpeed);
   const toggleMode = usePlayerStore((s) => s.toggleMode);
 
-  // The karaoke renderer reads position from a shared value; the store holds it
-  // as plain state, so it is mirrored here rather than threaded through.
-  const position = useSharedValue(0);
-  useEffect(() => {
-    position.value = positionMs;
-  }, [positionMs, position]);
+  // The lyrics renderer reads position from a shared value driven at frame rate,
+  // so the word glow sweeps smoothly between the audio's coarse status updates.
+  const position = useSmoothPosition(positionMs, playing);
 
   if (!moment) return null;
 
