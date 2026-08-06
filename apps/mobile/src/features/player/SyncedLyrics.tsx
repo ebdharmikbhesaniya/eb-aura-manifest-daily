@@ -82,9 +82,15 @@ export function SyncedLyrics({ lines, positionMs, testID }: SyncedLyricsProps) {
   };
 
   const onLayoutY = (index: number, y: number) => {
-    const next = [...offsets.value];
-    next[index] = y;
-    offsets.value = next;
+    // Atomic update: every line's onLayout fires at once on mount, so a
+    // read-modify-write on offsets.value would race and drop most entries,
+    // leaving the active line's offset at 0 and the centering broken. `.modify`
+    // mutates the shared value in place on the UI thread without that race.
+    offsets.modify((arr) => {
+      'worklet';
+      arr[index] = y;
+      return arr;
+    });
   };
 
   return (
