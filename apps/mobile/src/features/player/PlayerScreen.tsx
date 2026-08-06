@@ -6,12 +6,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Label, Orb } from '@/components';
 import { playerCopy } from '@/copy/player';
-import { KaraokeLetter } from '@/features/letter/KaraokeLetter';
 import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
 
 import { ReadMode } from './ReadMode';
+import { SyncedLyrics } from './SyncedLyrics';
 import { TransportRow } from './TransportRow';
 import { WaveBars } from './WaveBars';
 import { formatTime, progressOf, usePlayerStore } from './playerStore';
@@ -135,8 +135,9 @@ export function PlayerScreen({
             testID="player-read"
           />
         ) : moment.lines.length > 0 ? (
-          // When timings exist the karaoke IS the cover (v4 §player).
-          <KaraokeLetter lines={moment.lines} positionMs={position} testID="player-karaoke" />
+          // Synced lyrics ARE the cover (v4 §player). Distinct from the Letter's
+          // reveal — see SyncedLyrics (spec 2026-08-06).
+          <SyncedLyrics lines={moment.lines} positionMs={position} testID="player-karaoke" />
         ) : (
           <View
             style={{
