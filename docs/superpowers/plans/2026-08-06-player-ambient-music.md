@@ -1,5 +1,10 @@
 # Ambient Music (Moment Player) Implementation Plan
 
+> **⚠️ SUPERSEDED (2026-08-07)** — client-side approach is broken on Android
+> ([expo/expo#36034](https://github.com/expo/expo/issues/36034)). Replaced by the
+> server-side FFmpeg bake plan: `2026-08-07-player-ambient-music-server-mix.md`.
+> Do not execute this plan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Play a soft, looping ambient music bed under the voice while a moment plays, added purely at playback time — no backend changes, no regression to the single-voice/seek/synced-lyrics fixes.

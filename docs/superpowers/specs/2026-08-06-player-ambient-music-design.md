@@ -1,7 +1,12 @@
 # Ambient Music (Moment Player) — Design
 
+> **⚠️ SUPERSEDED (2026-08-07)** by `2026-08-07-player-ambient-music-server-mix-design.md`.
+> The client-side approach below is **broken on Android** ([expo/expo#36034](https://github.com/expo/expo/issues/36034):
+> a second `useAudioPlayer` pauses the voice), so we pivoted to a server-side FFmpeg bake.
+> Kept for history only — do not implement this.
+
 **Date:** 2026-08-06
-**Status:** Approved (design)
+**Status:** Superseded
 **Surface:** Moment player only (daily + on-demand). The Letter is untouched.
 
 ## Goal
