@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { MemoryModule } from '../memory/memory.module';
 import { SafetyModule } from '../safety/safety.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { AudioMixService } from './audio-mix.service';
 import { CreditsService } from './credits.service';
 import { AffirmationsController } from './affirmations.controller';
 import { GenerationController } from './generation.controller';
@@ -20,7 +21,14 @@ import { StorageService } from './storage.service';
 @Module({
   imports: [MemoryModule, SafetyModule, QaModule, SubscriptionsModule],
   controllers: [GenerationController, AffirmationsController],
-  providers: [GenerationService, JobsService, PromptService, StorageService, CreditsService],
+  providers: [
+    GenerationService,
+    JobsService,
+    PromptService,
+    StorageService,
+    CreditsService,
+    AudioMixService,
+  ],
   exports: [JobsService, CreditsService],
 })
 export class GenerationModule {}

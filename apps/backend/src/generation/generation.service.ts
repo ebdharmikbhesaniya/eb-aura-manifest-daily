@@ -16,6 +16,7 @@ import {
   type ModelTier,
 } from './types';
 import { ARTIFACT_SPEC } from './artifact-spec';
+import { AudioMixService } from './audio-mix.service';
 import { CreditsService } from './credits.service';
 import { JobsService, QaFailedError, type JobRow } from './jobs/jobs.service';
 import { PromptService, type GuidedPromptInput, type RefineInput } from './prompt/prompt.service';
@@ -43,6 +44,7 @@ export class GenerationService implements OnModuleInit {
     private readonly qa: QaService,
     private readonly crisis: CrisisDetectionService,
     private readonly storage: StorageService,
+    private readonly audioMix: AudioMixService,
     private readonly analytics: AnalyticsService,
     private readonly config: ConfigService<Env, true>,
     @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
@@ -358,11 +360,23 @@ export class GenerationService implements OnModuleInit {
       const synth = await this.tts.synthesize({ text: artifact.body, voiceId });
       const audioPath = await this.storage.uploadMomentAudio(job.user_id, moment.id, synth.audio);
 
+      // Best-effort ambient bed: a mix or upload failure must never fail the job.
+      // The voice-only file above is the canonical artifact; the music file is a
+      // bonus the player picks when the user has ambient on.
+      let musicPath: string | null = null;
+      try {
+        const mixed = await this.audioMix.mix(synth.audio);
+        musicPath = await this.storage.uploadMomentMusic(job.user_id, moment.id, mixed);
+      } catch (err) {
+        this.logger.warn(`ambient mix skipped for ${moment.id}: ${(err as Error).message}`);
+      }
+
       await this.supabase
         .from('moments')
         .update({
           status: 'ready',
           audio_path: audioPath,
+          audio_music_path: musicPath,
           // Plain {word,startMs,endMs} objects — jsonb-serializable, but the
           // generated Json type wants an index signature these interfaces lack.
           word_timings: synth.wordTimings as unknown as Json,

@@ -26,4 +26,17 @@ export class StorageService {
     if (error) throw new Error(`Audio upload failed: ${error.message}`);
     return path;
   }
+
+  /** Uploads the voice+bed mp3, returns its path (persisted to `moments.audio_music_path`). */
+  async uploadMomentMusic(userId: string, momentId: string, audio: Buffer): Promise<string> {
+    const path = `${userId}/${momentId}-music.mp3`;
+
+    const { error } = await this.supabase.storage.from(AUDIO_BUCKET).upload(path, audio, {
+      contentType: 'audio/mpeg',
+      upsert: true,
+    });
+
+    if (error) throw new Error(`Music upload failed: ${error.message}`);
+    return path;
+  }
 }

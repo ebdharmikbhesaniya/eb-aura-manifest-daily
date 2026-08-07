@@ -11,6 +11,7 @@ import { MockTtsProvider } from '../providers/tts/mock-tts.provider';
 import { TTS_PROVIDER, type TtsProvider } from '../providers/tts/tts-provider.interface';
 import { CrisisDetectionService } from '../safety/crisis-detection.service';
 import { SUPABASE_CLIENT } from '../supabase/supabase.module';
+import { AudioMixService } from './audio-mix.service';
 import { buildContext } from './__fixtures__/memory-context.fixture';
 import { GenerationService } from './generation.service';
 import { JobsService, QaFailedError, type JobRow, type JobRunner } from './jobs/jobs.service';
@@ -38,6 +39,7 @@ describe('GenerationService (pipeline)', () => {
   // so a test can assert the rows without the fake needing to know table names.
   let affirmationInserts: Record<string, unknown>[];
   let upload: jest.Mock;
+  let mix: jest.Mock;
   let assemble: jest.Mock;
   let llm: LlmProvider;
   let tts: TtsProvider;
@@ -96,6 +98,7 @@ describe('GenerationService (pipeline)', () => {
         QaService,
         StorageService,
         CrisisDetectionService,
+        { provide: AudioMixService, useValue: { mix } },
         { provide: CreditsService, useValue: { refund } },
         { provide: MemoryContextService, useValue: { assemble } },
         { provide: JobsService, useValue: { registerRunner: (r: JobRunner) => (runner = r) } },
@@ -133,6 +136,7 @@ describe('GenerationService (pipeline)', () => {
     affirmationInserts = [];
     insertError = null;
     upload = jest.fn().mockResolvedValue({ error: null });
+    mix = jest.fn().mockResolvedValue(Buffer.from('mixed-bytes'));
     assemble = jest.fn().mockResolvedValue(buildContext());
     llm = new MockLlmProvider();
     tts = new MockTtsProvider();
@@ -173,6 +177,28 @@ describe('GenerationService (pipeline)', () => {
         expect.any(Buffer),
         expect.objectContaining({ contentType: 'audio/mpeg', upsert: true }),
       );
+    });
+
+    it('bakes and stores an ambient music file for a spoken moment', async () => {
+      await runner(job());
+
+      expect(mix).toHaveBeenCalledTimes(1);
+      expect(upload).toHaveBeenCalledWith(
+        'user-1/moment-1-music.mp3',
+        expect.any(Buffer),
+        expect.objectContaining({ contentType: 'audio/mpeg', upsert: true }),
+      );
+      expect(written().audio_music_path).toBe('user-1/moment-1-music.mp3');
+    });
+
+    it('finishes voice-only when the mix fails (best-effort, never blocks the job)', async () => {
+      mix.mockRejectedValue(new Error('ffmpeg exploded'));
+
+      await runner(job());
+
+      expect(written().status).toBe('ready');
+      expect(written().audio_path).toBe('user-1/moment-1.mp3');
+      expect(written().audio_music_path ?? null).toBeNull();
     });
 
     it('emits the started and succeeded analytics with a latency', async () => {
