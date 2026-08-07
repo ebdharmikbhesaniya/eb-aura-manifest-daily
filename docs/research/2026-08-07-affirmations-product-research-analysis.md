@@ -227,6 +227,27 @@ An affirmation must state **only what you _do_ want, phrased positively**. Never
 
 > **Aura already enforces this.** Aura's QA gate rejects negatively-framed affirmations (`negative_frame` — no "not / never / won't"). The research validates that gate, and this section is the "why" behind it.
 
+### 5. The other rule: affirm growth, **never harm** (keep the intent constructive)
+
+The no-negatives rule (§4) is about _grammar_ — how the sentence is phrased. This rule is about _intent_ — what the affirmation is _for_. An affirmation must be aimed at your own growth, confidence, and a life that's good for you **and** the people around you. It must **never** rehearse harming, dominating, deceiving, stealing from, or controlling anyone else.
+
+**Do NOT affirm things like:** _"I am the best murderer," "I can rob anyone and get away with it," "People always fall for my lies," "I take whatever I want from whoever I want."_ These are not affirmations in any healthy sense — they are rehearsals of an identity that harms others.
+
+**Why this matters (it's not just moralising):** the one branch of this field with real evidence — self-affirmation theory — works precisely because it reconnects you to being a **good, moral, competent person** (self-integrity; Part I §2). An affirmation aimed at harm **contradicts the very mechanism** that makes affirmation psychologically useful, and it corrodes rather than builds the self. Harmful intent also fails the believability and well-being logic throughout this report.
+
+**Good direction instead — ambition without harm.** Wanting _more_ is fine; the test is whether it lifts you **without stepping on anyone**:
+
+| ❌ Harmful / predatory intent             | ✅ Constructive, pro-social reframe                    |
+| ----------------------------------------- | ------------------------------------------------------ |
+| "I can take whatever I want from people." | "I create real value, and abundance flows back to me." |
+| "I always win and make others lose."      | "I win by being excellent at what I do."               |
+| "People always fall for what I say."      | "People trust me because I am honest and clear."       |
+| "I get away with anything."               | "I act with integrity and stand behind what I do."     |
+
+**Rule of thumb:** an affirmation should make _you_ stronger without making anyone else weaker. If the "win" in it requires someone else's loss, harm, or deception, it isn't an affirmation worth repeating.
+
+> **Product note for Aura.** This is a safety guardrail, not just style. Aura should never generate — and should refuse to build from a user goal that requests — affirmations rehearsing violence, crime, or harm to others. It belongs alongside the existing safety layer (banned phrases, never-include, crisis detection), and can be stated explicitly in the affirmation generation prompt so harmful intent is declined by construction.
+
 ---
 
 <a name="part-iv"></a>
