@@ -27,7 +27,11 @@ export class StorageService {
     return path;
   }
 
-  /** Uploads the voice+bed mp3, returns its path (persisted to `moments.audio_music_path`). */
+  /**
+   * Uploads the voice+bed mp3 to the DETERMINISTIC path `{user}/{moment}-music.mp3`.
+   * No DB column — the app derives this from `audio_path`, so the returned path is
+   * for logging only, not persisted.
+   */
   async uploadMomentMusic(userId: string, momentId: string, audio: Buffer): Promise<string> {
     const path = `${userId}/${momentId}-music.mp3`;
 
