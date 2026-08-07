@@ -296,6 +296,13 @@ describe('PromptService', () => {
       expect(prompt).toContain('three affirmation candidates');
       expect(prompt).toContain('technique');
     });
+
+    it('carries the do-no-harm guardrail into every artifact', () => {
+      // The constitution guardrail must ship with all generation, not just one path.
+      for (const artifact of ['affirmation_guided', 'affirmation_daily', 'letter'] as const) {
+        expect(prompts.build(artifact, buildContext()).system).toContain('Do no harm');
+      }
+    });
   });
 
   describe('versioning (08 §9)', () => {
