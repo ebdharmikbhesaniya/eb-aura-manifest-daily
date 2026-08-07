@@ -362,11 +362,12 @@ export class GenerationService implements OnModuleInit {
 
       // Best-effort ambient bed: a mix or upload failure must never fail the job.
       // The voice-only file above is the canonical artifact; the music file is a
-      // bonus the player picks when the user has ambient on.
-      let musicPath: string | null = null;
+      // bonus the player picks when the user has ambient on. No DB column: the
+      // file lands at the DETERMINISTIC path `{user}/{moment}-music.mp3`, and the
+      // app derives that from `audio_path` — so this needs no schema change.
       try {
         const mixed = await this.audioMix.mix(synth.audio);
-        musicPath = await this.storage.uploadMomentMusic(job.user_id, moment.id, mixed);
+        await this.storage.uploadMomentMusic(job.user_id, moment.id, mixed);
       } catch (err) {
         this.logger.warn(`ambient mix skipped for ${moment.id}: ${(err as Error).message}`);
       }
@@ -376,7 +377,6 @@ export class GenerationService implements OnModuleInit {
         .update({
           status: 'ready',
           audio_path: audioPath,
-          audio_music_path: musicPath,
           // Plain {word,startMs,endMs} objects — jsonb-serializable, but the
           // generated Json type wants an index signature these interfaces lack.
           word_timings: synth.wordTimings as unknown as Json,

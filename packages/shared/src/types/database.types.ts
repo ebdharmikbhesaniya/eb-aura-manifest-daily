@@ -301,7 +301,6 @@ export type Database = {
       };
       moments: {
         Row: {
-          audio_music_path: string | null;
           audio_path: string | null;
           body: string | null;
           completed_at: string | null;
@@ -323,7 +322,6 @@ export type Database = {
           word_timings: Json | null;
         };
         Insert: {
-          audio_music_path?: string | null;
           audio_path?: string | null;
           body?: string | null;
           completed_at?: string | null;
@@ -345,7 +343,6 @@ export type Database = {
           word_timings?: Json | null;
         };
         Update: {
-          audio_music_path?: string | null;
           audio_path?: string | null;
           body?: string | null;
           completed_at?: string | null;

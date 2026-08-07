@@ -179,16 +179,17 @@ describe('GenerationService (pipeline)', () => {
       );
     });
 
-    it('bakes and stores an ambient music file for a spoken moment', async () => {
+    it('bakes and uploads an ambient music file to the deterministic -music path', async () => {
       await runner(job());
 
       expect(mix).toHaveBeenCalledTimes(1);
+      // No DB column — the app derives this path from audio_path. The file just
+      // has to land at {user}/{moment}-music.mp3.
       expect(upload).toHaveBeenCalledWith(
         'user-1/moment-1-music.mp3',
         expect.any(Buffer),
         expect.objectContaining({ contentType: 'audio/mpeg', upsert: true }),
       );
-      expect(written().audio_music_path).toBe('user-1/moment-1-music.mp3');
     });
 
     it('finishes voice-only when the mix fails (best-effort, never blocks the job)', async () => {
@@ -198,7 +199,12 @@ describe('GenerationService (pipeline)', () => {
 
       expect(written().status).toBe('ready');
       expect(written().audio_path).toBe('user-1/moment-1.mp3');
-      expect(written().audio_music_path ?? null).toBeNull();
+      // The moment still completes; only the -music.mp3 upload was skipped.
+      expect(upload).not.toHaveBeenCalledWith(
+        'user-1/moment-1-music.mp3',
+        expect.anything(),
+        expect.anything(),
+      );
     });
 
     it('emits the started and succeeded analytics with a latency', async () => {

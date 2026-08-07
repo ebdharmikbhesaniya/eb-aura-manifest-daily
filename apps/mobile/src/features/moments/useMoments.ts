@@ -159,14 +159,28 @@ export async function toPlayable(row: MomentRow): Promise<PlayableMoment> {
     title: row.title,
     body: row.body ?? '',
     audioSource: await resolveAudio(row.id, row.audio_path),
-    // Cached under a distinct id so the music file never clobbers the voice
-    // cache entry; null (no baked bed) resolves to null for free.
-    musicAudioSource: await resolveAudio(`${row.id}#music`, row.audio_music_path),
+    // The ambient mix lives at a DETERMINISTIC path — the voice file with a
+    // `-music` suffix — so we need no DB column: derive it from audio_path and
+    // ask storage. A moment with no baked bed (old moments, or a mix that
+    // failed) simply has no such object, and resolveAudio returns null →
+    // pickSource falls back to voice. Cached under a distinct id so it never
+    // clobbers the voice cache entry.
+    musicAudioSource: await resolveAudio(`${row.id}#music`, musicPathFrom(row.audio_path)),
     durationMs: row.duration_ms,
     favoritedAt: row.favorited_at,
     refineOf: row.refine_of,
     lines: groupIntoLines(toWordTimings(row.word_timings)),
   };
+}
+
+/**
+ * The ambient-mix path derived from the voice path: `{user}/{moment}.mp3` →
+ * `{user}/{moment}-music.mp3`. No DB column — the backend uploads the mix to
+ * exactly this path, so deriving it here keeps the two in step with zero schema
+ * change. Null when there is no voice file (nothing to derive from).
+ */
+export function musicPathFrom(audioPath: string | null): string | null {
+  return audioPath ? audioPath.replace(/\.mp3$/, '-music.mp3') : null;
 }
 
 async function resolveAudio(momentId: string, audioPath: string | null): Promise<string | null> {

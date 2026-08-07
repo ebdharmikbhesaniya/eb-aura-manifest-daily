@@ -1,5 +1,13 @@
 # Ambient Music (Server-Side Bake) — Design
 
+> **⚙️ UPDATE (2026-08-07, post-implementation):** dropped the `audio_music_path`
+> column. The mix lives at the DETERMINISTIC path `{user}/{moment}-music.mp3`, so
+> the app derives it from `audio_path` (`.mp3` → `-music.mp3`) and asks storage —
+> no schema change, no migration, works with existing creds. A moment with no
+> baked bed simply has no such object and `resolveAudio` returns null → voice
+> fallback. Everywhere below that says "add `audio_music_path`" / "regenerate
+> types" is superseded by `musicPathFrom(audio_path)` in `useMoments.ts`.
+
 **Date:** 2026-08-07
 **Status:** Approved (design)
 **Supersedes:** `2026-08-06-player-ambient-music-design.md` (client-side layer — abandoned; see "Why not client-side").
