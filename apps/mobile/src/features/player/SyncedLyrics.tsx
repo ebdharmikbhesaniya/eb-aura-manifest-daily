@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import Animated, {
   runOnJS,
   useAnimatedReaction,
@@ -28,18 +28,39 @@ const CENTER_FRACTION = 0.42;
 const SCROLL_MS = 450;
 /** Height of the soft fades that dissolve lines into the header / controls. */
 const FADE_HEIGHT = 64;
+/**
+ * Room at the foot of the `revealAll` read fallback for whatever sits over it
+ * (the Letter's ending button). Only used when there is no voice to follow.
+ */
+const READ_ENDING_CLEARANCE = 260;
 
 export interface SyncedLyricsProps {
   lines: KaraokeLine[];
   positionMs: SharedValue<number>;
+  /**
+   * No voice will play — show the whole thing as a plain, scrollable read
+   * instead of the position-driven reveal. Without this the lines would all sit
+   * at "upcoming" opacity and never move, leaving the words on screen but
+   * unreadable (this is the Letter's audio-failed fallback, ported from
+   * `KaraokeLetter`).
+   */
+  revealAll?: boolean;
+  /**
+   * Colors the top/bottom edge fades dissolve into. Defaults to the player
+   * page's gradient ends; the Letter passes its own so the dissolve matches its
+   * dusk gradient rather than the player's.
+   */
+  fadeColors?: { top: string; bottom: string };
   testID?: string;
 }
 
 /**
- * The moment player's synced lyrics (spec 2026-08-06): all lines visible, the
- * active line centered and brightest, past dimmed, upcoming faint, with a soft
- * ember word-by-word glow sweeping the active line. Distinct from the Letter's
- * `KaraokeLetter` "materialize with the voice" reveal, which is untouched.
+ * Synced lyrics (spec 2026-08-06): all lines visible, the active line centered
+ * and brightest, past dimmed, upcoming faint, with a soft ember word-by-word
+ * glow sweeping the active line. Used by BOTH the moment player and the
+ * onboarding Letter reveal (it replaced the Letter's older `KaraokeLetter`
+ * "materialize with the voice" scroll). `revealAll` is the Letter's audio-failed
+ * read fallback; `fadeColors` lets each surface match its own gradient.
  *
  * Centering is a `translateY` on the content, NOT a ScrollView + `scrollTo`: a
  * programmatic scroll does not move a `scrollEnabled={false}` list on Android,
@@ -47,10 +68,19 @@ export interface SyncedLyricsProps {
  * the only JS transition is the active-line index changing every few seconds,
  * which re-splits the newly-active line into per-word nodes for the glow.
  */
-export function SyncedLyrics({ lines, positionMs, testID }: SyncedLyricsProps) {
+export function SyncedLyrics({
+  lines,
+  positionMs,
+  revealAll = false,
+  fadeColors,
+  testID,
+}: SyncedLyricsProps) {
   const { colors, spacing } = useTheme();
   const motion = useMotion();
   const scale = clampedFontScale();
+
+  const fadeTop = fadeColors?.top ?? colors.bg.gradientTop;
+  const fadeBottom = fadeColors?.bottom ?? colors.bg.gradientBottom;
 
   const offsets = useSharedValue<number[]>([]);
   const svHeight = useSharedValue(0);
@@ -99,6 +129,34 @@ export function SyncedLyrics({ lines, positionMs, testID }: SyncedLyricsProps) {
       return arr;
     });
   };
+
+  // No voice to follow (e.g. the Letter's audio failed): drop the choreography
+  // and let her simply read and scroll. Every line is present at full weight —
+  // the position-driven reveal would otherwise leave them all faint and frozen.
+  if (revealAll) {
+    return (
+      <ScrollView
+        testID={testID}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingTop: spacing.xl,
+          paddingBottom: READ_ENDING_CLEARANCE,
+          paddingHorizontal: spacing.lg,
+        }}
+      >
+        {lines.map((line) => (
+          <Animated.Text
+            key={line.index}
+            accessibilityRole="text"
+            allowFontScaling={false}
+            style={[lineTextStyle, { opacity: 1 }]}
+          >
+            {line.text}
+          </Animated.Text>
+        ))}
+      </ScrollView>
+    );
+  }
 
   return (
     <View
@@ -153,12 +211,12 @@ export function SyncedLyrics({ lines, positionMs, testID }: SyncedLyricsProps) {
           instead of hard-cutting, matching the page's own gradient at each end. */}
       <LinearGradient
         pointerEvents="none"
-        colors={[colors.bg.gradientTop, 'transparent']}
+        colors={[fadeTop, 'transparent']}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, height: FADE_HEIGHT }}
       />
       <LinearGradient
         pointerEvents="none"
-        colors={['transparent', colors.bg.gradientBottom]}
+        colors={['transparent', fadeBottom]}
         style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FADE_HEIGHT }}
       />
     </View>

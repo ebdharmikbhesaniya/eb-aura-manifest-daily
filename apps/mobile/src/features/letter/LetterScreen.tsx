@@ -3,9 +3,9 @@ import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { letterCopy } from '@/copy/letter';
+import { SyncedLyrics } from '@/features/player/SyncedLyrics';
 import { useTheme } from '@/theme/ThemeProvider';
 
-import { KaraokeLetter } from './KaraokeLetter';
 import { LetterEnding } from './LetterEnding';
 import type { Letter } from './useLetter';
 import { useLetterPlayback } from './useLetterPlayback';
@@ -44,10 +44,15 @@ export function LetterScreen({ letter, onContinue, testID }: LetterScreenProps) 
         accessibilityLabel={letterCopy.a11yLabel}
         accessible={false}
       >
-        <KaraokeLetter
+        {/* The same synced-lyrics view as the moment player. `revealAll` is the
+            read-it-yourself fallback when the audio never loads; the fades dissolve
+            into the Letter's own dusk gradient (mid at the top, base at the foot),
+            not the player's page ends. */}
+        <SyncedLyrics
           lines={letter.lines}
           positionMs={playback.positionMs}
           revealAll={playback.failed}
+          fadeColors={{ top: colors.bg.gradientMid, bottom: colors.bg.base }}
           testID="letter-karaoke"
         />
 
