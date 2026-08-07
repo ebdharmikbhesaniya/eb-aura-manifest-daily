@@ -127,12 +127,19 @@ export class QaService {
 
     // 7. Sensitive-title (14 §notifications): her struggle is injected only into
     // body context and must never surface in a title that rides the notification
-    // and share surfaces. Only distinctive words (>3 chars) are checked, so common
-    // words shared with a benign title do not false-positive.
+    // and share surfaces.
+    //
+    // Only DISTINCTIVE struggle words are checked — over 3 chars AND not a common
+    // function word — and they must appear as WHOLE WORDS. Both guards exist
+    // because the naive version false-positived constantly: a struggle like "the
+    // fear that starting over means I've fallen behind" made every title carrying
+    // "that"/"over"/"means" fail (common words), and the substring match rejected
+    // "Fearless" (contains "fear") and "Discover" (contains "over"). The real
+    // intent — keep the sensitive TOPIC out of the title — needs neither of those
+    // misfires; "fallen"/"behind" as whole words still trip it, as they should.
     if (context.struggle !== null) {
-      const loweredTitle = title.toLowerCase();
       const leaked = distinctiveWords(context.struggle).filter((word) =>
-        loweredTitle.includes(word),
+        new RegExp(`\\b${escapeRegExp(word)}\\b`, 'i').test(title),
       );
       if (leaked.length > 0) {
         flagged.push({
@@ -203,12 +210,88 @@ function collectVerbatimCandidates(context: MemoryContext): string[] {
   return tokens;
 }
 
-/** Distinctive struggle words for the title scan (08 §5) — lowercased, >3 chars. */
+/**
+ * Common English function words that are never themselves "the sensitive topic".
+ * A struggle phrase routinely contains a few, and without this filter they turn
+ * ordinary titles into false positives (Jenny's "…that starting over means…"
+ * flagged any title with "that"/"over"/"means"). The topic-bearing words —
+ * nouns, adjectives, the actual struggle — are not in here, so real leaks still
+ * trip the scan.
+ */
+const TITLE_STOPWORDS: ReadonlySet<string> = new Set([
+  'that',
+  'this',
+  'these',
+  'those',
+  'then',
+  'than',
+  'them',
+  'they',
+  'their',
+  'there',
+  'with',
+  'from',
+  'your',
+  'yours',
+  'been',
+  'being',
+  'have',
+  'will',
+  'would',
+  'could',
+  'should',
+  'into',
+  'onto',
+  'upon',
+  'over',
+  'under',
+  'about',
+  'above',
+  'below',
+  'just',
+  'like',
+  'only',
+  'more',
+  'most',
+  'some',
+  'such',
+  'very',
+  'also',
+  'even',
+  'ever',
+  'here',
+  'much',
+  'many',
+  'each',
+  'both',
+  'when',
+  'what',
+  'which',
+  'while',
+  'where',
+  'after',
+  'before',
+  'again',
+  'because',
+  'means',
+  'does',
+  'done',
+  'around',
+  'still',
+  'yourself',
+]);
+
+/**
+ * Distinctive struggle words for the title scan (08 §5) — lowercased, over 3
+ * chars, and not a common function word. The stopword filter is what stops a
+ * benign title from being rejected for sharing an "over"/"that" with the
+ * struggle; see rule 7.
+ */
 function distinctiveWords(text: string): string[] {
   return text
     .toLowerCase()
     .split(/[^a-z0-9]+/i)
-    .filter((word) => word.length > 3);
+    .filter((word) => word.length > 3 && !TITLE_STOPWORDS.has(word));
 }
 
 /** Escape regex metacharacters so a user-authored term is matched literally. */

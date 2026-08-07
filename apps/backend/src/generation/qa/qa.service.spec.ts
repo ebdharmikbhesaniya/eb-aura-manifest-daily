@@ -385,6 +385,33 @@ describe('QaService', () => {
 
       expect(result.flaggedRules).not.toContain('sensitive_title');
     });
+
+    it('does not flag a benign title that only shares common words with the struggle', () => {
+      // Regression: "…that starting over means…" made every title carrying the
+      // function words that/over/means fail. A positive title must pass.
+      const context = buildContext({
+        struggle: "the fear that starting over means I've fallen behind",
+      });
+      const result = qa.check('letter', letter(PASSING_LETTER_BODY, 'A Fresh Start'), context);
+
+      expect(result.flaggedRules).not.toContain('sensitive_title');
+    });
+
+    it('does not flag on a substring — "Fearless" is not the word "fear"', () => {
+      const context = buildContext({ struggle: 'the fear that follows me' });
+      const result = qa.check('letter', letter(PASSING_LETTER_BODY, 'Fearless Today'), context);
+
+      expect(result.flaggedRules).not.toContain('sensitive_title');
+    });
+
+    it('still flags a real topic word that leaks as a whole word', () => {
+      const context = buildContext({
+        struggle: "the fear that starting over means I've fallen behind",
+      });
+      const result = qa.check('letter', letter(PASSING_LETTER_BODY, 'Falling Behind'), context);
+
+      expect(result.flaggedRules).toContain('sensitive_title');
+    });
   });
 
   describe('rule 8 — date_close', () => {
