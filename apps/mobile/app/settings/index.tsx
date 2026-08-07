@@ -1,7 +1,7 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import { useRef } from 'react';
-import { ScrollView } from 'react-native';
+import { ScrollView, Switch } from 'react-native';
 
 import { ListRow, RowGroup, Screen, ScreenHeader } from '@/components';
 import { authCopy } from '@/copy/auth';
@@ -16,6 +16,7 @@ import { LegalRowGroup } from '@/features/settings/LegalRowGroup';
 import { ClaimSheet } from '@/features/paywall/ClaimSheet';
 import { NotificationPrefsSheet } from '@/features/notifications/NotificationPrefsSheet';
 import { useEntitlement } from '@/features/paywall/useEntitlement';
+import { usePlayerStore } from '@/features/player/playerStore';
 import { signOutAndWipeDevice } from '@/lib/accountReset';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -42,6 +43,9 @@ export default function SettingsRoute() {
   // primary button on the one screen that promises her letters survive a new
   // phone.
   const { claimed, appleAvailable } = useAccountStatus();
+
+  const ambientEnabled = usePlayerStore((s) => s.ambientEnabled);
+  const setAmbientEnabled = usePlayerStore((s) => s.setAmbientEnabled);
 
   const { premium, inTrial } = useEntitlement();
   const subscriptionSubtitle = premium
@@ -70,6 +74,19 @@ export default function SettingsRoute() {
             subtitle={settingsCopy.notifications.subtitle}
             onPress={() => prefsRef.current?.present()}
             testID="settings-notifications-row"
+          />
+          <ListRow
+            title={settingsCopy.ambient.title}
+            subtitle={settingsCopy.ambient.subtitle}
+            onPress={() => setAmbientEnabled(!ambientEnabled)}
+            trailing={
+              <Switch
+                value={ambientEnabled}
+                onValueChange={setAmbientEnabled}
+                testID="settings-ambient-switch"
+              />
+            }
+            testID="settings-ambient-row"
           />
         </RowGroup>
 

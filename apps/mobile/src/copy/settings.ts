@@ -14,6 +14,12 @@ export const settingsCopy = {
     subtitle: 'Arrivals only — never nudges',
   },
 
+  /** The ambient music toggle — soft background music under the spoken moment. */
+  ambient: {
+    title: 'Ambient music',
+    subtitle: 'Soft music under your moments',
+  },
+
   claim: {
     subtitle: 'A way back in, on any phone',
   },
