@@ -9,6 +9,7 @@ import { recordBeat } from '@/features/affirmations/practice';
 import { localDate } from '@/features/gratitude/useGratitude';
 import { analytics } from '@/lib/analytics';
 
+import { pickSource } from './pickSource';
 import { clampSeek, SKIP_MS, usePlayerStore } from './playerStore';
 
 /**
@@ -24,12 +25,16 @@ export function usePlayback() {
   const moment = usePlayerStore((s) => s.moment);
   const speed = usePlayerStore((s) => s.speed);
   const source = usePlayerStore((s) => s.source);
+  const ambientEnabled = usePlayerStore((s) => s.ambientEnabled);
   const setPlaying = usePlayerStore((s) => s.setPlaying);
   const setPosition = usePlayerStore((s) => s.setPosition);
 
   const setControls = usePlayerStore((s) => s.setControls);
 
-  const player = useAudioPlayer(moment?.audioSource ?? null, { updateInterval: 250 });
+  // One file, one player: the baked voice+bed mp3 when ambient is on and the
+  // moment has one, else the voice-only file. Never a second AudioPlayer.
+  const audioSrc = pickSource(moment, ambientEnabled);
+  const player = useAudioPlayer(audioSrc, { updateInterval: 250 });
   const status = useAudioPlayerStatus(player);
 
   const startedRef = useRef<string | null>(null);

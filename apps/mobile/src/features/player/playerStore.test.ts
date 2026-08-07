@@ -17,6 +17,7 @@ describe('playerStore', () => {
     title: 'The Balcony',
     body: 'Morning light.',
     audioSource: 'file:///cache/audio/moment-1.mp3',
+    musicAudioSource: null,
     durationMs: 90_000,
     favoritedAt: null,
     refineOf: null,

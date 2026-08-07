@@ -23,6 +23,7 @@ describe('HomeScreen', () => {
     title: 'The Balcony',
     body: 'Morning light.',
     audioSource: 'file:///a.mp3',
+    musicAudioSource: null,
     durationMs: 90_000,
     favoritedAt: null,
     refineOf: null,

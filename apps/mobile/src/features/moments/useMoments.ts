@@ -22,6 +22,7 @@ export interface PlayableMoment {
   title: string | null;
   body: string;
   audioSource: string | null;
+  musicAudioSource: string | null;
   durationMs: number | null;
   favoritedAt: string | null;
   refineOf: string | null;
@@ -158,6 +159,9 @@ export async function toPlayable(row: MomentRow): Promise<PlayableMoment> {
     title: row.title,
     body: row.body ?? '',
     audioSource: await resolveAudio(row.id, row.audio_path),
+    // Cached under a distinct id so the music file never clobbers the voice
+    // cache entry; null (no baked bed) resolves to null for free.
+    musicAudioSource: await resolveAudio(`${row.id}#music`, row.audio_music_path),
     durationMs: row.duration_ms,
     favoritedAt: row.favorited_at,
     refineOf: row.refine_of,
