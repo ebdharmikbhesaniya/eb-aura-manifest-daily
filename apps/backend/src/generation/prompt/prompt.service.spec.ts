@@ -280,6 +280,15 @@ describe('PromptService', () => {
       expect(prompt).toContain(`${ARTIFACT_SPEC.affirmation_daily.maxWords} words or fewer`);
     });
 
+    it('anchors on values and adapts to low self-esteem (Wood et al. protection)', () => {
+      // Research-backed levers: values-based affirmation is the reliably-beneficial
+      // kind, and a grand claim harms someone who doubts herself.
+      const { prompt } = prompts.build('affirmation_daily', buildContext());
+      expect(prompt).toContain('VALUE or identity she already holds');
+      expect(prompt).toContain('doubts herself');
+      expect(prompt).toContain('FRESH');
+    });
+
     it('forbids naming the unwanted thing, not just the word "not"', () => {
       // Strengthened no-negatives rule: "I am free of anxiety" has no "not" but
       // still plants "anxiety", so the prompt must ban naming the unwanted thing.

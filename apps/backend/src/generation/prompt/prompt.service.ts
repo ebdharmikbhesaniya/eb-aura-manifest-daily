@@ -170,9 +170,10 @@ Return JSON: { "title": "a short italic-serif title", "body": "the moment" }`,
 
 What makes it land as an affirmation, and hers — not a generic quote:
 - First person, present tense: "I am…", "I trust…", "I let myself…". Never future ("I will…"), never negated. And never NAME what she does not want: the mind holds whatever word it hears, so "I am free of anxiety" or "no more doubt" still plants anxiety and doubt. Say ONLY the wanted state ("I am calm and steady").
-- A BELIEVABLE stretch, not a fantasy. A grand claim she cannot yet feel ("I am wildly successful") backfires and rings hollow; a truth she is growing into lands. When it reaches, soften it — "I am becoming…", "I am learning to…", "I am allowed to…".
-- SPECIFIC and FELT, tied to her real life — her goal, how she describes herself, what she is moving toward — with one concrete detail or feeling word, not an abstract slogan. "I meet hard mornings with a steadiness that is mine" beats "I am strong."
-- In her own natural voice. Draw on what you know about her for the SUBJECT, but an affirmation is too short to quote her verbatim without sounding stiff — do not paste her exact phrases in, and never use the flat "I am someone who values…" template.
+- Rooted in a VALUE or identity she already holds where it fits — an affirmation that reflects a value she lives is the most reliably uplifting kind, and it sidesteps the silent "prove it" argument a bare outcome claim ("I am rich") provokes.
+- A BELIEVABLE stretch, not a fantasy. A grand claim she cannot yet feel ("I am wildly successful") backfires and rings hollow; a truth she is growing into lands. Meet her where she is: when it reaches — or when what you know of her suggests she doubts herself — choose the growing form ("I am becoming…", "I am learning to…", "I am allowed to…") and lean on a value she already lives rather than a state she can't yet feel. For someone unsure of herself, an overreach widens the gap and stings; it does not lift.
+- SPECIFIC and FELT, tied to her real life — her goal, how she describes herself, a value she holds, what she is moving toward — with one concrete detail or feeling word, not an abstract slogan. "I meet hard mornings with a steadiness that is mine" beats "I am strong."
+- In her own natural voice, and FRESH — not a reword of the recent titles you were given. Draw on what you know about her for the SUBJECT, but an affirmation is too short to quote her verbatim without sounding stiff — do not paste her exact phrases in, and never use the flat "I am someone who values…" template.
 - One breath, ${spec.maxWords} words or fewer, easy to repeat aloud.
 
 Return JSON: { "title": "a two-or-three word mantra", "body": "the affirmation", "whyLine": "one grounded line on why it works — present-tense identity rehearsal, never mystical" }`,
@@ -196,10 +197,10 @@ Return JSON: { "title": "a two-or-three word mantra", "body": "the affirmation",
 ${steer}
 Make each one:
 - First person, present tense, positive (no "not"/"never") — and never NAME the unwanted thing at all, since even "free of…" or "without…" plants it; name only the wanted state. ${spec.maxWords} words or fewer, one breath.
-- A believable stretch toward what she asked for — soften a reach with "I am becoming / learning to / allowed to" so it rings true, not hollow.
+- A believable stretch toward what she asked for — soften a reach with "I am becoming / learning to / allowed to" so it rings true, not hollow. If she seems unsure of herself, stay gentle and realistic rather than grand.
 - Specific and felt: tie it to her goal and her real life with a concrete image or a feeling word. "Money moves toward the calm, clear work I already do" beats "I am wealthy."
 - In her own natural voice — no "I am someone who values…" template, and do not paste her exact words in verbatim; write her goal plainly as the subject.
-- Genuinely DISTINCT from each other: vary the angle — one as identity ("I am…"), one as a daily action ("Each morning I…"), one as a feeling ("I feel…") — so the three read as real choices, not rewordings of one line.
+- Genuinely DISTINCT from each other: vary the angle — one as identity or a value she holds ("I am…"), one as a daily action ("Each morning I…"), one as a feeling ("I feel…") — so the three read as real choices, not rewordings of one line.
 
 Return JSON: { "candidates": [ { "text": "...", "whyLine": "why it works, grounded", "technique": "identity|present_tense|three_six_nine|scripting" }, ... three of them ] }`,
       context,
