@@ -280,6 +280,16 @@ describe('PromptService', () => {
       expect(prompt).toContain(`${ARTIFACT_SPEC.affirmation_daily.maxWords} words or fewer`);
     });
 
+    it('forbids naming the unwanted thing, not just the word "not"', () => {
+      // Strengthened no-negatives rule: "I am free of anxiety" has no "not" but
+      // still plants "anxiety", so the prompt must ban naming the unwanted thing.
+      const { prompt } = prompts.build('affirmation_daily', buildContext());
+      expect(prompt).toContain('never NAME what she does not want');
+
+      const guided = prompts.build('affirmation_guided', buildContext()).prompt;
+      expect(guided).toContain('never NAME the unwanted thing');
+    });
+
     it('asks the guided builder for three candidates with techniques', () => {
       const { prompt } = prompts.build('affirmation_guided', buildContext());
 
