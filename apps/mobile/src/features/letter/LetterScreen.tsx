@@ -63,7 +63,16 @@ export function LetterScreen({ letter, onContinue, testID }: LetterScreenProps) 
           the product. She still gets her letter; she reads it instead.
         */}
         {(playback.ended || playback.failed) && (
-          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 48 }}>
+          <View
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 48,
+              zIndex: 10,
+              elevation: 10,
+            }}
+          >
             <LetterEnding onContinue={onContinue} testID="letter-ending" />
           </View>
         )}

@@ -62,7 +62,7 @@ export const GuidedSheet = forwardRef<BottomSheetModal, GuidedSheetProps>(functi
     // The candidate step stacks three cards with why-lines and keep buttons, which
     // overflows the medium detent — it gets the taller detent and a scroll view so
     // the third candidate is always reachable. The short question steps stay at 70%.
-    <Sheet ref={ref} snapPoints={step === 'candidates' ? ['90%'] : ['70%']}>
+    <Sheet ref={ref} snapPoints={['90%']} fitContent={step !== 'candidates'}>
       <BottomSheetScrollView
         contentContainerStyle={{
           paddingHorizontal: spacing.lg,

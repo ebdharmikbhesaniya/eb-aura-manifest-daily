@@ -17,7 +17,7 @@ import { greetingFor, type HomeMomentState } from './momentState';
 import { TodayMomentCard } from './TodayMomentCard';
 
 /** Small header orb — presence, not the performer (v4 §home). */
-const HEADER_ORB_SIZE = 34;
+const HEADER_ORB_SIZE = 56;
 
 export type CollectionId = 'favorites' | 'ondemand';
 

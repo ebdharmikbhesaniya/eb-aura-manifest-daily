@@ -1,9 +1,11 @@
-import { Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 
-import { Card, Orb, PlayCircle, SerifDisplay, TextButton } from '@/components';
+import { Card, PlayCircle, SerifDisplay, TextButton } from '@/components';
 import { momentsCopy } from '@/copy/moments';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
+
+import orbHero from '../../../assets/brand/orb-hero.png';
 
 import type { HomeMomentState } from './momentState';
 import type { PlayableMoment } from './useMoments';
@@ -75,7 +77,12 @@ export function TodayMomentCard({
             paddingVertical: spacing.xl,
           }}
         >
-          <Orb state="generating" size={72} testID="home-first-run-orb" />
+          <Image
+            source={orbHero}
+            style={{ width: 128, height: 128 }}
+            resizeMode="contain"
+            testID="home-first-run-orb"
+          />
           <SerifDisplay variant="momentTitle">{momentsCopy.states.firstRunTitle}</SerifDisplay>
           <Text
             allowFontScaling={false}

@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(head-30)",
+      "Bash(cp ../../logo/logo-dark.png assets/brand/orb-hero.png)",
+      "Bash(identify -format '%wx%h' assets/brand/orb-hero.png)",
+      "Bash(echo \"copied → assets/brand/orb-hero.png \\($\\(identify -format '%wx%h' assets/brand/orb-hero.png \\)\\)\")",
+      "Bash(pnpm --filter @aura/mobile typecheck)",
+      "Bash(echo \"tc=$?\")",
+      "Read(//tmp/**)",
+      "Bash(identify /home/tushar/EmperorBrains/Project/eb-aura-manifest-daily/apps/mobile/assets/brand/orb-hero.png)",
+      "Bash(kill %1)",
+      "Bash(pkill -f \"find /\")",
+      "Bash(convert orb4-trim.png -background none -gravity center -extent 820x820 orb-final.png)",
+      "Bash(identify orb-final.png)",
+      "Bash(cp __TRACKED_VAR__/orb-hero.png __TRACKED_VAR__/orb-hero-src-gray.png)",
+      "Bash(cp orb-final.png __TRACKED_VAR__/orb-hero.png)",
+      "Bash(identify __TRACKED_VAR__/orb-hero.png)",
+      "Bash(npx eslint *)",
+      "Bash(echo \"lint=$?\")"
+    ]
+  }
+}
