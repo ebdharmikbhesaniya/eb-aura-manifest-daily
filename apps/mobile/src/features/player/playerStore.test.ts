@@ -1,5 +1,6 @@
 import { clampSeek, formatTime, progressOf, SKIP_MS, SPEEDS, usePlayerStore } from './playerStore';
 import type { PlayableMoment } from '@/features/moments/useMoments';
+import { kv, STORAGE_KEYS } from '@/lib/storage';
 
 /**
  * Global player state (10 §4).
@@ -113,6 +114,25 @@ describe('playerStore', () => {
 
       usePlayerStore.getState().toggleMode();
       expect(usePlayerStore.getState().mode).toBe('listen');
+    });
+  });
+
+  describe('ambientEnabled (10 §4)', () => {
+    afterEach(() => {
+      kv.delete(STORAGE_KEYS.ambientEnabled);
+      usePlayerStore.getState().setAmbientEnabled(true);
+      kv.delete(STORAGE_KEYS.ambientEnabled);
+    });
+
+    it('defaults to on', () => {
+      expect(usePlayerStore.getState().ambientEnabled).toBe(true);
+    });
+
+    it('setAmbientEnabled writes through to MMKV and state', () => {
+      usePlayerStore.getState().setAmbientEnabled(false);
+
+      expect(usePlayerStore.getState().ambientEnabled).toBe(false);
+      expect(kv.get<boolean>(STORAGE_KEYS.ambientEnabled)).toBe(false);
     });
   });
 

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import type { PlaybackSource } from '@aura/shared';
 
 import type { PlayableMoment } from '@/features/moments/useMoments';
+import { kv, STORAGE_KEYS } from '@/lib/storage';
 
 /** Transport speeds (10 §4). 1.0 first — the voice is unhurried by design. */
 export const SPEEDS = [1.0, 1.25, 1.5] as const;
@@ -40,6 +41,10 @@ interface PlayerState {
   durationMs: number;
   speed: Speed;
   mode: PlayerMode;
+
+  /** Ambient bed on/off, persisted; default on (10 §4). */
+  ambientEnabled: boolean;
+  setAmbientEnabled: (enabled: boolean) => void;
 
   /** How she reached this moment — drives `moment_playback_started {source}`. */
   source: PlaybackSource;
@@ -79,10 +84,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   durationMs: 0,
   speed: 1.0,
   mode: 'listen',
+  ambientEnabled: kv.get<boolean>(STORAGE_KEYS.ambientEnabled) ?? true,
   source: 'home',
   controls: null,
 
   setControls: (controls) => set({ controls }),
+
+  setAmbientEnabled: (enabled) => {
+    kv.set(STORAGE_KEYS.ambientEnabled, enabled);
+    set({ ambientEnabled: enabled });
+  },
 
   open: (moment, source = 'home') =>
     set({

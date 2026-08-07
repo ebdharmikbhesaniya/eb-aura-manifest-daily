@@ -59,6 +59,8 @@ export const STORAGE_KEYS = {
   ritualProgress: 'ritual.progress',
   /** Whether the notification permission has been asked, and hint pacing (11 §2). */
   notificationGate: 'notifications.gate',
+  /** Whether the ambient music bed plays under the voice (default on, 10 §4). */
+  ambientEnabled: 'player.ambientEnabled',
   /**
    * Set while an emailed SIGN-IN link is outstanding (03 §2.3).
    *
