@@ -23,15 +23,18 @@ import { clampedFontScale, scaledType } from '@/theme/typography';
 import { LetterMotionProvider } from '@/theme/motion';
 
 /**
- * `/paywall` — the first presentation, straight after the Letter (06 §1).
+ * `/paywall` — two presentations from one route.
  *
  * Wrapped in `LetterMotionProvider` so it keeps the Letter's slower breath: the
  * paywall is meant to read as the next page of the letter, not as a different
  * app arriving to ask for money (product 15 §spec).
  *
- * Dismissal is a REAL outcome. It marks the paywall seen, sends her to the free
- * tier, and never re-presents this cover — a second, quieter offer is banned
- * (product 01 §10).
+ * HARD mode (no `from` — reached from boot or the Letter) is the gate
+ * (2026-08-10): no ✕, no free exit, Android back swallowed. The only ways past
+ * it are a completed purchase, a successful restore, or the escape hatch when no
+ * purchasable offering exists (so a keyless build / an offline reviewer is never
+ * bricked). SOFT mode (`from=settings`) is the deliberate, dismissible offer she
+ * opened herself; its ✕ pops back where she came from.
  */
 export default function PaywallRoute() {
   const router = useRouter();
@@ -122,48 +125,56 @@ export default function PaywallRoute() {
   }, [hard]);
 
   /**
-   * No offering — offline, or a build with no RevenueCat key.
+   * No offering — offline, a build with no RevenueCat key, or an RC outage.
    *
-   * Straight after the Letter that means leaving quietly for the free tier: the
-   * cover would render empty, and its dismiss ✕ lives inside `PaywallScreen`,
-   * which the empty branch never mounts. She would be stranded.
+   * In HARD mode the wall cannot be enforced, so she must not be stranded behind
+   * an empty cover whose only exit lives inside `PaywallScreen` (never mounted on
+   * the empty branch). The escape hatch lets her through to Home instead.
    *
-   * Reached from Settings it means the opposite. She tapped "See what's
-   * included" ON PURPOSE, and replacing the route sent her back to Home with no
-   * explanation — a tap that looked like it did nothing. That path gets an
-   * honest line and a way back instead.
+   * SOFT mode means the opposite: she tapped "See what's included" ON PURPOSE, so
+   * replacing the route to Home would be a tap that looked like it did nothing.
+   * That path gets an honest line and a way back (the branch below) instead.
    */
   useEffect(() => {
     if (plansResolved && plans.length === 0 && hard) leaveToHome();
   }, [plansResolved, plans.length, hard, leaveToHome]);
 
-  const onPurchase = useCallback(async (plan: OfferedPlan) => {
-    setNotice(null);
-    setBusy(true);
-    const outcome = await purchasePlan(plan);
-    setBusy(false);
+  const onPurchase = useCallback(
+    async (plan: OfferedPlan) => {
+      setNotice(null);
+      setBusy(true);
+      const outcome = await purchasePlan(plan);
+      setBusy(false);
 
-    if (outcome.status === 'unavailable') {
-      // The figures came from the fallback table, so there is no package behind
-      // them to charge. Say so rather than letting Continue look broken.
-      setNotice(paywallCopy.purchaseUnavailableNote);
-      return;
-    }
+      if (outcome.status === 'unavailable') {
+        // The figures came from the fallback table, so there is no package behind
+        // them to charge. Say so rather than letting Continue look broken.
+        setNotice(paywallCopy.purchaseUnavailableNote);
+        return;
+      }
 
-    if (outcome.status !== 'purchased') {
-      // A cancel is a legitimate answer, and a failure already surfaced through
-      // Apple's own sheet. Neither gets an error state from us (product 14).
-      return;
-    }
+      if (outcome.status !== 'purchased') {
+        // A cancel is a legitimate answer, and a failure already surfaced through
+        // Apple's own sheet. Neither gets an error state from us (product 14).
+        return;
+      }
 
-    analytics.capture('purchase_completed', {
-      sku: plan.pkg?.product.identifier ?? plan.id,
-    });
-    markPaywallSeen();
-    // Claim now, while the value is freshest — but entitlement is already hers
-    // whether or not she completes it (03 §2.2).
-    claimRef.current?.present();
-  }, []);
+      analytics.capture('purchase_completed', {
+        sku: plan.pkg?.product.identifier ?? plan.id,
+      });
+      markPaywallSeen();
+      // Past the hard gate she is already through it — go straight Home rather than
+      // flash the afterPurchase claim sheet (she is always claimed by now: the
+      // sign-in gate is the first hop of the funnel). Soft mode keeps the sheet, so
+      // a Settings purchase still offers to secure the account (03 §2.2).
+      if (hard) {
+        router.replace('/(tabs)/home');
+        return;
+      }
+      claimRef.current?.present();
+    },
+    [hard, router],
+  );
 
   const onRestore = useCallback(async () => {
     setBusy(true);
@@ -172,9 +183,13 @@ export default function PaywallRoute() {
 
     if (premium) {
       markPaywallSeen();
+      if (hard) {
+        router.replace('/(tabs)/home');
+        return;
+      }
       claimRef.current?.present();
     }
-  }, []);
+  }, [hard, router]);
 
   return (
     <LetterMotionProvider>
