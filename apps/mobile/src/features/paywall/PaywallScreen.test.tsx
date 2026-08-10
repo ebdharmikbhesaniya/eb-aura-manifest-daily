@@ -51,8 +51,24 @@ describe('PaywallScreen', () => {
       </ThemeProvider>,
     );
 
+  // Hard-gate mode: no `onDismiss` at all, so the ✕ can never render.
+  const renderHardPaywall = (props: Partial<React.ComponentProps<typeof PaywallScreen>> = {}) =>
+    render(
+      <ThemeProvider>
+        <LetterMotionProvider>
+          <PaywallScreen plans={plans} onPurchase={jest.fn()} onRestore={jest.fn()} {...props} />
+        </LetterMotionProvider>
+      </ThemeProvider>,
+    );
+
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  // A test that leaves fake timers on would stop the next test's async render
+  // from ever flushing — restore real timers no matter how a test exits.
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   describe('the offer', () => {
@@ -269,6 +285,32 @@ describe('PaywallScreen', () => {
       await fireEvent.press(screen.getByTestId('paywall-continue'));
 
       expect(onPurchase).toHaveBeenCalledWith(expect.objectContaining({ id: 'weekly' }));
+    });
+  });
+
+  describe('hard-gate mode (2026-08-10)', () => {
+    it('renders no dismiss control even after the delay when onDismiss is omitted', async () => {
+      jest.useFakeTimers();
+      await renderHardPaywall();
+
+      await act(async () => {
+        jest.advanceTimersByTime(DISMISS_DELAY_MS);
+      });
+
+      expect(screen.queryByTestId('paywall-dismiss')).toBeNull();
+      jest.useRealTimers();
+    });
+
+    it('leads with the trial CTA when the selected plan carries one', async () => {
+      await renderPaywall({ plans: [plan('annual', { hasTrial: true })] });
+
+      expect(screen.getByText(paywallCopy.plans.ctaTrial)).toBeTruthy();
+    });
+
+    it('keeps the plain CTA when the selected plan has no trial', async () => {
+      await renderPaywall({ plans: [plan('annual', { hasTrial: false })] });
+
+      expect(screen.getByText(paywallCopy.plans.cta)).toBeTruthy();
     });
   });
 });

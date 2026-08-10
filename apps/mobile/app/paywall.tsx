@@ -1,13 +1,14 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, Text, View } from 'react-native';
+import { BackHandler, Linking, Text, View } from 'react-native';
 
 import { Screen, TextButton } from '@/components';
 import { ClaimSheet } from '@/features/paywall/ClaimSheet';
 import { PaywallScreen } from '@/features/paywall/PaywallScreen';
 import { appleAuthAvailable } from '@/features/paywall/claim';
 import { markPaywallSeen } from '@/features/paywall/paywallSeen';
+import { useEntitlement } from '@/features/paywall/useEntitlement';
 import {
   loadPlans,
   purchasePlan,
@@ -43,6 +44,11 @@ export default function PaywallRoute() {
    */
   const { from } = useLocalSearchParams<{ from?: string }>();
   const askedForPlans = from === 'settings';
+  // Hard mode is the gate: arrived from boot or the Letter, with no way out but a
+  // completed purchase / restore (or the escape hatch when there is no offering).
+  // Soft mode (from=settings) is the deliberate, dismissible presentation.
+  const hard = !askedForPlans;
+  const { premium } = useEntitlement();
   const [plans, setPlans] = useState<OfferedPlan[]>([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -63,15 +69,15 @@ export default function PaywallRoute() {
   }, []);
 
   /**
-   * The FIRST presentation's dismissal, straight after the Letter.
+   * The hard gate's escape hatch — the ONLY non-purchase way past it.
    *
-   * A real outcome, not a cancel: it marks the paywall seen and sends her on to
-   * the free tier. The notification ask is NO LONGER re-armed here — as of
-   * 2026-07-30 it is the closing step of onboarding (s12-notifications), so it
-   * has already happened by the time she reaches this. Home still asks as a
-   * fallback only when she chose "Maybe later" there (`asked` never set).
+   * Reached when there is no purchasable offering (offline, no RevenueCat key, or
+   * an RC outage). The wall cannot be enforced, so she must not be stranded: mark
+   * it seen (which the Home notification prompt still reads via `permissionGate`)
+   * and let her in. A monetization outage degrades to Home, never a broken launch
+   * (12 §2). It is also what the soft-mode ✕ used to fall through to.
    */
-  const leaveToFreeTier = useCallback(() => {
+  const leaveToHome = useCallback(() => {
     markPaywallSeen();
     router.replace('/(tabs)/home');
   }, [router]);
@@ -91,8 +97,29 @@ export default function PaywallRoute() {
       router.back();
       return;
     }
-    leaveToFreeTier();
-  }, [askedForPlans, router, leaveToFreeTier]);
+    leaveToHome();
+  }, [askedForPlans, router, leaveToHome]);
+
+  /**
+   * A subscriber must never be held at the wall. Covers a premium user the boot
+   * gate sent here before her snapshot resolved, and the restore path. RC is
+   * configured by the time this route mounts, so `useEntitlement` is reliable
+   * here — the boot race that forbids it in BootGate does not apply this late.
+   */
+  useEffect(() => {
+    if (hard && premium) router.replace('/(tabs)/home');
+  }, [hard, premium, router]);
+
+  /**
+   * No back out of the gate. The cover is already `gestureEnabled: false`; this
+   * stops Android's hardware back from dropping her out mid-decision. A relaunch
+   * would re-gate her anyway, so nothing is bypassed — this is just tidier.
+   */
+  useEffect(() => {
+    if (!hard) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => sub.remove();
+  }, [hard]);
 
   /**
    * No offering — offline, or a build with no RevenueCat key.
@@ -107,8 +134,8 @@ export default function PaywallRoute() {
    * honest line and a way back instead.
    */
   useEffect(() => {
-    if (plansResolved && plans.length === 0 && !askedForPlans) leaveToFreeTier();
-  }, [plansResolved, plans.length, askedForPlans, leaveToFreeTier]);
+    if (plansResolved && plans.length === 0 && hard) leaveToHome();
+  }, [plansResolved, plans.length, hard, leaveToHome]);
 
   const onPurchase = useCallback(async (plan: OfferedPlan) => {
     setNotice(null);
@@ -158,7 +185,9 @@ export default function PaywallRoute() {
             plans={plans}
             busy={busy}
             onPurchase={(plan) => void onPurchase(plan)}
-            onDismiss={onDismissCover}
+            // Hard mode passes no dismiss at all — no ✕, no free exit. Only soft
+            // mode (opened from Settings / a locked feature) can be closed.
+            {...(hard ? {} : { onDismiss: onDismissCover })}
             onRestore={() => void onRestore()}
             notice={notice}
             // Rendered only when a URL exists. Both are required before a

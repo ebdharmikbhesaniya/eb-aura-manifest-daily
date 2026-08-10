@@ -47,6 +47,8 @@ export const paywallCopy = {
     trialNote: 'Includes a 7-day free trial.',
     renewalNote: 'Renews automatically. Cancel anytime in two taps.',
     cta: 'Continue',
+    /** Trial-first CTA — shown when the selected plan carries a free trial. */
+    ctaTrial: 'Start your free trial',
     restoring: 'Restoring…',
   },
 

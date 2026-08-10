@@ -26,7 +26,8 @@ export const DISMISS_DELAY_MS = 2_000;
 export interface PaywallScreenProps {
   plans: OfferedPlan[];
   onPurchase: (plan: OfferedPlan) => void;
-  onDismiss: () => void;
+  /** Omit to render the wall with no dismiss — the hard-gate mode (2026-08-10). */
+  onDismiss?: () => void;
   onRestore: () => void;
   /** An honest line under the CTA — e.g. this build cannot take a purchase. */
   notice?: string | null;
@@ -89,7 +90,7 @@ export function PaywallScreen({
       />
 
       <SafeAreaView style={{ flex: 1, paddingHorizontal: layout.screenMargin }}>
-        {dismissable && (
+        {dismissable && onDismiss && (
           <Pressable
             testID="paywall-dismiss"
             accessibilityRole="button"
@@ -115,7 +116,8 @@ export function PaywallScreen({
               scaledType('title', scale),
               {
                 color: colors.text.primary,
-                marginTop: dismissable ? 0 : spacing.xl,
+                // Only collapse the top gap when the ✕ actually occupies it.
+                marginTop: dismissable && onDismiss ? 0 : spacing.xl,
               },
             ]}
           >
@@ -161,7 +163,7 @@ export function PaywallScreen({
 
           {selected && (
             <PillButton
-              title={paywallCopy.plans.cta}
+              title={selected.hasTrial ? paywallCopy.plans.ctaTrial : paywallCopy.plans.cta}
               loading={busy}
               onPress={() => onPurchase(selected)}
               testID="paywall-continue"
