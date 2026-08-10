@@ -7,7 +7,11 @@ const state = (overrides: Partial<BootState> = {}): BootState => ({
   profile: { onboarding_completed_at: '2026-07-17T10:00:00Z' },
   hasLetter: false,
   letterSeen: false,
-  paywallSeen: true,
+  // Premium by default so the pre-existing "signed-in → Home" cases still assert
+  // the gate they were written for; the hard-paywall block below drives the
+  // entitlement axis explicitly.
+  premium: true,
+  paywallEnforceable: true,
   ...overrides,
 });
 
@@ -75,24 +79,41 @@ describe('resolveBootRoute', () => {
     });
   });
 
-  describe('the paywall gate (12 §3)', () => {
+  describe('the hard paywall gate (2026-08-10)', () => {
     const heardTheLetter = { hasLetter: true, letterSeen: true };
 
-    it('presents the paywall once she has heard the letter', () => {
-      expect(resolveBootRoute(state({ ...heardTheLetter, paywallSeen: false }))).toBe('/paywall');
+    it('walls a non-premium user once she has heard the letter', () => {
+      expect(
+        resolveBootRoute(state({ ...heardTheLetter, premium: false, paywallEnforceable: true })),
+      ).toBe('/paywall');
     });
 
-    it('never presents it a second time — no quieter second offer (product 01 §10)', () => {
-      expect(resolveBootRoute(state({ ...heardTheLetter, paywallSeen: true }))).toBe(
-        '/(tabs)/home',
-      );
+    it('lets a premium user (a trial counts) straight to Home', () => {
+      expect(
+        resolveBootRoute(state({ ...heardTheLetter, premium: true, paywallEnforceable: true })),
+      ).toBe('/(tabs)/home');
+    });
+
+    it('walls even when no letter exists — the gate is entitlement, not a letter', () => {
+      // A failed first generation must not become a free way in.
+      expect(
+        resolveBootRoute(state({ hasLetter: false, premium: false, paywallEnforceable: true })),
+      ).toBe('/paywall');
+    });
+
+    it('never walls when the offering is not enforceable (no RC key) — never bricked', () => {
+      expect(
+        resolveBootRoute(state({ ...heardTheLetter, premium: false, paywallEnforceable: false })),
+      ).toBe('/(tabs)/home');
     });
 
     it('never shows the paywall BEFORE the letter — the wow is spent first', () => {
       // Product 08's central monetization decision: the letter converts, so it
       // must land before the ask. This ordering is the decision, in code.
       expect(
-        resolveBootRoute(state({ hasLetter: true, letterSeen: false, paywallSeen: false })),
+        resolveBootRoute(
+          state({ hasLetter: true, letterSeen: false, premium: false, paywallEnforceable: true }),
+        ),
       ).toBe('/letter');
     });
 
@@ -102,18 +123,11 @@ describe('resolveBootRoute', () => {
         resolveBootRoute(
           state({
             profile: { onboarding_completed_at: null },
-            hasLetter: true,
-            letterSeen: false,
-            paywallSeen: false,
+            premium: false,
+            paywallEnforceable: true,
           }),
         ),
       ).toBe('/(onboarding)/resume');
-    });
-
-    it('does not present it to someone who has no letter yet', () => {
-      expect(resolveBootRoute(state({ hasLetter: false, paywallSeen: false }))).toBe(
-        '/(tabs)/home',
-      );
     });
   });
 });

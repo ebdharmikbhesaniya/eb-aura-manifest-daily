@@ -7,7 +7,6 @@ import { Screen } from '@/components';
 import { LetterScreen } from '@/features/letter/LetterScreen';
 import { PauseSheet } from '@/features/letter/PauseSheet';
 import { keepLetter, markLetterSeen } from '@/features/letter/keepLetter';
-import { hasSeenPaywall } from '@/features/paywall/paywallSeen';
 import { useLetter } from '@/features/letter/useLetter';
 import { useAppState } from '@/stores/appState';
 import { analytics } from '@/lib/analytics';
@@ -30,6 +29,9 @@ export default function LetterRoute() {
   const router = useRouter();
   const navigation = useNavigation();
   const userId = useAppState((s) => s.userId);
+  // The race-free boot snapshot (see useBoot), so the hand-off never depends on
+  // useEntitlement resolving in time.
+  const premium = useAppState((s) => s.premium);
   const { data: letter } = useLetter(userId ?? undefined);
   // A milestone letter arrives through the same cover (06 §2) but is its own
   // event: D7 retention is measured on whether the week-one letter is actually
@@ -79,12 +81,13 @@ export default function LetterRoute() {
   const leave = useCallback(() => {
     leaving.current = true;
     markLetterSeen();
-    // Straight to the paywall (product 08 §when the audio ends): it inherits
-    // this gradient, so it reads as the letter's next page rather than an
+    // The hard gate (2026-08-10): after the letter, Home is reachable only with
+    // an active subscription; a non-premium user meets the wall. It inherits this
+    // gradient, so it reads as the letter's next page rather than an
     // interruption. Nothing is allowed in between — no permission dialog, no
     // rating prompt (product 08's explicit PRODUCT DECISION).
-    router.replace(hasSeenPaywall() ? '/(tabs)/home' : '/paywall');
-  }, [router]);
+    router.replace(premium ? '/(tabs)/home' : '/paywall');
+  }, [router, premium]);
 
   const onContinue = useCallback(() => {
     if (letter) void keepLetter(letter.id);

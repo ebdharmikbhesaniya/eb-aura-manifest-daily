@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 
+import Purchases from 'react-native-purchases';
+
 import { sweepAudioCache } from '@/features/letter/audioCache';
-import { configurePurchases } from '@/features/paywall/purchases';
+import { configurePurchases, hasPremium, isConfigured } from '@/features/paywall/purchases';
 import { analytics, initAnalytics } from '@/lib/analytics';
 import { emitAppOpen } from '@/lib/appOpen';
 import { initGa4 } from '@/lib/ga4';
@@ -59,6 +61,21 @@ export function useBoot(): void {
         // simply has everyone on the free tier (12 §2).
         await configurePurchases(userId).catch(() => undefined);
 
+        // Entitlement snapshot for the hard gate (2026-08-10). Read here — after
+        // configure, before setReady — so BootGate can route without the
+        // useEntitlement-at-boot race: that hook latches "not configured → free"
+        // if it mounts before RC is configured, which at boot it always would.
+        // A build with no key stays unenforceable, so everyone reaches Home and
+        // the launch is never bricked (12 §2). getCustomerInfo returns RC's
+        // cached info when offline, so an existing subscriber offline stays
+        // premium; a true never-cached edge can still Restore at the wall.
+        const purchasesConfigured = isConfigured();
+        const premium = purchasesConfigured
+          ? await Purchases.getCustomerInfo()
+              .then(hasPremium)
+              .catch(() => false)
+          : false;
+
         // The 7-day expiry and 200MB LRU (10 §6). The policy was written and
         // tested at Phase 7 but nothing ever called it, so the cache grew
         // without bound. Boot is the right moment: it is off the critical path
@@ -66,7 +83,7 @@ export function useBoot(): void {
         sweepAudioCache();
 
         emitAppOpen('cold');
-        setReady(userId);
+        setReady(userId, premium, purchasesConfigured);
       } catch {
         // No error code reaches the UI. The screen shows one in-voice line and a
         // retry (05 §8); Sentry already captured the detail.

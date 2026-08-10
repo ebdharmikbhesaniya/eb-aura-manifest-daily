@@ -22,6 +22,10 @@ jest.mock('@/lib/auth', () => ({
 }));
 jest.mock('@/features/paywall/purchases', () => ({
   configurePurchases: jest.fn(async () => undefined),
+  // No RevenueCat key in the test: the wall is unenforceable, so the boot
+  // snapshot resolves to free without ever calling getCustomerInfo.
+  isConfigured: jest.fn(() => false),
+  hasPremium: jest.fn(() => false),
 }));
 jest.mock('@/features/letter/audioCache', () => ({ sweepAudioCache: jest.fn() }));
 jest.mock('@/lib/appOpen', () => ({ emitAppOpen: jest.fn() }));

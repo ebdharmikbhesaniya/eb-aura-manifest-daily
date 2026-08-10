@@ -7,7 +7,6 @@ import { useAccountStatus } from '@/features/auth/useAccountStatus';
 import { hasSeenLetter } from '@/features/letter/keepLetter';
 import { configureNotifications } from '@/features/notifications/useNotifications';
 import { useNotificationRouting } from '@/features/notifications/useNotificationRouting';
-import { hasSeenPaywall } from '@/features/paywall/paywallSeen';
 import { useLetter } from '@/features/letter/useLetter';
 import { useBoot } from '@/hooks/useBoot';
 import { useProfile } from '@/hooks/useProfile';
@@ -24,6 +23,10 @@ export function BootGate({ children }: { children: ReactNode }) {
   const router = useRouter();
   const status = useAppState((s) => s.status);
   const userId = useAppState((s) => s.userId);
+  // The hard-gate inputs, captured at boot (see useBoot) so routing never races
+  // the RevenueCat SDK's configuration.
+  const premium = useAppState((s) => s.premium);
+  const purchasesConfigured = useAppState((s) => s.purchasesConfigured);
   const { colors, spacing, typography } = useTheme();
 
   useBoot();
@@ -78,10 +81,20 @@ export function BootGate({ children }: { children: ReactNode }) {
         profile,
         hasLetter: Boolean(letterQuery.data),
         letterSeen: hasSeenLetter(),
-        paywallSeen: hasSeenPaywall(),
+        premium,
+        paywallEnforceable: purchasesConfigured,
       }),
     );
-  }, [status, claimed, profile, letterQuery.isPending, letterQuery.data, router]);
+  }, [
+    status,
+    claimed,
+    profile,
+    letterQuery.isPending,
+    letterQuery.data,
+    premium,
+    purchasesConfigured,
+    router,
+  ]);
 
   const holding = (
     <View

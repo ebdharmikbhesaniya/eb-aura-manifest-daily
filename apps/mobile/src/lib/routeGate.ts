@@ -18,8 +18,14 @@ export interface BootState {
   hasLetter: boolean;
   /** Has she actually heard it? Local flag, set when she leaves the Letter (06 §3). */
   letterSeen: boolean;
-  /** Has the post-Letter paywall been presented? Shown once (12 §3). */
-  paywallSeen: boolean;
+  /** Does RevenueCat report an active premium entitlement (a trial counts)? */
+  premium: boolean;
+  /**
+   * Is the wall enforceable — i.e. can a purchasable offering exist on this build
+   * (`isConfigured()`)? When false (no RC key), the gate must not lock anyone
+   * out: a monetization outage degrades to Home, never a broken launch (12 §2).
+   */
+  paywallEnforceable: boolean;
 }
 
 /**
@@ -43,9 +49,12 @@ export interface BootState {
  * the ask — that ordering is the product's central monetization decision
  * (product 08 §why pre-paywall), not an implementation detail.
  *
- * The paywall gate only fires once she has HEARD the letter, and only once ever.
- * A user who dismissed it is done being asked here (product 01 §10 bans the
- * second, quieter paywall).
+ * The paywall is now a HARD gate (2026-08-10, founder decision): entry requires
+ * an active subscription, decided by LIVE entitlement rather than a
+ * dismissed-once flag, so a force-quit/relaunch cannot bypass it. Only an
+ * unenforceable wall (no offering — never brick the launch) or an actual
+ * `premium` reaches Home. The letter still plays first; the wow is spent before
+ * the ask.
  */
 export function resolveBootRoute(state: BootState): BootRoute {
   if (!state.claimed) return '/(auth)/sign-in';
@@ -53,6 +62,6 @@ export function resolveBootRoute(state: BootState): BootRoute {
   // path, so the bare group is `/` — this route's own front door.
   if (!state.profile.onboarding_completed_at) return '/(onboarding)/resume';
   if (state.hasLetter && !state.letterSeen) return '/letter';
-  if (state.hasLetter && !state.paywallSeen) return '/paywall';
+  if (state.paywallEnforceable && !state.premium) return '/paywall';
   return '/(tabs)/home';
 }

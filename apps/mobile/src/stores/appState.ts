@@ -11,6 +11,14 @@ export type BootStatus = 'booting' | 'ready' | 'unauthenticated' | 'failed';
 interface AppState {
   status: BootStatus;
   userId: string | null;
+  /** RevenueCat premium snapshot, captured at boot (a trial counts as premium). */
+  premium: boolean;
+  /**
+   * Whether RevenueCat has a key on this build — i.e. the hard paywall is
+   * enforceable. When false (no key), the gate must let everyone through rather
+   * than brick the launch (12 §2).
+   */
+  purchasesConfigured: boolean;
   /**
    * Bumped by `reset` to re-run the boot sequence.
    *
@@ -21,7 +29,7 @@ interface AppState {
    * this: sign-in to pick up the new session, sign-out to fall to the wall.
    */
   bootNonce: number;
-  setReady: (userId: string) => void;
+  setReady: (userId: string, premium?: boolean, purchasesConfigured?: boolean) => void;
   /** No stored session — boot found nothing, so she meets the sign-in wall. */
   setUnauthenticated: () => void;
   setFailed: () => void;
@@ -31,10 +39,21 @@ interface AppState {
 export const useAppState = create<AppState>((set) => ({
   status: 'booting',
   userId: null,
+  premium: false,
+  purchasesConfigured: false,
   bootNonce: 0,
-  setReady: (userId) => set({ status: 'ready', userId }),
-  setUnauthenticated: () => set({ status: 'unauthenticated', userId: null }),
-  setFailed: () => set({ status: 'failed', userId: null }),
+  setReady: (userId, premium = false, purchasesConfigured = false) =>
+    set({ status: 'ready', userId, premium, purchasesConfigured }),
+  setUnauthenticated: () =>
+    set({ status: 'unauthenticated', userId: null, premium: false, purchasesConfigured: false }),
+  setFailed: () =>
+    set({ status: 'failed', userId: null, premium: false, purchasesConfigured: false }),
   reset: () =>
-    set((state) => ({ status: 'booting', userId: null, bootNonce: state.bootNonce + 1 })),
+    set((state) => ({
+      status: 'booting',
+      userId: null,
+      premium: false,
+      purchasesConfigured: false,
+      bootNonce: state.bootNonce + 1,
+    })),
 }));
