@@ -20,6 +20,10 @@ export const SCREEN_ORDER: readonly OnboardingScreenId[] = [
   // OnboardingScreenId) but they no longer ask.
   's10-struggle',
   's11-arrival-time',
+  // The notification education beat (2026-08-10): a dedicated screen that
+  // explains WHY the reminder matters — the moment is delivered by it — BEFORE
+  // the ask, so the OS prompt lands on a reason rather than cold.
+  's12-why-notifications',
   // The closing step: the OS notification permission ask. Moved here from
   // post-paywall (Home) so she opts in with her arrival time still fresh.
   's12-notifications',
@@ -43,7 +47,8 @@ export const ANSWER_TYPE: Record<OnboardingScreenId, OnboardingAnswerType> = {
   's09-people': 'people',
   's10-struggle': 'text',
   's11-arrival-time': 'time',
-  // A permission ask, not a question — carries no answer, draws no progress step.
+  // Education + permission — neither carries an answer or draws a progress step.
+  's12-why-notifications': 'none',
   's12-notifications': 'none',
 };
 

@@ -63,6 +63,7 @@ export type OnboardingScreenId =
   | 's09-people'
   | 's10-struggle'
   | 's11-arrival-time'
+  | 's12-why-notifications'
   | 's12-notifications';
 
 export type OnboardingAnswerType = 'text' | 'choice' | 'multi_choice' | 'people' | 'time' | 'none';

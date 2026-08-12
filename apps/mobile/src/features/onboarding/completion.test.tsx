@@ -13,6 +13,7 @@ import { markPermissionAsked } from '@/features/notifications/permissionGate';
 import { requestPermissionAndRegister } from '@/features/notifications/useNotifications';
 
 import { S11ArrivalTime } from './screens/S11ArrivalTime';
+import { S12WhyNotifications } from './screens/S12WhyNotifications';
 import { S12Notifications } from './screens/S12Notifications';
 import { S12NotificationsMore } from './screens/S12NotificationsMore';
 
@@ -81,8 +82,21 @@ describe('finishing the conversation', () => {
       return view;
     };
 
-    it('pushes on to s12-notifications rather than completing here', async () => {
+    it('pushes on to the notification education screen rather than completing here', async () => {
       await advance();
+
+      await waitFor(() =>
+        expect(mockPush).toHaveBeenCalledWith('/(onboarding)/s12-why-notifications'),
+      );
+      expect(completeOnboarding).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('S12-why notifications — the education beat', () => {
+    it('advances to the ask on Continue, without finishing onboarding', async () => {
+      const view = await render(<S12WhyNotifications />, { wrapper });
+
+      await fireEvent.press(view.getByText(onboardingCopy.s12WhyNotifications.primary));
 
       await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/(onboarding)/s12-notifications'));
       expect(completeOnboarding).not.toHaveBeenCalled();

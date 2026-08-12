@@ -136,15 +136,31 @@ export const onboardingCopy = {
     primary: 'Continue',
   },
 
+  /**
+   * The notification education screen (2026-08-10, founder decision) — a
+   * dedicated screen BEFORE the OS ask that explains why the reminder is the
+   * core of the ritual (the moment is delivered by it). Informational only:
+   * "Continue" leads to the ask on the next screen.
+   */
+  s12WhyNotifications: {
+    question: 'This is how I’ll reach you.',
+    helper:
+      'Every day I write a new moment for you and send it at the time you chose. Without notifications, it waits in the app until you remember to look — so turning them on is really turning the daily ritual on.',
+    benefits: [
+      'Your moment, delivered at the time you picked.',
+      'One gentle arrival a day — never more.',
+      'Off anytime, in a single tap.',
+    ],
+    primary: 'Continue',
+  },
+
   s12Notifications: {
     // The closing step (founder decision 2026-07-30): ask for the OS permission
     // while her arrival time is still fresh, so it reads as a reminder she just
-    // set up — not a cold system prompt. Skippable; Home still offers it later.
-    question: 'Want your moments to reach you?',
-    // The "why", said plainly: the moment is written whether or not she looks —
-    // the reminder is the only thing that carries it to her at her time.
-    helper:
-      'Each day I write something just for you. A reminder is how it reaches you — otherwise it waits, unseen, until you remember to look.',
+    // set up — not a cold system prompt. The "why" now lives on the dedicated
+    // education screen before this one, so this stays a short, warm ask.
+    question: 'Ready to let them in?',
+    helper: 'So the words written for you actually arrive.',
     note: 'One quiet arrival at your time. Never a nudge, never a scorecard — and you can turn it off anytime.',
     primary: 'Turn on reminders',
     skip: 'Maybe later',
