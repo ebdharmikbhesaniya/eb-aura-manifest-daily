@@ -3,7 +3,9 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Screen } from '@/components';
+import { momentsCopy } from '@/copy/moments';
 import { HomeScreen } from '@/features/moments/HomeScreen';
+import { hasSeenFirstRun, markFirstRunSeen } from '@/features/moments/firstRun';
 import { ManifestSheet } from '@/features/moments/ManifestSheet';
 import { resolveHomeMoment } from '@/features/moments/momentState';
 import {
@@ -77,6 +79,16 @@ export default function HomeRoute() {
   // honest 429 that the sheet now renders.
   const [credits, setCredits] = useState<number>(LIMITS.MANIFEST_WEEKLY_LIMIT);
   const [deniedHint, setDeniedHint] = useState(false);
+  // The one-time first-Home welcome card (2026-08-10) — the calm equivalent of
+  // Glow's post-onboarding tutorial. Shown once, then dismissed for good.
+  const [showFirstRun, setShowFirstRun] = useState(() => !hasSeenFirstRun());
+
+  // The legible "why" under today's moment — named from a value she chose in
+  // onboarding, so the personalization she can't see (Living Memory) is felt.
+  const topValue = profile?.values?.[0];
+  const personalization = topValue
+    ? momentsCopy.home.personalization.replace('{value}', topValue.toLowerCase())
+    : null;
 
   // iOS ad-attribution consent (spec §7). Asked once, on the first Home landing
   // after the Letter/paywall — never mid-onboarding. No-op on Android and after
@@ -281,6 +293,12 @@ export default function HomeRoute() {
               )
             : null
         }
+        personalization={personalization}
+        showFirstRun={showFirstRun}
+        onDismissFirstRun={() => {
+          markFirstRunSeen();
+          setShowFirstRun(false);
+        }}
       />
 
       <ManifestSheet

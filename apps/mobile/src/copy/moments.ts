@@ -18,6 +18,23 @@ export const momentsCopy = {
     todayLabel: 'Today’s moment',
     /** One quiet line under the moment title (v4 §home). */
     todaySecondary: 'From the life you described.',
+    /**
+     * The legible-personalization line (2026-08-10) — names WHY today's moment
+     * fits her, from a value she chose in onboarding. `{value}` is one of her
+     * s06 values, lowercased. Falls back to `todaySecondary` when she has none.
+     */
+    personalization: 'Shaped around {value}.',
+    /**
+     * The first-Home welcome card (2026-08-10) — a one-time orientation to the
+     * daily ritual, shown once and dismissed. `{name}` is her profile name.
+     */
+    firstRun: {
+      title: 'Welcome home, {name}.',
+      /** When we somehow have no name (vanishingly rare after S3). */
+      welcomeNoName: 'Welcome home.',
+      body: 'Each morning, a new moment is written just for you — it’s right below. There’s a line to carry with you, and space for what you’re grateful for. That’s the whole ritual.',
+      dismiss: 'Begin',
+    },
     /** Action row when the duration is unknown. */
     listen: 'Listen',
     /** `{n}` is whole minutes, rounded up. */

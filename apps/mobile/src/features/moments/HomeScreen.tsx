@@ -7,6 +7,7 @@ import {
   PillButton,
   RowGroup,
   SerifDisplay,
+  TextButton,
   useTabBarClearance,
 } from '@/components';
 import { momentsCopy } from '@/copy/moments';
@@ -37,6 +38,11 @@ export interface HomeScreenProps {
   onCollection?: (id: CollectionId) => void;
   /** One quiet line a week when notifications were declined (11 §2). */
   notificationHint?: string | null;
+  /** The legible "why" under today's moment — e.g. "Shaped around family & love." */
+  personalization?: string | null;
+  /** The one-time first-Home welcome/orientation card (2026-08-10). */
+  showFirstRun?: boolean;
+  onDismissFirstRun?: () => void;
   testID?: string;
 }
 
@@ -82,6 +88,9 @@ export function HomeScreen({
   onManifest,
   onCollection,
   notificationHint = null,
+  personalization = null,
+  showFirstRun = false,
+  onDismissFirstRun,
   testID,
 }: HomeScreenProps) {
   const { colors, spacing, layout, radii } = useTheme();
@@ -102,6 +111,32 @@ export function HomeScreen({
       }}
       showsVerticalScrollIndicator={false}
     >
+      {showFirstRun && (
+        <View testID="home-first-run-welcome">
+          <Card
+            variant="solid"
+            style={{ backgroundColor: colors.accent.parchment, gap: spacing.sm }}
+          >
+            <SerifDisplay variant="momentTitle">
+              {name
+                ? momentsCopy.home.firstRun.title.replace('{name}', name)
+                : momentsCopy.home.firstRun.welcomeNoName}
+            </SerifDisplay>
+            <Text
+              allowFontScaling={false}
+              style={[scaledType('body', scale), { color: colors.text.secondary }]}
+            >
+              {momentsCopy.home.firstRun.body}
+            </Text>
+            <TextButton
+              title={momentsCopy.home.firstRun.dismiss}
+              onPress={() => onDismissFirstRun?.()}
+              testID="home-first-run-dismiss"
+            />
+          </Card>
+        </View>
+      )}
+
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <View style={{ flex: 1, gap: spacing.xs }}>
           <Label>{formatHomeDate()}</Label>
@@ -112,7 +147,13 @@ export function HomeScreen({
 
       <View style={{ gap: spacing.sm }}>
         <Label>{momentsCopy.home.todayLabel}</Label>
-        <TodayMomentCard state={state} onPlay={onPlay} onRetry={onRetry} onFavorite={onFavorite} />
+        <TodayMomentCard
+          state={state}
+          onPlay={onPlay}
+          onRetry={onRetry}
+          onFavorite={onFavorite}
+          secondary={personalization ?? undefined}
+        />
       </View>
 
       {forming.length > 0 && (

@@ -31,12 +31,15 @@ export function TodayMomentCard({
   onPlay,
   onRetry,
   onFavorite,
+  secondary,
 }: {
   state: HomeMomentState;
   onPlay: (momentId: string) => void;
   onRetry: () => void;
   /** Toggles the keep mark. Premium beyond the Letter, gated by the caller (12 §4). */
   onFavorite: (momentId: string) => void;
+  /** Overrides the quiet line under a ready moment — the legible "why" (2026-08-10). */
+  secondary?: string | undefined;
 }) {
   const { colors, spacing } = useTheme();
   const scale = clampedFontScale();
@@ -58,7 +61,12 @@ export function TodayMomentCard({
         onPress={() => onPlay(state.moment.id)}
         testID="home-today"
       >
-        <ReadyCard moment={state.moment} onPlay={onPlay} onFavorite={onFavorite} />
+        <ReadyCard
+          moment={state.moment}
+          onPlay={onPlay}
+          onFavorite={onFavorite}
+          secondary={secondary}
+        />
       </Pressable>
     );
   }
@@ -131,10 +139,12 @@ function ReadyCard({
   moment,
   onPlay,
   onFavorite,
+  secondary,
 }: {
   moment: PlayableMoment;
   onPlay: (momentId: string) => void;
   onFavorite: (momentId: string) => void;
+  secondary?: string | undefined;
 }) {
   const { colors, layout, spacing } = useTheme();
   const scale = clampedFontScale();
@@ -149,7 +159,7 @@ function ReadyCard({
         allowFontScaling={false}
         style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
       >
-        {momentsCopy.home.todaySecondary}
+        {secondary ?? momentsCopy.home.todaySecondary}
       </Text>
 
       <View

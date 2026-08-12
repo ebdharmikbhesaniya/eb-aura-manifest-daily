@@ -67,6 +67,42 @@ describe('HomeScreen', () => {
     });
   });
 
+  describe('first-Home activation (2026-08-10)', () => {
+    it('shows the one-time welcome card and dismisses it', async () => {
+      const onDismissFirstRun = jest.fn();
+      await renderHome(
+        { kind: 'ready', moment: moment() },
+        { showFirstRun: true, onDismissFirstRun },
+      );
+
+      expect(screen.getByTestId('home-first-run-welcome')).toBeTruthy();
+
+      await fireEvent.press(screen.getByTestId('home-first-run-dismiss'));
+      expect(onDismissFirstRun).toHaveBeenCalled();
+    });
+
+    it('hides the welcome card by default', async () => {
+      await renderHome({ kind: 'ready', moment: moment() });
+
+      expect(screen.queryByTestId('home-first-run-welcome')).toBeNull();
+    });
+
+    it('names the legible "why" under a ready moment when given one', async () => {
+      await renderHome(
+        { kind: 'ready', moment: moment() },
+        { personalization: 'Shaped around family & love.' },
+      );
+
+      expect(screen.getByText('Shaped around family & love.')).toBeTruthy();
+    });
+
+    it('falls back to the default secondary line without personalization', async () => {
+      await renderHome({ kind: 'ready', moment: moment() });
+
+      expect(screen.getByText(momentsCopy.home.todaySecondary)).toBeTruthy();
+    });
+  });
+
   describe('ready', () => {
     it('shows today’s moment by title', async () => {
       await renderHome({ kind: 'ready', moment: moment() });
