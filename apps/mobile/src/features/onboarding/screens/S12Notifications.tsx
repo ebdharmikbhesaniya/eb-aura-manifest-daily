@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Card } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
@@ -13,6 +13,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 
 import { completeOnboarding } from '../commit';
 import { ConversationScreen } from '../ConversationScreen';
+import { NotificationHero } from '../NotificationHero';
 
 /**
  * S12: the closing step of the conversation — the OS notification permission
@@ -84,14 +85,14 @@ export function S12Notifications() {
       skipTitle={onboardingCopy.s12Notifications.skip}
       onSkip={() => void finish(false)}
     >
-      <Card
-        variant="solid"
-        style={{ backgroundColor: colors.accent.parchment, marginTop: spacing.sm }}
-      >
-        <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
-          {onboardingCopy.s12Notifications.note}
-        </Text>
-      </Card>
+      <View style={{ gap: spacing.xl, paddingTop: spacing.sm }}>
+        <NotificationHero icon="notifications" />
+        <Card variant="solid" style={{ backgroundColor: colors.accent.parchment }}>
+          <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
+            {onboardingCopy.s12Notifications.note}
+          </Text>
+        </Card>
+      </View>
     </ConversationScreen>
   );
 }

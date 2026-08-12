@@ -145,11 +145,11 @@ export const onboardingCopy = {
   s12WhyNotifications: {
     question: 'This is how I’ll reach you.',
     helper:
-      'Every day I write a new moment for you and send it at the time you chose. Without notifications, it waits in the app until you remember to look — so turning them on is really turning the daily ritual on.',
+      'Every day I write a new moment for you. The reminder is simply how it finds you — without it, the words wait in the app until you remember to look.',
     benefits: [
-      'Your moment, delivered at the time you picked.',
-      'One gentle arrival a day — never more.',
-      'Off anytime, in a single tap.',
+      { title: 'At your time', body: 'Your moment arrives at the hour you chose — not whenever.' },
+      { title: 'Once a day', body: 'One gentle arrival. Never a stream, never a scorecard.' },
+      { title: 'Always yours', body: 'Turn it off in a single tap, anytime.' },
     ],
     primary: 'Continue',
   },

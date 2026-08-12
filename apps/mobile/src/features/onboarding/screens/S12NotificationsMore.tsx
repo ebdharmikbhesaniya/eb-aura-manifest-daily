@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Linking, Text } from 'react-native';
+import { AppState, Linking, Text, View } from 'react-native';
 
 import { Card } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
@@ -17,6 +17,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 
 import { completeOnboarding } from '../commit';
 import { ConversationScreen } from '../ConversationScreen';
+import { NotificationHero } from '../NotificationHero';
 
 /**
  * S12b — the notification second chance (founder decision, 2026-08-10).
@@ -129,12 +130,12 @@ export function S12NotificationsMore() {
       skipTitle={c.skip}
       onSkip={onSkip}
     >
-      <Card
-        variant="solid"
-        style={{ backgroundColor: colors.accent.parchment, marginTop: spacing.sm }}
-      >
-        <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>{c.note}</Text>
-      </Card>
+      <View style={{ gap: spacing.xl, paddingTop: spacing.sm }}>
+        <NotificationHero icon="heart-outline" />
+        <Card variant="solid" style={{ backgroundColor: colors.accent.parchment }}>
+          <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>{c.note}</Text>
+        </Card>
+      </View>
     </ConversationScreen>
   );
 }

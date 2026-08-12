@@ -1,12 +1,16 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 
-import { Card } from '@/components';
+import { IconTile } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
 import { useTheme } from '@/theme/ThemeProvider';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 import { ConversationScreen } from '../ConversationScreen';
+import { NotificationHero } from '../NotificationHero';
 import { useConversation } from '../useConversation';
+
+/** One icon per benefit — the glyphs live here, not in copy (as the paywall does). */
+const BENEFIT_ICONS = ['time-outline', 'leaf-outline', 'toggle-outline'] as const;
 
 /**
  * S12-why — the notification education beat (founder decision, 2026-08-10).
@@ -21,7 +25,8 @@ import { useConversation } from '../useConversation';
  * "Maybe later" is available there.
  */
 export function S12WhyNotifications() {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing } = useTheme();
+  const scale = clampedFontScale();
   const { advance } = useConversation('s12-why-notifications');
   const c = onboardingCopy.s12WhyNotifications;
 
@@ -36,21 +41,36 @@ export function S12WhyNotifications() {
       primaryTitle={c.primary}
       onPrimary={advance}
     >
-      <Card variant="solid" style={{ backgroundColor: colors.accent.parchment }}>
-        <View style={{ gap: spacing.sm }}>
-          {c.benefits.map((line) => (
+      <View style={{ gap: spacing.xl, paddingTop: spacing.sm }}>
+        <NotificationHero icon="notifications" />
+
+        {/* Benefit rows in the paywall's own visual language: ember orb tiles,
+            a bold line and a quiet one — not a bullet list. */}
+        <View style={{ gap: spacing.lg }}>
+          {c.benefits.map((benefit, i) => (
             <View
-              key={line}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}
+              key={benefit.title}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}
             >
-              <Ionicons name="checkmark-circle" size={18} color={colors.accent.ember} />
-              <Text style={[typography.bodySmall, { color: colors.text.secondary, flex: 1 }]}>
-                {line}
-              </Text>
+              <IconTile tint="orb" icon={BENEFIT_ICONS[i] ?? 'notifications-outline'} />
+              <View style={{ flex: 1, gap: spacing.xs / 2 }}>
+                <Text
+                  allowFontScaling={false}
+                  style={[scaledType('listTitle', scale), { color: colors.text.primary }]}
+                >
+                  {benefit.title}
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
+                >
+                  {benefit.body}
+                </Text>
+              </View>
             </View>
           ))}
         </View>
-      </Card>
+      </View>
     </ConversationScreen>
   );
 }
