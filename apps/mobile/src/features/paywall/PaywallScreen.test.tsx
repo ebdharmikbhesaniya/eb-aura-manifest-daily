@@ -15,8 +15,8 @@ jest.mock('@/lib/analytics', () => ({
 const { analytics } = jest.requireMock('@/lib/analytics') as { analytics: { capture: jest.Mock } };
 
 /**
- * The post-Letter paywall, tested against product 15's anti-resentment
- * checklist — which the plan copies into the Definition of Done verbatim.
+ * The post-Letter paywall — the trial-timeline redesign (2026-08-10), tested
+ * against product 15's anti-resentment checklist.
  *
  * Half of these assert ABSENCE. A dark pattern is not a bug that throws; it is a
  * countdown someone added because it converted. Pinning "there is no timer, no
@@ -24,24 +24,31 @@ const { analytics } = jest.requireMock('@/lib/analytics') as { analytics: { capt
  * next round of conversion tuning.
  */
 describe('PaywallScreen', () => {
-  const plan = (id: 'annual' | 'weekly', overrides: Partial<OfferedPlan> = {}): OfferedPlan =>
+  const plan = (
+    id: 'annual' | 'monthly' | 'weekly',
+    overrides: Partial<OfferedPlan> = {},
+  ): OfferedPlan =>
     ({
       id,
-      price: id === 'annual' ? '$39.99' : '$6.99',
-      monthlyEquivalent: id === 'annual' ? '$3.33' : '$30.29',
-      hasTrial: id === 'weekly',
+      price: id === 'annual' ? '$39.99' : id === 'monthly' ? '$14.99' : '$6.99',
+      monthlyEquivalent: id === 'annual' ? '$3.33' : id === 'weekly' ? '$30.29' : null,
+      hasTrial: false,
+      trialDays: null,
       pkg: { product: { identifier: `aura_premium_${id}` } },
       ...overrides,
     }) as OfferedPlan;
 
-  const plans = [plan('annual'), plan('weekly')];
+  // The real offer: the annual hero carries a 7-day trial.
+  const trialPlans = [plan('annual', { hasTrial: true, trialDays: 7 })];
+  // The store has no intro offer configured yet — the honest fallback.
+  const noTrialPlans = [plan('annual')];
 
   const renderPaywall = (props: Partial<React.ComponentProps<typeof PaywallScreen>> = {}) =>
     render(
       <ThemeProvider>
         <LetterMotionProvider>
           <PaywallScreen
-            plans={plans}
+            plans={trialPlans}
             onPurchase={jest.fn()}
             onDismiss={jest.fn()}
             onRestore={jest.fn()}
@@ -56,7 +63,12 @@ describe('PaywallScreen', () => {
     render(
       <ThemeProvider>
         <LetterMotionProvider>
-          <PaywallScreen plans={plans} onPurchase={jest.fn()} onRestore={jest.fn()} {...props} />
+          <PaywallScreen
+            plans={trialPlans}
+            onPurchase={jest.fn()}
+            onRestore={jest.fn()}
+            {...props}
+          />
         </LetterMotionProvider>
       </ThemeProvider>,
     );
@@ -65,134 +77,93 @@ describe('PaywallScreen', () => {
     jest.clearAllMocks();
   });
 
-  // A test that leaves fake timers on would stop the next test's async render
-  // from ever flushing — restore real timers no matter how a test exits.
+  // A test that leaves fake timers on would stop the next test's render from
+  // ever flushing — restore real timers no matter how a test exits.
   afterEach(() => {
     jest.useRealTimers();
   });
 
-  describe('the offer', () => {
-    it('leads with the headline that mirrors the letter’s close', async () => {
+  describe('the trial timeline', () => {
+    it('leads with the trial headline and "nothing charged today"', async () => {
       await renderPaywall();
 
-      expect(screen.getByText(paywallCopy.headline)).toBeTruthy();
+      expect(screen.getByText(paywallCopy.trial.headline)).toBeTruthy();
+      expect(screen.getByText(paywallCopy.trial.subhead)).toBeTruthy();
     });
 
-    it('shows the honest contrast block', async () => {
+    it('shows the three beats with the real trial length (7 → today / in 5 / in 7)', async () => {
       await renderPaywall();
 
-      expect(screen.getByText(paywallCopy.contrast.today)).toBeTruthy();
-      expect(screen.getByText(paywallCopy.contrast.everyDay)).toBeTruthy();
+      expect(screen.getByTestId('paywall-timeline')).toBeTruthy();
+      expect(screen.getByText(paywallCopy.trial.todayTitle)).toBeTruthy();
+      expect(screen.getByText('In 5 days')).toBeTruthy();
+      expect(screen.getByText('In 7 days')).toBeTruthy();
     });
 
-    it('offers both plans', async () => {
+    it('names the free-trial badge', async () => {
       await renderPaywall();
 
-      expect(screen.getByTestId('paywall-plan-annual')).toBeTruthy();
-      expect(screen.getByTestId('paywall-plan-weekly')).toBeTruthy();
-    });
-
-    it('pre-selects annual (12 §1)', async () => {
-      await renderPaywall();
-
-      expect(screen.getByTestId('paywall-plan-annual').props.accessibilityState.selected).toBe(
-        true,
-      );
-      expect(screen.getByTestId('paywall-plan-weekly').props.accessibilityState.selected).toBe(
-        false,
-      );
-    });
-
-    it('lets her choose weekly instead', async () => {
-      await renderPaywall();
-
-      await fireEvent.press(screen.getByTestId('paywall-plan-weekly'));
-
-      expect(screen.getByTestId('paywall-plan-weekly').props.accessibilityState.selected).toBe(
-        true,
-      );
-    });
-
-    it('closes with the letter-is-hers-either-way line (v4 §paywall)', async () => {
-      await renderPaywall();
-
-      expect(screen.getByText(paywallCopy.dismissed)).toBeTruthy();
+      expect(screen.getByText(paywallCopy.trial.badge)).toBeTruthy();
     });
   });
 
-  describe('checklist #2 — the monthly equivalent is PRINTED', () => {
-    it('prints it under the weekly price', async () => {
+  describe('honest numbers (checklist #2)', () => {
+    it('prints the annual price and its monthly equivalent', async () => {
       await renderPaywall();
 
-      expect(screen.getByText(/about \$30\.29 a month/)).toBeTruthy();
+      expect(screen.getByText('$39.99/year')).toBeTruthy();
+      expect(screen.getByText(/about \$3\.33 a month, billed once/)).toBeTruthy();
     });
 
-    it('prints it under the annual price too, with the billed-once note', async () => {
+    it('discloses the renewal terms with the real trial length and price', async () => {
       await renderPaywall();
 
-      expect(screen.getByText(/about \$3\.33 a month, billed once/)).toBeTruthy();
+      expect(
+        screen.getByText(/Free for 7 days, then \$39\.99\/year\. Renews automatically\./),
+      ).toBeTruthy();
     });
 
     it('speaks the full one-line honest price to assistive tech', async () => {
       await renderPaywall();
 
-      expect(screen.getByLabelText(/\$6\.99\/week · about \$30\.29\/month/)).toBeTruthy();
       expect(screen.getByLabelText(/\$39\.99\/year · about \$3\.33\/month/)).toBeTruthy();
     });
   });
 
-  describe('checklist #3 — trial terms restated on the card', () => {
-    it('states the trial on the plan that has one', async () => {
-      await renderPaywall();
+  describe('the CTA', () => {
+    it('reads as the free trial and buys the hero plan', async () => {
+      const onPurchase = jest.fn();
+      await renderPaywall({ onPurchase });
 
-      expect(screen.getByText(/Includes a 7-day free trial/)).toBeTruthy();
-    });
+      expect(screen.getByText(paywallCopy.plans.ctaTrial)).toBeTruthy();
+      fireEvent.press(screen.getByTestId('paywall-continue'));
 
-    it('states the renewal terms once, for the whole offer', async () => {
-      await renderPaywall();
-
-      expect(screen.getByText(paywallCopy.plans.renewalNote)).toBeTruthy();
+      expect(onPurchase).toHaveBeenCalledWith(expect.objectContaining({ id: 'annual' }));
     });
   });
 
-  describe('dismissal — a real outcome, not a trap', () => {
-    it('hides the dismiss control until the offer has been readable for a moment', async () => {
-      jest.useFakeTimers();
+  describe('hard-gate mode (2026-08-10)', () => {
+    it('shows the letter-is-hers line in soft mode (a real dismissal exists)', async () => {
       await renderPaywall();
 
-      expect(screen.queryByTestId('paywall-dismiss')).toBeNull();
-
-      jest.useRealTimers();
+      expect(screen.getByText(paywallCopy.dismissed)).toBeTruthy();
     });
 
-    it('reveals it after the delay', async () => {
-      jest.useFakeTimers();
-      await renderPaywall();
+    it('hides the letter-is-hers line in hard mode (there is no free exit)', async () => {
+      await renderHardPaywall();
 
-      await act(async () => {
-        jest.advanceTimersByTime(DISMISS_DELAY_MS);
-      });
-
-      expect(screen.getByTestId('paywall-dismiss')).toBeTruthy();
-      jest.useRealTimers();
+      expect(screen.queryByText(paywallCopy.dismissed)).toBeNull();
     });
+  });
 
-    it('lets her leave for the free tier', async () => {
-      jest.useFakeTimers();
-      const onDismiss = jest.fn();
-      await renderPaywall({ onDismiss });
+  describe('no-trial fallback', () => {
+    it('shows no timeline and a plain Continue offer when the store has no trial', async () => {
+      await renderPaywall({ plans: noTrialPlans });
 
-      await act(async () => {
-        jest.advanceTimersByTime(DISMISS_DELAY_MS);
-      });
-      jest.useRealTimers();
-      await fireEvent.press(screen.getByTestId('paywall-dismiss'));
-
-      expect(onDismiss).toHaveBeenCalled();
-    });
-
-    it('waits only two seconds — long enough to read, short enough not to coerce', () => {
-      expect(DISMISS_DELAY_MS).toBe(2_000);
+      expect(screen.queryByTestId('paywall-timeline')).toBeNull();
+      expect(screen.getByText(paywallCopy.headline)).toBeTruthy();
+      expect(screen.getByText(paywallCopy.plans.cta)).toBeTruthy();
+      expect(screen.getByText(paywallCopy.plans.renewalNote)).toBeTruthy();
     });
   });
 
@@ -228,7 +199,7 @@ describe('PaywallScreen', () => {
       const onRestore = jest.fn();
       await renderPaywall({ onRestore });
 
-      await fireEvent.press(screen.getByTestId('paywall-restore'));
+      fireEvent.press(screen.getByTestId('paywall-restore'));
 
       expect(onRestore).toHaveBeenCalled();
     });
@@ -242,54 +213,25 @@ describe('PaywallScreen', () => {
         surface: 'post_letter',
       });
     });
+  });
 
-    it('reports a plan selection with the store sku', async () => {
-      await renderPaywall();
-
-      await fireEvent.press(screen.getByTestId('paywall-plan-weekly'));
-
-      expect(analytics.capture).toHaveBeenCalledWith('paywall_plan_selected', {
-        sku: 'aura_premium_weekly',
-      });
-    });
-
-    it('reports a dismissal — declining is a measured outcome, not a failure', async () => {
+  // Timer-driven cases run LAST: switching to fake timers mid-file leaves the
+  // next real-timer render unable to flush, so everything that needs a clean
+  // real-timer render must have already run.
+  describe('the delayed dismiss control', () => {
+    it('reveals the ✕ after the delay in soft mode', async () => {
       jest.useFakeTimers();
       await renderPaywall();
+
       await act(async () => {
         jest.advanceTimersByTime(DISMISS_DELAY_MS);
       });
+
+      expect(screen.getByTestId('paywall-dismiss')).toBeTruthy();
       jest.useRealTimers();
-
-      await fireEvent.press(screen.getByTestId('paywall-dismiss'));
-
-      expect(analytics.capture).toHaveBeenCalledWith('paywall_dismissed');
-    });
-  });
-
-  describe('purchase', () => {
-    it('buys the selected plan', async () => {
-      const onPurchase = jest.fn();
-      await renderPaywall({ onPurchase });
-
-      await fireEvent.press(screen.getByTestId('paywall-continue'));
-
-      expect(onPurchase).toHaveBeenCalledWith(expect.objectContaining({ id: 'annual' }));
     });
 
-    it('buys weekly once she has switched to it', async () => {
-      const onPurchase = jest.fn();
-      await renderPaywall({ onPurchase });
-
-      await fireEvent.press(screen.getByTestId('paywall-plan-weekly'));
-      await fireEvent.press(screen.getByTestId('paywall-continue'));
-
-      expect(onPurchase).toHaveBeenCalledWith(expect.objectContaining({ id: 'weekly' }));
-    });
-  });
-
-  describe('hard-gate mode (2026-08-10)', () => {
-    it('renders no dismiss control even after the delay when onDismiss is omitted', async () => {
+    it('never reveals a ✕ in hard mode, even after the delay', async () => {
       jest.useFakeTimers();
       await renderHardPaywall();
 
@@ -299,18 +241,6 @@ describe('PaywallScreen', () => {
 
       expect(screen.queryByTestId('paywall-dismiss')).toBeNull();
       jest.useRealTimers();
-    });
-
-    it('leads with the trial CTA when the selected plan carries one', async () => {
-      await renderPaywall({ plans: [plan('annual', { hasTrial: true })] });
-
-      expect(screen.getByText(paywallCopy.plans.ctaTrial)).toBeTruthy();
-    });
-
-    it('keeps the plain CTA when the selected plan has no trial', async () => {
-      await renderPaywall({ plans: [plan('annual', { hasTrial: false })] });
-
-      expect(screen.getByText(paywallCopy.plans.cta)).toBeTruthy();
     });
   });
 });

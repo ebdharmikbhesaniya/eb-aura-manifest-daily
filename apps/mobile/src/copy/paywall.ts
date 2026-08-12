@@ -20,6 +20,29 @@ export const paywallCopy = {
   /** Post-Letter cover (product 15 §spec). The headline mirrors the wow's close. */
   headline: 'Your future self has more to tell you.',
 
+  /**
+   * The trial-timeline presentation (2026-08-10). Honest by construction: it
+   * names the day billing starts and promises a reminder first — the opposite of
+   * a hidden charge. `{days}`, `{remind}` and `{price}` are filled from the
+   * store's real intro offer, so the screen can never state a trial that the
+   * store is not actually giving.
+   */
+  trial: {
+    headline: 'We’ll remind you before your trial ends',
+    subhead: 'Nothing will be charged today',
+    badge: 'Free trial',
+    todayTitle: 'Today',
+    today: 'Full access to everything, completely free.',
+    remindTitle: 'In {remind} days',
+    remind: 'A gentle reminder lands before your trial ends.',
+    billTitle: 'In {days} days',
+    bill: 'Your subscription begins, unless you’ve cancelled by then.',
+    cardTitle: 'Try it free',
+    noCommitment: 'No commitment. Cancel anytime.',
+    /** The auto-renew + price disclosure store review requires, said plainly. */
+    renewal: 'Free for {days} days, then {price}. Renews automatically.',
+  },
+
   /** The honest contrast block — what she has today vs what continues. */
   contrast: {
     todayLabel: 'Today',

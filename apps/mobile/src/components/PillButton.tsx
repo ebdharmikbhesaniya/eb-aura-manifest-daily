@@ -13,6 +13,12 @@ export interface PillButtonProps {
   loading?: boolean;
   /** A leading glyph (e.g. a provider logo) shown before the label. */
   icon?: ReactNode;
+  /**
+   * The fill. `ink` is the app's default high-contrast action. `ember` is the
+   * one earned exception — the trial CTA on the paywall, which is the letter's
+   * own warmth continued into the offer (product 15). Cream label either way.
+   */
+  tint?: 'ink' | 'ember';
   testID?: string;
 }
 
@@ -27,6 +33,7 @@ export function PillButton({
   disabled = false,
   loading = false,
   icon,
+  tint = 'ink',
   testID,
 }: PillButtonProps) {
   const { colors, layout, radii, spacing, typography } = useTheme();
@@ -77,7 +84,7 @@ export function PillButton({
             paddingHorizontal: spacing.lg,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: colors.cta.background,
+            backgroundColor: tint === 'ember' ? colors.accent.ember : colors.cta.background,
           },
           animatedStyle,
         ]}

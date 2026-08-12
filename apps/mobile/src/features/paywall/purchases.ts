@@ -77,6 +77,13 @@ export interface OfferedPlan {
   monthlyEquivalent: string | null;
   hasTrial: boolean;
   /**
+   * The trial length in days, read from the store's intro offer — drives the
+   * trial timeline ("Today / In {n-2} days / In {n} days"). Null when there is
+   * no trial; the timeline is never shown without it, so it can never promise a
+   * trial that does not exist.
+   */
+  trialDays: number | null;
+  /**
    * False when the figures came from `FALLBACK_PRICING` rather than the store.
    * The paywall renders these so she can read the offer, but nothing may be
    * charged against them — there is no package to charge.
@@ -100,10 +107,36 @@ export function fallbackPlans(): OfferedPlan[] {
         price: new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(amount),
         monthlyEquivalent: monthlyEquivalent(id, amount, currency),
         hasTrial,
+        // Display-only: assume the configured 7-day trial when the table marks one.
+        trialDays: hasTrial ? 7 : null,
         purchasable: false,
       };
     })
     .sort(byPlanOrder);
+}
+
+/**
+ * Trial length in whole days from a store intro offer, or null when the offer is
+ * not a free trial. RevenueCat reports the period in its own unit (DAY/WEEK/…),
+ * so normalise to days for the timeline.
+ */
+export function trialDaysFromIntro(
+  intro: PurchasesPackage['product']['introPrice'] | null | undefined,
+): number | null {
+  if (!intro || intro.price !== 0) return null;
+  const n = intro.periodNumberOfUnits;
+  switch (intro.periodUnit) {
+    case 'DAY':
+      return n;
+    case 'WEEK':
+      return n * 7;
+    case 'MONTH':
+      return n * 30;
+    case 'YEAR':
+      return n * 365;
+    default:
+      return null;
+  }
 }
 
 /** Cover order (12 §1): annual hero first, then monthly, then weekly. */
@@ -140,12 +173,14 @@ export async function loadPlans(): Promise<OfferedPlan[]> {
     );
     if (!pkg) continue;
 
+    const trialDays = trialDaysFromIntro(pkg.product.introPrice);
     plans.push({
       id,
       pkg,
       price: pkg.product.priceString,
       monthlyEquivalent: monthlyEquivalent(id, pkg.product.price, pkg.product.currencyCode),
-      hasTrial: Boolean(pkg.product.introPrice && pkg.product.introPrice.price === 0),
+      hasTrial: trialDays !== null,
+      trialDays,
       purchasable: true,
     });
   }
