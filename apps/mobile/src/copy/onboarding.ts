@@ -137,6 +137,20 @@ export const onboardingCopy = {
   },
 
   /**
+   * The commitment beat (2026-08-10) — a quiet "are you ready" moment after the
+   * last question, before the Letter. Committing to a goal lifts follow-through;
+   * said in the future-self voice, never a coercive hold. `{name}` is filled
+   * from the draft (falls back to a nameless "Ready?").
+   */
+  s13Commit: {
+    question: 'Ready, {name}?',
+    questionNoName: 'Ready?',
+    helper:
+      'Everything you’ve shared becomes a letter from the version of you that already made it. Meeting them is a small act of belief — take it when you’re ready.',
+    primary: 'I’m ready',
+  },
+
+  /**
    * The notification education screen (2026-08-10, founder decision) — a
    * dedicated screen BEFORE the OS ask that explains why the reminder is the
    * core of the ritual (the moment is delivered by it). Informational only:

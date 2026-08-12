@@ -63,6 +63,7 @@ export type OnboardingScreenId =
   | 's09-people'
   | 's10-struggle'
   | 's11-arrival-time'
+  | 's13-commit'
   | 's12-why-notifications'
   | 's12-notifications';
 

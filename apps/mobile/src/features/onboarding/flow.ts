@@ -15,11 +15,18 @@ export const SCREEN_ORDER: readonly OnboardingScreenId[] = [
   's04-self-description',
   's05-work-feeling',
   's06-values',
-  // s08-dream-city and s09-people were retired from the flow (2026-07-30): the
-  // conversation is now six questions. Their ids/columns are kept (see
-  // OnboardingScreenId) but they no longer ask.
+  // Dream-home re-enabled (2026-08-10): sensory concreteness feeds vivid Letters,
+  // and the depth is what converts (Glow's data — removing personal questions
+  // cratered conversion). s08-dream-city and s09-people stay retired for now —
+  // their ids/columns are kept but their screens were removed.
+  's07-dream-home',
   's10-struggle',
   's11-arrival-time',
+  // The commitment beat (2026-08-10): a quiet "are you ready" moment after she
+  // has shared everything, before the wow. Committing to a goal lifts follow-
+  // through (Duolingo/Headway pattern) — said in the future-self voice, never a
+  // coercive hold.
+  's13-commit',
   // The notification education beat (2026-08-10): a dedicated screen that
   // explains WHY the reminder matters — the moment is delivered by it — BEFORE
   // the ask, so the OS prompt lands on a reason rather than cold.
@@ -47,7 +54,8 @@ export const ANSWER_TYPE: Record<OnboardingScreenId, OnboardingAnswerType> = {
   's09-people': 'people',
   's10-struggle': 'text',
   's11-arrival-time': 'time',
-  // Education + permission — neither carries an answer or draws a progress step.
+  // Commitment + education + permission — none carries an answer or a progress step.
+  's13-commit': 'none',
   's12-why-notifications': 'none',
   's12-notifications': 'none',
 };

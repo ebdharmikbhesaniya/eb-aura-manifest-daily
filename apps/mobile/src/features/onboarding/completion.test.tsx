@@ -13,6 +13,7 @@ import { markPermissionAsked } from '@/features/notifications/permissionGate';
 import { requestPermissionAndRegister } from '@/features/notifications/useNotifications';
 
 import { S11ArrivalTime } from './screens/S11ArrivalTime';
+import { S13Commit } from './screens/S13Commit';
 import { S12WhyNotifications } from './screens/S12WhyNotifications';
 import { S12Notifications } from './screens/S12Notifications';
 import { S12NotificationsMore } from './screens/S12NotificationsMore';
@@ -82,8 +83,19 @@ describe('finishing the conversation', () => {
       return view;
     };
 
-    it('pushes on to the notification education screen rather than completing here', async () => {
+    it('pushes on to the commitment beat rather than completing here', async () => {
       await advance();
+
+      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/(onboarding)/s13-commit'));
+      expect(completeOnboarding).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('S13 commit — the readiness beat', () => {
+    it('advances to the notification education on "I’m ready", without finishing', async () => {
+      const view = await render(<S13Commit />, { wrapper });
+
+      await fireEvent.press(view.getByText(onboardingCopy.s13Commit.primary));
 
       await waitFor(() =>
         expect(mockPush).toHaveBeenCalledWith('/(onboarding)/s12-why-notifications'),
