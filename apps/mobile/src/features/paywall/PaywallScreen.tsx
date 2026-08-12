@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Card, Label, PillButton, TextButton } from '@/components';
+import { Card, PillButton, TextButton } from '@/components';
 import { paywallCopy } from '@/copy/paywall';
 import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -108,44 +108,78 @@ export function PaywallScreen({
   }`;
 
   const heroCard = (
-    <View accessible accessibilityLabel={spoken} testID="paywall-hero">
-      <Card
-        variant="solid"
-        style={{
-          borderRadius: radii.card,
-          borderWidth: 2,
-          borderColor: colors.accent.ember,
-          backgroundColor: colors.surface.card,
-          paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.md,
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-          <Ionicons name="checkmark-circle" size={24} color={colors.accent.ember} />
-          <View style={{ flex: 1, gap: spacing.xs / 2 }}>
+    // The FREE TRIAL badge straddles the card's top edge, as in the reference —
+    // a centred ember pill rather than a section label off to the side.
+    <View style={{ paddingTop: showTrial ? spacing.sm : 0 }}>
+      {showTrial && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+            zIndex: 2,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.accent.ember,
+              borderRadius: radii.pill,
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.xs / 2,
+            }}
+          >
+            <Text
+              allowFontScaling={false}
+              style={[scaledType('label', scale), { color: colors.text.onCta }]}
+            >
+              {t.badge}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      <View accessible accessibilityLabel={spoken} testID="paywall-hero">
+        <Card
+          variant="solid"
+          style={{
+            borderRadius: radii.card,
+            borderWidth: 2,
+            borderColor: colors.accent.ember,
+            backgroundColor: colors.surface.card,
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.md,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            <Ionicons name="checkmark-circle" size={24} color={colors.accent.ember} />
+            <View style={{ flex: 1, gap: spacing.xs / 2 }}>
+              <Text
+                allowFontScaling={false}
+                style={[scaledType('listTitle', scale), { color: colors.text.primary }]}
+              >
+                {showTrial ? t.cardTitle : priceHead}
+              </Text>
+              {equivalent && (
+                <Text
+                  allowFontScaling={false}
+                  style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
+                >
+                  {equivalent}
+                </Text>
+              )}
+            </View>
             <Text
               allowFontScaling={false}
               style={[scaledType('listTitle', scale), { color: colors.text.primary }]}
             >
-              {showTrial ? t.cardTitle : priceHead}
+              {priceHead}
             </Text>
-            {equivalent && (
-              <Text
-                allowFontScaling={false}
-                style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
-              >
-                {equivalent}
-              </Text>
-            )}
           </View>
-          <Text
-            allowFontScaling={false}
-            style={[scaledType('listTitle', scale), { color: colors.text.primary }]}
-          >
-            {priceHead}
-          </Text>
-        </View>
-      </Card>
+        </Card>
+      </View>
     </View>
   );
 
@@ -167,7 +201,7 @@ export function PaywallScreen({
               analytics.capture('paywall_dismissed');
               onDismiss();
             }}
-            style={{ alignSelf: 'flex-end', padding: spacing.sm }}
+            style={{ alignSelf: 'flex-start', padding: spacing.sm }}
           >
             {/* Disabled tint, deliberately — leaving must be possible, never loud. */}
             <Text style={{ fontSize: 22 * scale, color: colors.text.disabled }}>✕</Text>
@@ -185,14 +219,22 @@ export function PaywallScreen({
           <View style={{ gap: spacing.xs }}>
             <Text
               allowFontScaling={false}
-              style={[scaledType('title', scale), { color: colors.text.primary }]}
+              style={[
+                scaledType('title', scale),
+                // Centred like the reference in trial mode; the plain fallback
+                // keeps Aura's editorial left-align.
+                { color: colors.text.primary, textAlign: showTrial ? 'center' : 'left' },
+              ]}
             >
               {showTrial ? t.headline : paywallCopy.headline}
             </Text>
             {showTrial && (
               <Text
                 allowFontScaling={false}
-                style={[scaledType('body', scale), { color: colors.text.secondary }]}
+                style={[
+                  scaledType('body', scale),
+                  { color: colors.text.secondary, textAlign: 'center' },
+                ]}
               >
                 {t.subhead}
               </Text>
@@ -203,10 +245,7 @@ export function PaywallScreen({
             <TrialTimeline trialDays={hero.trialDays} testID="paywall-timeline" />
           )}
 
-          <View style={{ gap: spacing.sm, paddingTop: spacing.xs }}>
-            {showTrial && <Label>{t.badge}</Label>}
-            {heroCard}
-          </View>
+          {heroCard}
 
           {showTrial ? (
             <Text
