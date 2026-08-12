@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import { useEffect } from 'react';
 
 import Purchases from 'react-native-purchases';
@@ -31,6 +32,13 @@ export function useBoot(): void {
   useEffect(() => {
     let cancelled = false;
 
+    // Which boot step is in flight. A failure here used to be reported as a bare
+    // `failed` with the error discarded, so a step that threw only on a real
+    // device (native modules and stored-session state differ from the simulator)
+    // left nothing at all to go on. Naming the step is what makes the difference
+    // between "boot broke" and "boot broke AT purchases".
+    let step = 'ensureSession';
+
     async function boot(): Promise<void> {
       try {
         const session = await ensureSession();
@@ -48,11 +56,18 @@ export function useBoot(): void {
 
         const userId = session.user.id;
 
+        step = 'initAnalytics';
         initAnalytics();
+        // Self-guarding: `getAnalytics()` inside throws SYNCHRONOUSLY when the
+        // native Firebase app is not configured, so ga4.ts wraps it in try/catch
+        // and simply stays disabled. Analytics never breaks boot.
+        step = 'initGa4';
         initGa4();
+        step = 'identifyForObservability';
         identifyForObservability(userId);
         // Super properties before identify so every event this session carries
         // them (13 §2). subscription_state updates when RC lands (Phase 10).
+        step = 'superProperties';
         analytics.register(buildSuperProperties());
         analytics.identify(userId);
         // Pull feature flags / experiment variants for this identity now, so a
@@ -63,6 +78,7 @@ export function useBoot(): void {
         // Bound to her Supabase id, so a purchase made anonymously still belongs
         // to her after she claims. Never fatal: a build with no RevenueCat key
         // simply has everyone on the free tier (12 §2).
+        step = 'configurePurchases';
         await configurePurchases(userId).catch(() => undefined);
 
         // Entitlement snapshot for the hard gate (2026-08-10). Read here — after
@@ -73,6 +89,7 @@ export function useBoot(): void {
         // the launch is never bricked (12 §2). getCustomerInfo returns RC's
         // cached info when offline, so an existing subscriber offline stays
         // premium; a true never-cached edge can still Restore at the wall.
+        step = 'getCustomerInfo';
         const purchasesConfigured = isConfigured();
         const premium = purchasesConfigured
           ? await Purchases.getCustomerInfo()
@@ -84,14 +101,29 @@ export function useBoot(): void {
         // tested at Phase 7 but nothing ever called it, so the cache grew
         // without bound. Boot is the right moment: it is off the critical path
         // and runs exactly once per launch.
+        step = 'sweepAudioCache';
         sweepAudioCache();
 
+        step = 'emitAppOpen';
         emitAppOpen('cold');
         setReady(userId, premium, purchasesConfigured);
-      } catch {
-        // No error code reaches the UI. The screen shows one in-voice line and a
-        // retry (05 §8); Sentry already captured the detail.
-        if (!cancelled) setFailed();
+      } catch (error) {
+        // No error code reaches the UI in a shipped build — the screen still
+        // shows one in-voice line and a retry (05 §8). But the detail has to go
+        // SOMEWHERE: this catch previously claimed "Sentry already captured the
+        // detail" while capturing nothing, so every boot failure was anonymous.
+        const detail = error instanceof Error ? error.message : String(error);
+
+        Sentry.captureException(error, {
+          tags: { area: 'boot', step },
+          extra: { step },
+        });
+
+        if (__DEV__) {
+          console.error(`[boot] failed at step "${step}":`, error);
+        }
+
+        if (!cancelled) setFailed(`${step}: ${detail}`);
       }
     }
 

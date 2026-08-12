@@ -1,4 +1,6 @@
+import * as Sentry from '@sentry/react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import type { AuthError } from '@supabase/supabase-js';
 
 import { wipeDeviceState } from '@/lib/accountReset';
 import { analytics } from '@/lib/analytics';
@@ -6,6 +8,34 @@ import { kv, STORAGE_KEYS } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 
 import { authRedirectUrl } from './redirect';
+
+/**
+ * Surfaces a provider sign-in failure to the people who can fix it.
+ *
+ * These errors used to be dropped on the floor: `if (error) return { status:
+ * 'failed' }` and nothing else, so a provider that was merely MISCONFIGURED —
+ * the bundle id missing from Supabase's Apple "Client IDs", the Apple provider
+ * left disabled — presented to the user, and to us, as an anonymous "something
+ * went wrong". That is the same failure shape as a dropped OAuth callback, and
+ * it is exactly why Google sign-in was once broken for weeks without anyone
+ * being able to say why (see the autolinking note in package.json).
+ *
+ * A Supabase auth error carries configuration detail, never her words, so it is
+ * safe under the 14 §privacy posture — the user's content lives in Postgres and
+ * Storage and must never reach a crash report, but `invalid_client` is ours.
+ */
+function reportAuthFailure(provider: AuthProvider, error: AuthError): void {
+  // In dev this is the only place the real cause is legible: the UI deliberately
+  // shows in-voice copy and never an error code (product 14).
+  if (__DEV__) {
+    console.warn(`[auth] ${provider} sign-in rejected by Supabase: ${error.message}`);
+  }
+
+  Sentry.captureException(error, {
+    tags: { area: 'auth', provider },
+    extra: { status: error.status },
+  });
+}
 
 /**
  * Signing back IN (03 §2.3, "restore on a new device, previously claimed").
@@ -79,7 +109,10 @@ export async function authenticateWithProvider(
   idToken: string,
 ): Promise<AuthOutcome> {
   const adopted = await supabase.auth.signInWithIdToken({ provider, token: idToken });
-  if (adopted.error) return { status: 'failed' };
+  if (adopted.error) {
+    reportAuthFailure(provider, adopted.error);
+    return { status: 'failed' };
+  }
 
   analytics.capture('account_signed_in', { method: provider === 'apple' ? 'apple' : 'google' });
   wipeDeviceState();
@@ -107,7 +140,10 @@ export async function signInWithApple(): Promise<SignInResult> {
       token: credential.identityToken,
     });
 
-    if (error) return { status: 'failed' };
+    if (error) {
+      reportAuthFailure('apple', error);
+      return { status: 'failed' };
+    }
 
     analytics.capture('account_signed_in', { method: 'apple' });
     wipeDeviceState();

@@ -11,6 +11,16 @@ export type BootStatus = 'booting' | 'ready' | 'unauthenticated' | 'failed';
 interface AppState {
   status: BootStatus;
   userId: string | null;
+  /**
+   * Why boot failed, for DEVELOPMENT eyes only.
+   *
+   * The `failed` screen deliberately carries no code (05 §8), and that stays
+   * true in every shipped build — this is read only behind `__DEV__`. It exists
+   * because the boot catch used to discard the error entirely, which made a
+   * device-only boot failure impossible to diagnose: the phone showed one
+   * in-voice line and the cause was gone.
+   */
+  bootError: string | null;
   /** RevenueCat premium snapshot, captured at boot (a trial counts as premium). */
   premium: boolean;
   /**
@@ -32,7 +42,7 @@ interface AppState {
   setReady: (userId: string, premium?: boolean, purchasesConfigured?: boolean) => void;
   /** No stored session — boot found nothing, so she meets the sign-in wall. */
   setUnauthenticated: () => void;
-  setFailed: () => void;
+  setFailed: (reason?: string) => void;
   reset: () => void;
 }
 
@@ -41,19 +51,33 @@ export const useAppState = create<AppState>((set) => ({
   userId: null,
   premium: false,
   purchasesConfigured: false,
+  bootError: null,
   bootNonce: 0,
   setReady: (userId, premium = false, purchasesConfigured = false) =>
-    set({ status: 'ready', userId, premium, purchasesConfigured }),
+    set({ status: 'ready', userId, premium, purchasesConfigured, bootError: null }),
   setUnauthenticated: () =>
-    set({ status: 'unauthenticated', userId: null, premium: false, purchasesConfigured: false }),
-  setFailed: () =>
-    set({ status: 'failed', userId: null, premium: false, purchasesConfigured: false }),
+    set({
+      status: 'unauthenticated',
+      userId: null,
+      premium: false,
+      purchasesConfigured: false,
+      bootError: null,
+    }),
+  setFailed: (reason) =>
+    set({
+      status: 'failed',
+      userId: null,
+      premium: false,
+      purchasesConfigured: false,
+      bootError: reason ?? null,
+    }),
   reset: () =>
     set((state) => ({
       status: 'booting',
       userId: null,
       premium: false,
       purchasesConfigured: false,
+      bootError: null,
       bootNonce: state.bootNonce + 1,
     })),
 }));

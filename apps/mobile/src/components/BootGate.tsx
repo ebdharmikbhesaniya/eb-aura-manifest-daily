@@ -27,6 +27,7 @@ export function BootGate({ children }: { children: ReactNode }) {
   // the RevenueCat SDK's configuration.
   const premium = useAppState((s) => s.premium);
   const purchasesConfigured = useAppState((s) => s.purchasesConfigured);
+  const bootError = useAppState((s) => s.bootError);
   const { colors, spacing, typography } = useTheme();
 
   useBoot();
@@ -109,6 +110,25 @@ export function BootGate({ children }: { children: ReactNode }) {
       {status === 'failed' && (
         <Text style={[typography.body, { color: colors.text.secondary, textAlign: 'center' }]}>
           {bootCopy.cantReach}
+        </Text>
+      )}
+      {/* DEVELOPMENT ONLY. She never sees a code (05 §8) — but on a real device
+          this line is the only place a boot failure is legible at all, and a
+          device-only failure is exactly the kind the simulator cannot show us. */}
+      {__DEV__ && status === 'failed' && bootError && (
+        <Text
+          selectable
+          style={[
+            typography.body,
+            {
+              color: colors.text.secondary,
+              textAlign: 'center',
+              marginTop: spacing.lg,
+              opacity: 0.7,
+            },
+          ]}
+        >
+          {bootError}
         </Text>
       )}
     </View>

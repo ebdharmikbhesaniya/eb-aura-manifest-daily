@@ -5,13 +5,28 @@ jest.mock('expo-constants', () => ({
   default: { expoConfig: { extra: { buildEnv: undefined } } },
 }));
 
-import { logEvent, setAnalyticsCollectionEnabled } from '@react-native-firebase/analytics';
+import {
+  getAnalytics,
+  logEvent,
+  setAnalyticsCollectionEnabled,
+} from '@react-native-firebase/analytics';
 import Constants from 'expo-constants';
 
 import { initGa4, isGa4Enabled, logGa4Event } from './ga4';
 
 const mockLogEvent = logEvent as jest.Mock;
 const mockSetEnabled = setAnalyticsCollectionEnabled as jest.Mock;
+const mockGetAnalytics = getAnalytics as jest.Mock;
+
+/**
+ * What an unconfigured native Firebase does: `getAnalytics()` throws
+ * SYNCHRONOUSLY, before any promise exists to attach a `.catch()` to.
+ */
+function breakNativeFirebase(): void {
+  mockGetAnalytics.mockImplementation(() => {
+    throw new Error("No Firebase App '[DEFAULT]' has been created - call firebase.initializeApp()");
+  });
+}
 
 /**
  * Drives the REAL runtime source. GA4 reads `Constants.expoConfig.extra.buildEnv`
@@ -75,5 +90,29 @@ describe('ga4', () => {
 
     await logGa4Event('purchase');
     expect(mockLogEvent).toHaveBeenCalledWith(expect.anything(), 'purchase');
+  });
+
+  /**
+   * A dev client built without the Firebase plist has no native `[DEFAULT]` app.
+   * Analytics is instrumentation: it must never be the reason the app fails to
+   * boot. This is the crash that took the whole app down at the `initGa4` step.
+   */
+  describe('when the native Firebase app was never configured', () => {
+    it('does not throw out of initGa4', () => {
+      setBuildEnv('production');
+      breakNativeFirebase();
+
+      expect(() => initGa4()).not.toThrow();
+      // Collection cannot be on when the SDK it needs is absent.
+      expect(isGa4Enabled()).toBe(false);
+    });
+
+    it('does not throw out of logGa4Event', async () => {
+      setBuildEnv('production');
+      breakNativeFirebase();
+      initGa4();
+
+      await expect(logGa4Event('purchase')).resolves.toBeUndefined();
+    });
   });
 });

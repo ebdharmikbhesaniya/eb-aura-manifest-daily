@@ -55,7 +55,14 @@ export default function SignInRoute() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [sent, setSent] = useState(false);
-  const [busy, setBusy] = useState(false);
+  /**
+   * WHICH action is in flight, not merely whether one is. A single shared
+   * boolean put a spinner on every provider button at once, so tapping Google
+   * also spun Apple — she cannot tell which sign-in she actually started, and
+   * two spinners read as the app doing something it isn't.
+   */
+  const [pending, setPending] = useState<'google' | 'apple' | 'email' | null>(null);
+  const busy = pending !== null;
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,11 +77,11 @@ export default function SignInRoute() {
   const proceed = useCallback(() => router.replace('/'), [router]);
 
   const runGoogle = useCallback(async () => {
-    setBusy(true);
+    setPending('google');
     setNotice(null);
     const token = await getGoogleIdToken();
     if (token.status !== 'ok') {
-      setBusy(false);
+      setPending(null);
       // A cancel stays silent the first time — she meant it, and apologising for
       // her own decision is worse than saying nothing. But a REPEATED cancel is
       // how a dropped OAuth callback looks (see cancelStreak.ts), and leaving
@@ -84,13 +91,13 @@ export default function SignInRoute() {
     }
 
     const outcome = await authenticateWithProvider('google', token.idToken);
-    setBusy(false);
+    setPending(null);
     if (outcome.status === 'linked' || outcome.status === 'signed_in') proceed();
     else if (outcome.status === 'failed') setNotice(authCopy.gate.failed);
   }, [proceed]);
 
   const runApple = useCallback(async () => {
-    setBusy(true);
+    setPending('apple');
     setNotice(null);
     try {
       const credential = await AppleAuthentication.signInAsync({
@@ -98,17 +105,17 @@ export default function SignInRoute() {
       });
 
       if (!credential.identityToken) {
-        setBusy(false);
+        setPending(null);
         setNotice(authCopy.gate.failed);
         return;
       }
 
       const outcome = await authenticateWithProvider('apple', credential.identityToken);
-      setBusy(false);
+      setPending(null);
       if (outcome.status === 'linked' || outcome.status === 'signed_in') proceed();
       else if (outcome.status === 'failed') setNotice(authCopy.gate.failed);
     } catch (error) {
-      setBusy(false);
+      setPending(null);
       // A dismissed Apple sheet is a decision, not an error to apologise for.
       if ((error as { code?: string })?.code !== 'ERR_REQUEST_CANCELED') {
         setNotice(authCopy.gate.failed);
@@ -118,19 +125,19 @@ export default function SignInRoute() {
 
   /** The magic link, now reached only from "forgot your password". */
   const runEmailLink = useCallback(async () => {
-    setBusy(true);
+    setPending('email');
     setNotice(null);
     const { sent: ok } = await sendSignInLink(email.trim());
-    setBusy(false);
+    setPending(null);
     if (ok) setSent(true);
     else setNotice(authCopy.gate.failed);
   }, [email]);
 
   const runCreate = useCallback(async () => {
-    setBusy(true);
+    setPending('email');
     setNotice(null);
     const outcome = await signUpWithPassword(email.trim(), password);
-    setBusy(false);
+    setPending(null);
 
     switch (outcome.status) {
       case 'created':
@@ -153,10 +160,10 @@ export default function SignInRoute() {
   }, [email, password, proceed]);
 
   const runSignIn = useCallback(async () => {
-    setBusy(true);
+    setPending('email');
     setNotice(null);
     const outcome = await signInWithPassword(email.trim(), password);
-    setBusy(false);
+    setPending(null);
 
     switch (outcome.status) {
       case 'signed_in':
@@ -295,7 +302,7 @@ export default function SignInRoute() {
                   }
                   onPress={() => void (mode === 'create' ? runCreate() : runSignIn())}
                   disabled={!canSubmit}
-                  loading={busy}
+                  loading={pending === 'email'}
                   testID="auth-password-submit"
                 />
 
@@ -336,8 +343,11 @@ export default function SignInRoute() {
                     title={authCopy.gate.google}
                     icon={<Ionicons name="logo-google" size={20} color={colors.text.onCta} />}
                     onPress={() => void runGoogle()}
+                    // `disabled` on ANY attempt so a second provider cannot race
+                    // the first; `loading` only on this one, so the spinner marks
+                    // the button she actually tapped.
                     disabled={busy}
-                    loading={busy}
+                    loading={pending === 'google'}
                     testID="auth-google"
                   />
                 )}
@@ -347,7 +357,7 @@ export default function SignInRoute() {
                     icon={<Ionicons name="logo-apple" size={20} color={colors.text.onCta} />}
                     onPress={() => void runApple()}
                     disabled={busy}
-                    loading={busy}
+                    loading={pending === 'apple'}
                     testID="auth-apple"
                   />
                 )}

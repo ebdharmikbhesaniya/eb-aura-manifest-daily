@@ -46,7 +46,12 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
   const [showEmail, setShowEmail] = useState(false);
   const [sent, setSent] = useState(false);
   const [unknown, setUnknown] = useState(false);
-  const [busy, setBusy] = useState(false);
+  /**
+   * WHICH action is in flight, not merely whether one is. A shared boolean put a
+   * spinner on every button at once, so tapping Google also spun Apple.
+   */
+  const [pending, setPending] = useState<'google' | 'apple' | 'email' | null>(null);
+  const busy = pending !== null;
   /**
    * Provider sign-in used to fail completely silently here — the sheet just went
    * un-busy and sat there. `authCopy.gate.failed` is reused rather than
@@ -56,20 +61,20 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
   const [notice, setNotice] = useState<string | null>(null);
 
   const runApple = async () => {
-    setBusy(true);
+    setPending('apple');
     setNotice(null);
     const result = await signInWithApple();
-    setBusy(false);
+    setPending(null);
     if (result.status === 'signed_in') onSignedIn();
     else if (result.status === 'failed') setNotice(authCopy.gate.failed);
   };
 
   const runGoogle = async () => {
-    setBusy(true);
+    setPending('google');
     setNotice(null);
     const token = await getGoogleIdToken();
     if (token.status !== 'ok') {
-      setBusy(false);
+      setPending(null);
       // Silent on a first cancel, loud on a repeat — see cancelStreak.ts.
       if (token.status === 'failed' || token.unexpected) setNotice(authCopy.gate.failed);
       return;
@@ -78,16 +83,16 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
     // and only signs in as an existing one when the identity is already taken —
     // the same keep-her-data-first order the gate uses (see session.ts).
     const outcome = await authenticateWithProvider('google', token.idToken);
-    setBusy(false);
+    setPending(null);
     if (outcome.status === 'linked' || outcome.status === 'signed_in') onSignedIn();
     else if (outcome.status === 'failed') setNotice(authCopy.gate.failed);
   };
 
   const runEmail = async () => {
-    setBusy(true);
+    setPending('email');
     setUnknown(false);
     const { sent: ok } = await sendSignInLink(email.trim());
-    setBusy(false);
+    setPending(null);
     // The only expected failure is an address with no account behind it, which
     // `shouldCreateUser: false` turns into an error rather than a new account.
     if (ok) setSent(true);
@@ -149,8 +154,8 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
             <PillButton
               title={authCopy.signIn.email}
               onPress={() => void runEmail()}
-              disabled={email.trim() === ''}
-              loading={busy}
+              disabled={email.trim() === '' || busy}
+              loading={pending === 'email'}
               testID="signin-email-submit"
             />
           </View>
@@ -173,7 +178,11 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
                 title={authCopy.signIn.google}
                 icon={<Ionicons name="logo-google" size={20} color={colors.text.onCta} />}
                 onPress={() => void runGoogle()}
-                loading={busy}
+                // `disabled` on ANY attempt so a second provider cannot race the
+                // first; `loading` only on this one, so the spinner marks the
+                // button she actually tapped.
+                disabled={busy}
+                loading={pending === 'google'}
                 testID="signin-google"
               />
             )}
@@ -182,7 +191,8 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
                 title={authCopy.signIn.apple}
                 icon={<Ionicons name="logo-apple" size={20} color={colors.text.onCta} />}
                 onPress={() => void runApple()}
-                loading={busy}
+                disabled={busy}
+                loading={pending === 'apple'}
                 testID="signin-apple"
               />
             )}

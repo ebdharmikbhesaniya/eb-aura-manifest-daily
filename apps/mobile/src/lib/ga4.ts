@@ -45,9 +45,19 @@ function shouldEnable(): boolean {
 
 export function initGa4(): void {
   enabled = shouldEnable();
-  // Fire-and-forget: nothing downstream waits on the toggle, and a rejected
-  // promise here must never break boot.
-  void setAnalyticsCollectionEnabled(getAnalytics(), enabled).catch(() => {});
+  try {
+    // `getAnalytics()` throws SYNCHRONOUSLY when the native Firebase app was
+    // never configured ("No Firebase App '[DEFAULT]' has been created") — a
+    // dev client built without the GoogleService plist, for instance. A
+    // `.catch()` guards only the promise, never that lookup, which is how this
+    // took down the whole app at the `initGa4` boot step.
+    //
+    // Analytics is instrumentation: never a reason the app fails to start. If
+    // the SDK is not there, collection stays off and boot continues.
+    void setAnalyticsCollectionEnabled(getAnalytics(), enabled).catch(() => {});
+  } catch {
+    enabled = false;
+  }
 }
 
 export function isGa4Enabled(): boolean {
@@ -60,5 +70,11 @@ export function isGa4Enabled(): boolean {
  */
 export async function logGa4Event(name: string): Promise<void> {
   if (!enabled) return;
-  await logEvent(getAnalytics(), name);
+  try {
+    // Same synchronous-throw hazard as initGa4: a missing native app must lose
+    // the event, never break the caller mid-flow.
+    await logEvent(getAnalytics(), name);
+  } catch {
+    // Instrumentation is best-effort.
+  }
 }
