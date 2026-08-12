@@ -264,6 +264,8 @@ export interface EventCatalog {
   moment_arrival_notification_opened: Record<string, never>;
   /** Mobile. */
   notification_permission_result: { granted: boolean };
+  /** Mobile. The warm second-chance screen was reached (she declined S12 first). */
+  notification_second_chance_viewed: Record<string, never>;
   /** Backend. Softening is silent to her; this is how WE know it happened. */
   notification_softened: Record<string, never>;
   /** Mobile. */

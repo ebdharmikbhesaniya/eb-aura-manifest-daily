@@ -40,22 +40,31 @@ export function S12Notifications() {
   }, []);
 
   const finish = async (ask: boolean): Promise<void> => {
-    if (busy) return;
+    if (busy || !userId) return;
     setBusy(true);
     void haptic('onboardingContinue');
 
     try {
-      if (ask && userId) {
-        await requestPermissionAndRegister(userId);
-        markPermissionAsked(true);
+      if (ask) {
+        const { granted } = await requestPermissionAndRegister(userId);
+        if (granted) {
+          // She said yes — stamp completion and go straight into the ritual.
+          // `replace`, so a back-swipe cannot reopen onboarding.
+          markPermissionAsked(true);
+          await completeOnboarding(userId);
+          router.replace('/(onboarding)/generating');
+          return;
+        }
+        // Declined at the OS level: one warm second chance (2026-08-10). Don't
+        // mark asked or complete yet — S12b may still turn it on, and if she
+        // continues from there it stamps completion itself.
+        router.push('/(onboarding)/s12b-notifications');
+        return;
       }
 
-      // Finishing the conversation: flush + stamp completion, then straight into
-      // the ritual. `replace`, so a back-swipe cannot reopen onboarding.
-      if (userId) {
-        await completeOnboarding(userId);
-        router.replace('/(onboarding)/generating');
-      }
+      // "Maybe later" — offer the value once more before finishing, rather than
+      // silently dropping the whole daily loop.
+      router.push('/(onboarding)/s12b-notifications');
     } finally {
       // Left un-busy on a sync failure so she can retry rather than stall.
       setBusy(false);

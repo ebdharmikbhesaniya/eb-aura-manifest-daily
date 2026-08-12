@@ -141,10 +141,31 @@ export const onboardingCopy = {
     // while her arrival time is still fresh, so it reads as a reminder she just
     // set up — not a cold system prompt. Skippable; Home still offers it later.
     question: 'Want your moments to reach you?',
-    helper: 'So the words written for you actually arrive.',
+    // The "why", said plainly: the moment is written whether or not she looks —
+    // the reminder is the only thing that carries it to her at her time.
+    helper:
+      'Each day I write something just for you. A reminder is how it reaches you — otherwise it waits, unseen, until you remember to look.',
     note: 'One quiet arrival at your time. Never a nudge, never a scorecard — and you can turn it off anytime.',
     primary: 'Turn on reminders',
     skip: 'Maybe later',
+  },
+
+  /**
+   * The second notification screen (2026-08-10, founder decision) — shown ONCE,
+   * only if she declined the OS prompt or chose "Maybe later" on S12. A warm
+   * second chance that spells out the concrete loss, NOT a guilt screen: the
+   * "Continue without" exit is always right there, and it is never shown again.
+   */
+  s12NotificationsMore: {
+    question: 'Your moment can’t reach you on its own.',
+    helper:
+      'Without a reminder, the words written for you sit quietly in the app — and most mornings the day gets loud before you remember to open it. One gentle arrival at the time you chose is all it takes.',
+    // Reassurance so the ask never tips into pressure.
+    note: 'Still just one arrival a day. No nudges, no scorecards — off anytime.',
+    primary: 'Turn on notifications',
+    // If the OS won't prompt again (already declined), we send her to Settings.
+    openSettings: 'Open Settings',
+    skip: 'Continue without them',
   },
 
   editGuard: {

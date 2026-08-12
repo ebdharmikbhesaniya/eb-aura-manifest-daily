@@ -1,4 +1,6 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import * as Notifications from 'expo-notifications';
+import { Linking } from 'react-native';
 import type { ReactNode } from 'react';
 
 import { MotionProvider } from '@/theme/motion';
@@ -12,6 +14,7 @@ import { requestPermissionAndRegister } from '@/features/notifications/useNotifi
 
 import { S11ArrivalTime } from './screens/S11ArrivalTime';
 import { S12Notifications } from './screens/S12Notifications';
+import { S12NotificationsMore } from './screens/S12NotificationsMore';
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
@@ -30,10 +33,17 @@ jest.mock('./commit', () => ({
 }));
 jest.mock('@/features/notifications/useNotifications', () => ({
   requestPermissionAndRegister: jest.fn(async () => ({ granted: true, registered: true })),
+  registerToken: jest.fn(async () => true),
 }));
 jest.mock('@/features/notifications/permissionGate', () => ({
   markPermissionAsked: jest.fn(),
 }));
+jest.mock('expo-notifications', () => ({
+  getPermissionsAsync: jest.fn(async () => ({ status: 'undetermined', canAskAgain: true })),
+}));
+
+const mockGetPermissions = Notifications.getPermissionsAsync as jest.Mock;
+const mockRequestPermission = requestPermissionAndRegister as jest.Mock;
 jest.mock('@/stores/appState', () => ({
   useAppState: (selector: (s: { status: string; userId: string }) => unknown) =>
     selector({ status: 'ready', userId: 'user-1' }),
@@ -79,52 +89,95 @@ describe('finishing the conversation', () => {
     });
   });
 
-  describe('S12 notifications — the true finish', () => {
+  describe('S12 notifications — grant finishes, decline gets a second chance', () => {
     const finish = async (control: string) => {
       const view = await render(<S12Notifications />, { wrapper });
       await fireEvent.press(view.getByText(control));
       return view;
     };
 
-    it('asks the OS and records it when she turns reminders on', async () => {
+    it('when she grants: records it, stamps completion, and enters the ritual', async () => {
+      // Default mock grants.
       await finish(onboardingCopy.s12Notifications.primary);
 
       await waitFor(() => expect(requestPermissionAndRegister).toHaveBeenCalledWith('user-1'));
       expect(markPermissionAsked).toHaveBeenCalledWith(true);
-    });
-
-    it('does not ask the OS when she taps "Maybe later" — Home stays the fallback', async () => {
-      await finish(onboardingCopy.s12Notifications.skip);
-
       await waitFor(() => expect(completeOnboarding).toHaveBeenCalledWith('user-1'));
-      expect(requestPermissionAndRegister).not.toHaveBeenCalled();
-      expect(markPermissionAsked).not.toHaveBeenCalled();
+      expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/generating');
     });
 
-    it('stamps the profile as completed', async () => {
-      await finish(onboardingCopy.s12Notifications.skip);
-
-      await waitFor(() => expect(completeOnboarding).toHaveBeenCalledWith('user-1'));
-    });
-
-    it('goes straight into the generation ritual', async () => {
-      await finish(onboardingCopy.s12Notifications.skip);
-
-      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/generating'));
-    });
-
-    it('never routes to Home first — that would spend the setup S10 just built', async () => {
-      await finish(onboardingCopy.s12Notifications.skip);
+    it('never routes to Home first on the grant path (that would spend S10)', async () => {
+      await finish(onboardingCopy.s12Notifications.primary);
 
       await waitFor(() => expect(mockReplace).toHaveBeenCalled());
       expect(mockReplace).not.toHaveBeenCalledWith('/(tabs)/home');
     });
 
-    it('replaces rather than pushes, so a back-swipe cannot reopen the conversation', async () => {
+    it('when the OS is declined: offers the second chance, does not finish yet', async () => {
+      mockRequestPermission.mockResolvedValueOnce({ granted: false, registered: false });
+
+      await finish(onboardingCopy.s12Notifications.primary);
+
+      await waitFor(() =>
+        expect(mockPush).toHaveBeenCalledWith('/(onboarding)/s12b-notifications'),
+      );
+      expect(completeOnboarding).not.toHaveBeenCalled();
+      expect(markPermissionAsked).not.toHaveBeenCalled();
+    });
+
+    it('"Maybe later" offers the second chance rather than dropping the loop', async () => {
       await finish(onboardingCopy.s12Notifications.skip);
 
-      await waitFor(() => expect(mockReplace).toHaveBeenCalled());
-      expect(mockPush).not.toHaveBeenCalled();
+      await waitFor(() =>
+        expect(mockPush).toHaveBeenCalledWith('/(onboarding)/s12b-notifications'),
+      );
+      expect(requestPermissionAndRegister).not.toHaveBeenCalled();
+      expect(completeOnboarding).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('S12b notifications — the warm second chance', () => {
+    const render12b = async () => render(<S12NotificationsMore />, { wrapper });
+
+    it('"Continue without them" finishes: records the ask and enters the ritual', async () => {
+      const view = await render12b();
+
+      await fireEvent.press(view.getByText(onboardingCopy.s12NotificationsMore.skip));
+
+      await waitFor(() => expect(completeOnboarding).toHaveBeenCalledWith('user-1'));
+      expect(markPermissionAsked).toHaveBeenCalledWith(true);
+      expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/generating');
+    });
+
+    it('re-asks the OS and finishes when it can still be prompted', async () => {
+      // Default getPermissions: undetermined + canAskAgain.
+      const view = await render12b();
+
+      await fireEvent.press(view.getByText(onboardingCopy.s12NotificationsMore.primary));
+
+      await waitFor(() => expect(requestPermissionAndRegister).toHaveBeenCalledWith('user-1'));
+      await waitFor(() => expect(completeOnboarding).toHaveBeenCalledWith('user-1'));
+      expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/generating');
+    });
+
+    it('opens Settings (not the OS prompt) once she has already denied it', async () => {
+      mockGetPermissions.mockResolvedValue({ status: 'denied', canAskAgain: false });
+      const openSettings = jest
+        .spyOn(Linking, 'openSettings')
+        .mockResolvedValue(undefined as never);
+
+      const view = await render12b();
+
+      // The primary flips to the Settings label once canAskAgain resolves false.
+      const button = await view.findByText(onboardingCopy.s12NotificationsMore.openSettings);
+      await fireEvent.press(button);
+
+      await waitFor(() => expect(openSettings).toHaveBeenCalled());
+      expect(requestPermissionAndRegister).not.toHaveBeenCalled();
+      // Staying put — the AppState listener finishes if she enables it in Settings.
+      expect(mockReplace).not.toHaveBeenCalledWith('/(onboarding)/generating');
+
+      openSettings.mockRestore();
     });
   });
 });
