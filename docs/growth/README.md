@@ -13,15 +13,16 @@ Aura has an explicit anti-dark-pattern / anti-resentment doctrine (product 01 §
 
 ## Files
 
-| File                                          | What's in it                                                                               |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `2026-08-10-glow-case-study-teardown.md`      | The transcript flow, phase by phase, with the learning at each step + Glow's real numbers. |
-| `2026-08-10-aura-gap-analysis.md`             | Every Glow lever → have/partial/missing/⛔conflicts, with priority.                        |
-| `2026-08-10-onboarding-conversion-plan.md`    | Commit beat, first-Home activation, notif-copy A/B, length A/B, widget — impl + testing.   |
-| `2026-08-10-monetization-paywall-plan.md`     | Grace period, store trial config, paywall A/B, trial/price experiments, premium value.     |
-| `2026-08-10-analytics-abtesting-plan.md`      | PostHog flags/experiments, funnel events, dashboards, RevenueCat experiments, ASC PPO.     |
-| `2026-08-10-aso-ads-launch-plan.md`           | ASO keywords, reviews, organic formats, paid-ads attribution, launch sequencing.           |
-| `2026-08-10-appstore-submission-checklist.md` | Privacy-questionnaire discipline, legal links, grace period, Transporter, rejections.      |
+| File                                          | What's in it                                                                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `2026-08-10-glow-case-study-teardown.md`      | The transcript flow, phase by phase, with the learning at each step + Glow's real numbers.                                                 |
+| `2026-08-10-aura-gap-analysis.md`             | Every Glow lever → have/partial/missing/⛔conflicts, with priority.                                                                        |
+| `2026-08-10-onboarding-flow-deep-dive.md`     | Screen-by-screen onboarding analysis vs every transcript recommendation — the "Aura shortened the questions" insight + a prioritized plan. |
+| `2026-08-10-onboarding-conversion-plan.md`    | Commit beat, first-Home activation, notif-copy A/B, length A/B, widget — impl + testing.                                                   |
+| `2026-08-10-monetization-paywall-plan.md`     | Grace period, store trial config, paywall A/B, trial/price experiments, premium value.                                                     |
+| `2026-08-10-analytics-abtesting-plan.md`      | PostHog flags/experiments, funnel events, dashboards, RevenueCat experiments, ASC PPO.                                                     |
+| `2026-08-10-aso-ads-launch-plan.md`           | ASO keywords, reviews, organic formats, paid-ads attribution, launch sequencing.                                                           |
+| `2026-08-10-appstore-submission-checklist.md` | Privacy-questionnaire discipline, legal links, grace period, Transporter, rejections.                                                      |
 
 ## Where Aura already beats Glow (don't re-solve)
 
