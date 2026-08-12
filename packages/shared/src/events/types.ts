@@ -148,6 +148,12 @@ export interface EventCatalog {
   };
   /** Mobile. Fires once, when the closing step (s12-notifications) commits. */
   onboarding_completed: { duration_s: number; questions_answered: number };
+  /** Mobile. She tapped "I'm ready" on the commitment beat (s13-commit, 2026-08-10). */
+  commitment_accepted: Record<string, never>;
+  /** Mobile. The one-time first-Home welcome/orientation card was shown (2026-08-10). */
+  firstrun_welcome_shown: Record<string, never>;
+  /** Mobile. She dismissed the first-Home welcome card ("Begin"). */
+  firstrun_welcome_dismissed: Record<string, never>;
 
   // ─── Memory / moat (Phase 4) ───────────────────────────────────────────
   // Note what is absent: no `content`, no `verbatim`, no term. We count that a

@@ -90,6 +90,14 @@ export default function HomeRoute() {
     ? momentsCopy.home.personalization.replace('{value}', topValue.toLowerCase())
     : null;
 
+  // Report the first-Home welcome exposure once, on the first landing that shows
+  // it — the top of the activation funnel.
+  useEffect(() => {
+    if (showFirstRun) analytics.capture('firstrun_welcome_shown', {});
+    // Only the mount-time value matters; dismissing flips it false and must not
+    // re-fire.
+  }, []);
+
   // iOS ad-attribution consent (spec §7). Asked once, on the first Home landing
   // after the Letter/paywall — never mid-onboarding. No-op on Android and after
   // any prior decision. Kept separate from the notification ask below so the two
@@ -296,6 +304,7 @@ export default function HomeRoute() {
         personalization={personalization}
         showFirstRun={showFirstRun}
         onDismissFirstRun={() => {
+          analytics.capture('firstrun_welcome_dismissed', {});
           markFirstRunSeen();
           setShowFirstRun(false);
         }}

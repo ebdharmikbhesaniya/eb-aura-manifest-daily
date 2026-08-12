@@ -159,9 +159,12 @@ export default function PaywallRoute() {
         return;
       }
 
-      analytics.capture('purchase_completed', {
-        sku: plan.pkg?.product.identifier ?? plan.id,
-      });
+      const sku = plan.pkg?.product.identifier ?? plan.id;
+      analytics.capture('purchase_completed', { sku });
+      // A trial start is its own funnel step — the number the paywall moves.
+      // Fired client-side for immediate attribution; the RC webhook also emits it
+      // server-side as the authority (12 §5).
+      if (plan.hasTrial) analytics.capture('trial_started', { sku });
       markPaywallSeen();
       // Past the hard gate she is already through it — go straight Home rather than
       // flash the afterPurchase claim sheet (she is always claimed by now: the

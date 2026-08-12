@@ -47,7 +47,36 @@ export function initAnalytics(): void {
     // Explicit events only — see the privacy note above.
     defaultOptIn: true,
     disabled: false,
+    // Point at a self-hosted / local / EU instance when set; PostHog Cloud US
+    // otherwise (the SDK default). Feature flags resolve against this host too.
+    ...(env.EXPO_PUBLIC_POSTHOG_HOST ? { host: env.EXPO_PUBLIC_POSTHOG_HOST } : {}),
   });
+}
+
+/**
+ * Feature flags & experiments (2026-08-10).
+ *
+ * The ONE place the app reads a flag — `useVariant` (features/experiments) wraps
+ * this so screens never touch the SDK. Reading a flag makes PostHog emit its own
+ * `$feature_flag_called` event, which is how experiment exposure is attributed;
+ * we add typed OUTCOME events (trial_started, …) separately.
+ *
+ * Everything degrades to `undefined` with no client (dev without a key) so a
+ * flag outage can only ever fall back to the control path, never break a screen.
+ */
+export function getFeatureFlag(key: string): boolean | string | undefined {
+  return client?.getFeatureFlag(key);
+}
+
+/** Pull the latest flags for this user — called once at boot, after identify. */
+export async function reloadFeatureFlags(): Promise<void> {
+  await client?.reloadFeatureFlagsAsync();
+}
+
+/** Subscribe to flag updates (they load asynchronously after boot). */
+export function onFeatureFlags(callback: () => void): () => void {
+  const unsubscribe = client?.onFeatureFlags(() => callback());
+  return typeof unsubscribe === 'function' ? unsubscribe : () => {};
 }
 
 function capture(event: string, payload?: Record<string, unknown>): void {

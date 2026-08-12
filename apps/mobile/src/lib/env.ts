@@ -12,6 +12,12 @@ const envSchema = z.object({
   EXPO_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   EXPO_PUBLIC_API_URL: z.string().url(),
   EXPO_PUBLIC_POSTHOG_KEY: z.string().optional(),
+  /**
+   * PostHog ingestion host. Omit for PostHog Cloud US (the SDK default). Set to a
+   * self-hosted / local instance (e.g. http://localhost:8000) or EU cloud
+   * (https://eu.i.posthog.com) to point analytics + feature flags elsewhere.
+   */
+  EXPO_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
   EXPO_PUBLIC_REVENUECAT_IOS_KEY: z.string().optional(),
   EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: z.string().optional(),
   /**
@@ -38,6 +44,7 @@ const parsed = envSchema.safeParse({
   EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
   EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
   EXPO_PUBLIC_POSTHOG_KEY: process.env.EXPO_PUBLIC_POSTHOG_KEY,
+  EXPO_PUBLIC_POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST,
   EXPO_PUBLIC_REVENUECAT_IOS_KEY: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
   EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
   EXPO_PUBLIC_TERMS_URL: process.env.EXPO_PUBLIC_TERMS_URL,

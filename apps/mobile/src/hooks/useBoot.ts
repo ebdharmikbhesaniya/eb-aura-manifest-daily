@@ -4,7 +4,7 @@ import Purchases from 'react-native-purchases';
 
 import { sweepAudioCache } from '@/features/letter/audioCache';
 import { configurePurchases, hasPremium, isConfigured } from '@/features/paywall/purchases';
-import { analytics, initAnalytics } from '@/lib/analytics';
+import { analytics, initAnalytics, reloadFeatureFlags } from '@/lib/analytics';
 import { emitAppOpen } from '@/lib/appOpen';
 import { initGa4 } from '@/lib/ga4';
 import { ensureSession, identifyForObservability } from '@/lib/auth';
@@ -55,6 +55,10 @@ export function useBoot(): void {
         // them (13 §2). subscription_state updates when RC lands (Phase 10).
         analytics.register(buildSuperProperties());
         analytics.identify(userId);
+        // Pull feature flags / experiment variants for this identity now, so a
+        // flagged surface has its variant by first render. Best-effort — a flag
+        // outage must never delay or fail boot (they degrade to control).
+        void reloadFeatureFlags();
 
         // Bound to her Supabase id, so a purchase made anonymously still belongs
         // to her after she claims. Never fatal: a build with no RevenueCat key

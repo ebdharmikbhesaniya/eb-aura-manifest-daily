@@ -31,6 +31,7 @@ jest.mock('@/features/letter/audioCache', () => ({ sweepAudioCache: jest.fn() })
 jest.mock('@/lib/appOpen', () => ({ emitAppOpen: jest.fn() }));
 jest.mock('@/lib/analytics', () => ({
   initAnalytics: jest.fn(),
+  reloadFeatureFlags: jest.fn(async () => undefined),
   analytics: { register: jest.fn(), identify: jest.fn(), capture: jest.fn() },
 }));
 jest.mock('@/lib/superProperties', () => ({ buildSuperProperties: jest.fn(() => ({})) }));

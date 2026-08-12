@@ -1,4 +1,5 @@
 import { onboardingCopy } from '@/copy/onboarding';
+import { analytics } from '@/lib/analytics';
 import { useOnboardingDraft } from '@/stores/onboardingDraft';
 
 import { ConversationScreen } from '../ConversationScreen';
@@ -35,7 +36,10 @@ export function S13Commit() {
       question={question}
       helper={c.helper}
       primaryTitle={c.primary}
-      onPrimary={advance}
+      onPrimary={() => {
+        analytics.capture('commitment_accepted', {});
+        advance();
+      }}
     >
       <NotificationHero icon="sparkles-outline" />
     </ConversationScreen>
