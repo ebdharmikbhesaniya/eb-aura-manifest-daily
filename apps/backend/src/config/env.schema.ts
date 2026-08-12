@@ -59,7 +59,6 @@ export const envSchema = z
     /** Server key for subscriber deletion on account delete (03 §5 step 3). */
     REVENUECAT_SECRET_KEY: z.string().optional(),
     POSTHOG_SERVER_KEY: z.string().optional(),
-    SENTRY_DSN_BACKEND: z.string().url().optional().or(z.literal('')),
 
     // ─── Tunable limits (04 §86) ────────────────────────────────────────
     MANIFEST_WEEKLY_LIMIT: intWithDefault(LIMITS.MANIFEST_WEEKLY_LIMIT),

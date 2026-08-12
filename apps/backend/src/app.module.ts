@@ -1,4 +1,3 @@
-import { SentryModule } from '@sentry/nestjs/setup';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
@@ -45,7 +44,6 @@ import { SupabaseModule } from './supabase/supabase.module';
       }),
     }),
 
-    SentryModule.forRoot(),
     SupabaseModule,
     AnalyticsModule,
     // Registers the global auth guard — deny by default, opt out with @Public().

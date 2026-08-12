@@ -1,6 +1,3 @@
-// Must be first — Sentry patches modules as they load (04 §7).
-import './instrument';
-
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { VersioningType } from '@nestjs/common';

@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react-native';
 import type { Session } from '@supabase/supabase-js';
 
 import { supabase } from './supabase';
@@ -20,12 +19,4 @@ import { supabase } from './supabase';
 export async function ensureSession(): Promise<Session | null> {
   const { data } = await supabase.auth.getSession();
   return data.session;
-}
-
-/**
- * Binds the user id to observability (05 §9).
- * Id only — never her name, email or anything she wrote (14, 00 §D10).
- */
-export function identifyForObservability(userId: string): void {
-  Sentry.setUser({ id: userId });
 }

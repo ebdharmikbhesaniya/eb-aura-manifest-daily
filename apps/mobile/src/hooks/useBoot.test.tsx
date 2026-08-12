@@ -18,7 +18,6 @@ import { useBoot } from './useBoot';
 // referenced outer const would be read before it is initialized).
 jest.mock('@/lib/auth', () => ({
   ensureSession: jest.fn(),
-  identifyForObservability: jest.fn(),
 }));
 jest.mock('@/features/paywall/purchases', () => ({
   configurePurchases: jest.fn(async () => undefined),

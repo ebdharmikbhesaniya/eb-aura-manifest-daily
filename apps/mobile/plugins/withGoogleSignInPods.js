@@ -18,7 +18,7 @@
 // The fix here is the narrower of the two CocoaPods suggests: opt ONLY those two
 // pods into generating module maps. `use_modular_headers!` globally would also
 // work, but it changes header visibility for every pod in the graph — Skia,
-// MMKV, RevenueCat, Sentry, Reanimated — to solve a problem in two of them, and
+// MMKV, RevenueCat, Reanimated — to solve a problem in two of them, and
 // that blast radius is not worth it.
 //
 // Ordering note: this is a withDangerousMod on the Podfile, a different mod than

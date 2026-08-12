@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react-native';
 import { useEffect } from 'react';
 
 import Purchases from 'react-native-purchases';
@@ -8,7 +7,7 @@ import { configurePurchases, hasPremium, isConfigured } from '@/features/paywall
 import { analytics, initAnalytics, reloadFeatureFlags } from '@/lib/analytics';
 import { emitAppOpen } from '@/lib/appOpen';
 import { initGa4 } from '@/lib/ga4';
-import { ensureSession, identifyForObservability } from '@/lib/auth';
+import { ensureSession } from '@/lib/auth';
 import { buildSuperProperties } from '@/lib/superProperties';
 import { useAppState } from '@/stores/appState';
 
@@ -63,8 +62,6 @@ export function useBoot(): void {
         // and simply stays disabled. Analytics never breaks boot.
         step = 'initGa4';
         initGa4();
-        step = 'identifyForObservability';
-        identifyForObservability(userId);
         // Super properties before identify so every event this session carries
         // them (13 §2). subscription_state updates when RC lands (Phase 10).
         step = 'superProperties';
@@ -109,15 +106,10 @@ export function useBoot(): void {
         setReady(userId, premium, purchasesConfigured);
       } catch (error) {
         // No error code reaches the UI in a shipped build — the screen still
-        // shows one in-voice line and a retry (05 §8). But the detail has to go
-        // SOMEWHERE: this catch previously claimed "Sentry already captured the
-        // detail" while capturing nothing, so every boot failure was anonymous.
+        // shows one in-voice line and a retry (05 §8). The step name is folded
+        // into the failure reason so a device-only boot failure stays legible
+        // through the __DEV__ line on the boot screen (see appState.bootError).
         const detail = error instanceof Error ? error.message : String(error);
-
-        Sentry.captureException(error, {
-          tags: { area: 'boot', step },
-          extra: { step },
-        });
 
         if (__DEV__) {
           console.error(`[boot] failed at step "${step}":`, error);

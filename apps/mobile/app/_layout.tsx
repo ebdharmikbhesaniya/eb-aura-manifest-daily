@@ -18,8 +18,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import '@/lib/instrument';
-
 import { BootGate } from '@/components/BootGate';
 import { queryClient } from '@/lib/queryClient';
 import { useHapticScreen } from '@/theme/useHapticScreen';
@@ -61,7 +59,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     // A font failure must not brick the launch — the system serif steps in and
-    // she gets her Letter. fontError is captured upstream by Sentry.
+    // she gets her Letter.
     if (fontsLoaded || fontError) void SplashScreen.hideAsync();
   }, [fontsLoaded, fontError]);
 

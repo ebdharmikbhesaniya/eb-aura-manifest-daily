@@ -14,7 +14,7 @@ module.exports = {
   // `@scope+pkg` inside .pnpm/ — both spellings must be allowed or the .pnpm
   // copy is skipped by the transform and its ESM crashes the suite.
   transformIgnorePatterns: [
-    'node_modules/(?!(?:\\.pnpm/)?((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?[/+].*|@expo-google-fonts[/+].*|react-navigation|@react-navigation[/+].*|@sentry[/+]react-native|native-base|react-native-svg|react-native-mmkv|@shopify[/+]react-native-skia|@gorhom[/+]bottom-sheet))',
+    'node_modules/(?!(?:\\.pnpm/)?((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?[/+].*|@expo-google-fonts[/+].*|react-navigation|@react-navigation[/+].*|native-base|react-native-svg|react-native-mmkv|@shopify[/+]react-native-skia|@gorhom[/+]bottom-sheet))',
   ],
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
 };

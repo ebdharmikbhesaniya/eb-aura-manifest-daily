@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react-native';
 import { TurboModuleRegistry } from 'react-native';
 
 import { env } from '@/lib/env';
@@ -113,16 +112,15 @@ export async function getGoogleIdToken(): Promise<GoogleTokenResult> {
       consecutiveCancels += 1;
       const unexpected = isUnexpectedCancel(consecutiveCancels);
 
-      // Reported only once it looks like a broken flow, never on an ordinary
-      // cancel — otherwise every person who changes her mind becomes an alert
-      // and the signal is worthless. The message names the usual cause, because
-      // the one time this happened it took reading the native SDK to find it.
-      if (unexpected) {
-        Sentry.captureMessage(
-          `Google sign-in cancelled ${consecutiveCancels}x in a row — likely a dropped ` +
+      // Logged only once it looks like a broken flow, never on an ordinary
+      // cancel — otherwise every person who changes her mind becomes noise. The
+      // message names the usual cause, because the one time this happened it
+      // took reading the native SDK to find it.
+      if (unexpected && __DEV__) {
+        console.warn(
+          `[auth] Google sign-in cancelled ${consecutiveCancels}x in a row — likely a dropped ` +
             `OAuth callback (check the reversed-client-id URL scheme and that ` +
             `ExpoAdapterGoogleSignIn is autolinked), not a user cancel`,
-          'warning',
         );
       }
 

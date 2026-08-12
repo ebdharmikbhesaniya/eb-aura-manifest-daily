@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import type { AuthError } from '@supabase/supabase-js';
 
@@ -20,21 +19,17 @@ import { authRedirectUrl } from './redirect';
  * it is exactly why Google sign-in was once broken for weeks without anyone
  * being able to say why (see the autolinking note in package.json).
  *
- * A Supabase auth error carries configuration detail, never her words, so it is
- * safe under the 14 §privacy posture — the user's content lives in Postgres and
- * Storage and must never reach a crash report, but `invalid_client` is ours.
+ * A Supabase auth error carries configuration detail, never her words — the
+ * user's content lives in Postgres and Storage — but `invalid_client` is ours.
  */
 function reportAuthFailure(provider: AuthProvider, error: AuthError): void {
   // In dev this is the only place the real cause is legible: the UI deliberately
   // shows in-voice copy and never an error code (product 14).
   if (__DEV__) {
-    console.warn(`[auth] ${provider} sign-in rejected by Supabase: ${error.message}`);
+    console.warn(
+      `[auth] ${provider} sign-in rejected by Supabase (status ${error.status}): ${error.message}`,
+    );
   }
-
-  Sentry.captureException(error, {
-    tags: { area: 'auth', provider },
-    extra: { status: error.status },
-  });
 }
 
 /**

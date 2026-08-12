@@ -11,6 +11,3 @@ process.env.SUPABASE_URL = 'http://supabase.local';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
 process.env.LLM_PROVIDER = 'mock';
 process.env.TTS_PROVIDER = 'mock';
-
-// Keep Sentry inert in tests.
-delete process.env.SENTRY_DSN_BACKEND;

@@ -1,10 +1,9 @@
 // Silences Xcode's "Script has ambiguous dependencies causing it to run on every
-// build" warning on two upstream-generated shell-script phases:
-//   • "Upload Debug Symbols to Sentry"                       (@sentry/react-native/expo)
+// build" warning on an upstream-generated shell-script phase:
 //   • "[Expo Dev Launcher] Strip Local Network Keys for Release"  (expo-dev-launcher)
 //
-// Both plugins register the phase via `addBuildPhase([], ...)` with no outputs and
-// no dependency spec. Neither exposes a config option. Setting `alwaysOutOfDate = 1;`
+// The plugin registers the phase via `addBuildPhase([], ...)` with no outputs and
+// no dependency spec, and exposes no config option. Setting `alwaysOutOfDate = 1;`
 // on the phase is the pbxproj-level equivalent of unchecking "Based on dependency
 // analysis" in Xcode — the script still runs every build (that's the intent), the
 // warning goes away.
@@ -14,10 +13,7 @@
 
 const { withXcodeProject } = require('expo/config-plugins');
 
-const PHASE_NAMES = new Set([
-  'Upload Debug Symbols to Sentry',
-  '[Expo Dev Launcher] Strip Local Network Keys for Release',
-]);
+const PHASE_NAMES = new Set(['[Expo Dev Launcher] Strip Local Network Keys for Release']);
 
 const unquote = (s) => (typeof s === 'string' ? s.replace(/^"|"$/g, '') : s);
 

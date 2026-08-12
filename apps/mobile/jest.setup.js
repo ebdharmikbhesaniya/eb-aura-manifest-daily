@@ -218,13 +218,6 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(async () => undefined),
 }));
 
-jest.mock('@sentry/react-native', () => ({
-  init: jest.fn(),
-  setUser: jest.fn(),
-  captureException: jest.fn(),
-  wrap: (c) => c,
-}));
-
 // Metro inlines these at build time; jest needs them set explicitly.
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';

@@ -36,7 +36,6 @@
     "onlyBuiltDependencies": [
       "esbuild",
       "supabase",
-      "@sentry/cli",
       "@shopify/react-native-skia",
       "ffmpeg-static"
     ]

@@ -62,7 +62,7 @@ export function useLetterGeneration(userId: string | undefined): LetterGeneratio
         setJobId(id);
       } catch {
         // The retry copy is in-voice and carries no code (product 08 §2), so the
-        // reason stays here rather than reaching her. Sentry has the detail.
+        // reason never reaches her — she just gets the in-voice retry.
         setStartFailed(true);
       }
     },

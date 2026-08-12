@@ -19,8 +19,9 @@ const BRAND = {
 /**
  * EAS profile driving this build (16 §2).
  *
- * Tags the Sentry environment (src/lib/instrument.ts) and rides along in `extra`.
- * It does NOT vary the app identity — see below.
+ * Rides along in `extra` as `buildEnv` (read on-device via expo-constants,
+ * since Metro does not inline non-EXPO_PUBLIC_ vars). It does NOT vary the app
+ * identity — see below.
  */
 type BuildEnv = 'development' | 'staging' | 'production';
 const buildEnv = (process.env.APP_ENV ?? 'development') as BuildEnv;
@@ -207,8 +208,8 @@ const config: ExpoConfig = {
   plugins: [
     // Must be FIRST: Expo composes withXcodeProject mods in reverse-registration
     // order (last-registered runs first), so registering earliest = running last —
-    // which is what we need in order to see @sentry/react-native/expo's and
-    // expo-dev-launcher's build phases and stamp `alwaysOutOfDate = 1;` on them.
+    // which is what we need in order to see expo-dev-launcher's build phase and
+    // stamp `alwaysOutOfDate = 1;` on it.
     './plugins/withSilencedBuildPhases',
     'expo-router',
     [
@@ -242,19 +243,6 @@ const config: ExpoConfig = {
     ],
     // Required for RevenueCat, Skia and MMKV native modules (05 §1).
     'expo-dev-client',
-    [
-      // `organization` and `project` are passed here so the plugin doesn't emit
-      // "Missing config for organization, project" at prebuild. They fall back to
-      // env vars if provided, so a real Sentry account can be wired up later
-      // without a code change. Actual debug-symbol uploads are still gated by
-      // SENTRY_DISABLE_AUTO_UPLOAD in .env — the placeholders below never hit
-      // the network in dev.
-      '@sentry/react-native/expo',
-      {
-        organization: process.env.SENTRY_ORG ?? 'aura-manifest-daily',
-        project: process.env.SENTRY_PROJECT ?? 'aura-mobile',
-      },
-    ],
     // Push arrives from the backend only — the app never local-schedules
     // content (11 §1), so no permission strings beyond the OS default are added.
     //

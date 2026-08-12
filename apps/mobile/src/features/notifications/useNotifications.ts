@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useState } from 'react';
@@ -96,10 +95,10 @@ export async function requestPermissionAndRegister(userId: string): Promise<Perm
  * accumulate duplicate rows — and re-activates a token the backend previously
  * retired as `DeviceNotRegistered`.
  *
- * Failures are REPORTED, not swallowed. This used to end in a bare `catch {}`
- * on the reasoning that notifications are a bonus surface — but the common
- * failure here is not transient: `getExpoPushTokenAsync` throws outright when
- * `extra.eas.projectId` is missing, so an unset `EAS_PROJECT_ID` left every
+ * Failures are LOGGED in dev, not swallowed. This used to end in a bare
+ * `catch {}` on the reasoning that notifications are a bonus surface — but the
+ * common failure here is not transient: `getExpoPushTokenAsync` throws outright
+ * when `extra.eas.projectId` is missing, so an unset `EAS_PROJECT_ID` left every
  * install permanently unreachable with no token row, no log line and a
  * permission sheet that looked like it had worked.
  */
@@ -123,13 +122,17 @@ export async function registerToken(userId: string): Promise<boolean> {
     );
 
     if (error) {
-      Sentry.captureMessage(`Push token upsert failed: ${error.message}`, 'warning');
+      if (__DEV__) {
+        console.warn(`[notifications] push token upsert failed: ${error.message}`);
+      }
       return false;
     }
     return true;
   } catch (error) {
-    // Still non-fatal to the launch, but no longer invisible.
-    Sentry.captureException(error);
+    // Still non-fatal to the launch, but no longer invisible in dev.
+    if (__DEV__) {
+      console.warn('[notifications] token registration failed:', error);
+    }
     return false;
   }
 }

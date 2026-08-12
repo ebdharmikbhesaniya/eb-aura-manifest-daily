@@ -58,7 +58,7 @@ export const PRIVACY: LegalDocument = {
     {
       heading: 'Service Providers',
       body: [
-        'We share data only with the providers that run the app on our behalf: Supabase (authentication, database, file storage), OpenAI (text generation), ElevenLabs (voice), RevenueCat (subscription management), PostHog (product analytics), Google (analytics and advertising measurement, described below), and Sentry (crash diagnostics). We do not sell your personal information.',
+        'We share data only with the providers that run the app on our behalf: Supabase (authentication, database, file storage), OpenAI (text generation), ElevenLabs (voice), RevenueCat (subscription management), PostHog (product analytics), and Google (analytics and advertising measurement, described below). We do not sell your personal information.',
       ],
     },
     {

@@ -6,7 +6,6 @@
   "build": {
     "base": {
       "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_SUPABASE_URL": "https://iaxfkgbfaguevlbuunve.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlheGZrZ2JmYWd1ZXZsYnV1bnZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODY3NTMsImV4cCI6MjA5OTg2Mjc1M30.hVmz7InfxJGZI-WVByeP4Ea2WzTCKK2uLLIJqOn2beA",
         "EXPO_PUBLIC_API_URL": "https://eb-aura-manifest-daily.onrender.com",

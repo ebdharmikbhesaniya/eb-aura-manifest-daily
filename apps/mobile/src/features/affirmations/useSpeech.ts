@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
@@ -106,7 +105,9 @@ export function useSpeech(): Speech2 {
       } catch (error) {
         // Present but unhappy — a real fault worth seeing, unlike a build that
         // simply predates the module.
-        Sentry.captureException(error);
+        if (__DEV__) {
+          console.warn('[speech] speak failed:', error);
+        }
         settle();
       }
     },
