@@ -1,0 +1,133 @@
+# Local PostHog for Aura — a lean, localhost-native stack (2026-08-10).
+#
+# This is NOT the production hobby topology (no Caddy/TLS, no browserless/
+# livestream/seaweedfs). It runs just enough PostHog to develop and validate
+# feature flags, experiments and event capture against a real instance on
+# http://localhost:8000. Everything created here is reproduced in prod by
+# `provision.mjs` (config-as-code) — see RUNBOOK.md.
+#
+# Bring up:  ./up.sh      (wraps `docker compose ... up -d`)
+# Tear down: ./down.sh    (add --volumes to wipe data)
+
+name: aura-posthog
+
+x-posthog-env: &posthog-env
+  DEBUG: '0'
+  DISABLE_SECURE_SSL_REDIRECT: '1'
+  IS_BEHIND_PROXY: 'false'
+  SECRET_KEY: '${POSTHOG_SECRET_KEY:-aura_local_dev_secret_change_me_0123456789}'
+  SITE_URL: 'http://localhost:8000'
+  DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
+  REDIS_URL: 'redis://redis:6379/'
+  CLICKHOUSE_HOST: 'clickhouse'
+  CLICKHOUSE_DATABASE: 'posthog'
+  CLICKHOUSE_SECURE: 'false'
+  CLICKHOUSE_VERIFY: 'false'
+  KAFKA_HOSTS: 'kafka:9092'
+  KAFKA_URL: 'kafka://kafka:9092'
+  OBJECT_STORAGE_ENABLED: 'true'
+  OBJECT_STORAGE_ENDPOINT: 'http://objectstorage:19000'
+  OBJECT_STORAGE_ACCESS_KEY_ID: 'object_storage_root_user'
+  OBJECT_STORAGE_SECRET_ACCESS_KEY: 'object_storage_root_password'
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: posthog
+      POSTGRES_PASSWORD: posthog
+      POSTGRES_DB: posthog
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U posthog']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --maxmemory-policy allkeys-lru --maxmemory 200mb
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    environment:
+      CLICKHOUSE_DB: posthog
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: '1'
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    volumes:
+      - chdata:/var/lib/clickhouse
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8123/ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  zookeeper:
+    image: zookeeper:3.9
+    environment:
+      ZOO_4LW_COMMANDS_WHITELIST: 'ruok,srvr'
+
+  kafka:
+    image: bitnami/kafka:3.7
+    environment:
+      KAFKA_ENABLE_KRAFT: 'no'
+      KAFKA_CFG_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_CFG_LISTENERS: 'PLAINTEXT://:9092'
+      KAFKA_CFG_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092'
+      ALLOW_PLAINTEXT_LISTENER: 'yes'
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    depends_on: [zookeeper]
+
+  objectstorage:
+    image: minio/minio:latest
+    command: server /data --address ':19000' --console-address ':19001'
+    environment:
+      MINIO_ROOT_USER: object_storage_root_user
+      MINIO_ROOT_PASSWORD: object_storage_root_password
+    volumes:
+      - miniodata:/data
+
+  web:
+    image: posthog/posthog:latest
+    command: ./bin/docker-server-unit
+    environment: *posthog-env
+    ports:
+      - '8000:8000'
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      clickhouse: { condition: service_healthy }
+      kafka: { condition: service_started }
+      objectstorage: { condition: service_started }
+
+  worker:
+    image: posthog/posthog:latest
+    command: ./bin/docker-worker-celery --with-scheduler
+    environment: *posthog-env
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      clickhouse: { condition: service_healthy }
+      kafka: { condition: service_started }
+
+  plugins:
+    image: posthog/posthog:latest
+    command: ./bin/plugin-server
+    environment: *posthog-env
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      clickhouse: { condition: service_healthy }
+      kafka: { condition: service_started }
+
+volumes:
+  pgdata:
+  chdata:
+  miniodata:
