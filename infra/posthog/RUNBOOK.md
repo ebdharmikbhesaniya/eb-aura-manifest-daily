@@ -29,6 +29,15 @@ node provision.mjs
 
 ---
 
+## ⚠️ 1a. Incident 2026-08-10 — the local pull filled the disk
+
+Attempting the local stack on this machine (~29G free, disk already 90% full) drove disk to **96% (12G free)** mid-pull, which **stopped the local Supabase containers**; cleanup then removed them. **No data was lost** (Supabase volumes are untouched by pruning); Supabase was restored with `npx supabase start`. Lessons, now enforced:
+
+- **`up.sh` refuses to start unless ≥25G is free** — a hard guard against a repeat.
+- PostHog's stack needs **~10–15G of images + growing ClickHouse data**. Do NOT run it on a disk-constrained machine.
+- **Recommended:** use **PostHog Cloud** (free tier). The app code, `provision.mjs`, and `smoke.mjs` all work against Cloud unchanged — that was always the point of building instance-agnostic.
+- To reclaim space for a local run, `docker system prune -a` removes UNUSED images (review first — it deletes images not currently used by a running container).
+
 ## 1. Running PostHog locally — the honest picture
 
 Modern PostHog is **not** a single container. It is a ~15-service mesh (Postgres, ClickHouse, Kafka, Zookeeper, Redis, MinIO, plus dedicated `feature-flags`, `capture`, `personhog`, `hypercache`, `temporal`, `cyclotron` services and a Caddy TLS proxy). The official self-host (`docker-compose.hobby.yml`) is built for a VM **with a domain**, not clean `localhost`.
@@ -139,4 +148,6 @@ Keep this runbook + `provision.mjs` the source of truth: **add a flag → add it
   - Added `useVariant`/`useFeatureFlag` + `EXPERIMENTS` registry (`features/experiments/`) + tests.
   - Added events: `commitment_accepted`, `firstrun_welcome_shown`, `firstrun_welcome_dismissed`; wired client-side `trial_started` on trial purchase.
   - Added `infra/posthog/`: lean dev compose + `up.sh`/`down.sh`, `provision.mjs` (4 flags + 3-insight funnel dashboard), `.env.example`, this runbook.
+  - Added `smoke.mjs` — validates the app's exact integration (capture via `/i/v0/e/`, flags via `/flags`) against any instance with the project key.
   - Attempted a local bring-up; documented the modern-mesh reality (§1) and the recommended faithful paths (official hobby installer / Cloud). No faithful local instance stood up in the sandbox; artifacts are instance-agnostic by design.
+  - **Incident (§1a):** a second attempt (monolith image + Redpanda + ClickHouse) filled the disk to 96% and stopped local Supabase. Stopped the pull, cleaned up PostHog resources, restored Supabase (`npx supabase start`, no data loss). Added a ≥25G disk guard to `up.sh`. Conclusion: run PostHog on **Cloud** (or a machine with real disk headroom), not this one.
