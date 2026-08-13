@@ -18,12 +18,23 @@ fi
 # The feature-flags service hard-requires a MaxMind GeoIP DB and refuses to boot
 # without it. PostHog bundles one inside its own image; extract it into ./share
 # (gitignored, 65MB) if missing so a fresh clone comes up clean.
+# Two assets the app-facing services need are shipped inside the posthog image but
+# aren't in this repo (too large / version-specific). Extract whatever is missing
+# in one throwaway container:
+#   - share/GeoLite2-City.mmdb    → the feature-flags service refuses to boot without it
+#   - clickhouse/user_scripts/    → the aggregate_funnel UDF binaries funnel insights call
 MMDB=share/GeoLite2-City.mmdb
-if [ ! -f "$MMDB" ]; then
-  echo "→ Extracting GeoIP DB for the feature-flags service (one-time)…"
-  mkdir -p share
+USER_SCRIPTS=clickhouse/user_scripts
+if [ ! -f "$MMDB" ] || [ ! -d "$USER_SCRIPTS" ]; then
+  echo "→ Extracting bundled assets from the posthog image (one-time)…"
   cid=$(docker create posthog/posthog:latest)
-  docker cp "$cid:/code/share/GeoLite2-City.mmdb" "$MMDB"
+  if [ ! -f "$MMDB" ]; then
+    mkdir -p share
+    docker cp "$cid:/code/share/GeoLite2-City.mmdb" "$MMDB"
+  fi
+  if [ ! -d "$USER_SCRIPTS" ]; then
+    docker cp "$cid:/code/posthog/user_scripts" "$USER_SCRIPTS"
+  fi
   docker rm "$cid" >/dev/null
 fi
 

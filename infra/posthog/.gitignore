@@ -2,3 +2,7 @@
 # 65MB MaxMind GeoIP DB for the feature-flags service. Extracted from the posthog
 # image on first boot by up.sh (see RUNBOOK §GeoIP); not worth committing.
 share/GeoLite2-City.mmdb
+# 23MB of ClickHouse UDF scripts/binaries (aggregate_funnel …) for funnel insights.
+# Extracted from the posthog image by up.sh; version-matched, so not committed.
+# The bare-name user_defined_function.xml beside it IS tracked (it's the config).
+clickhouse/user_scripts/

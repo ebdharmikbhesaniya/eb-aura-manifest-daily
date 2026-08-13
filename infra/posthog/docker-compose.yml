@@ -100,6 +100,15 @@ services:
       # this environment (IPv4 listen, ZooKeeper). Both merge into config.d.
       - ./clickhouse/posthog-default.xml:/etc/clickhouse-server/config.d/posthog-default.xml:ro
       - ./clickhouse/listen.xml:/etc/clickhouse-server/config.d/zz-listen.xml:ro
+      # PostHog's funnel/trends math runs as ClickHouse executable UDFs
+      # (aggregate_funnel, …). Without these, every funnel insight errors with
+      # "Function with name `aggregate_funnel` does not exist" and the tile just
+      # dumps its SQL. The XML (bare-named, the deploy config — not the versioned
+      # cloud-migration variant) is auto-loaded via CH's default `*_function.*ml`
+      # glob; the scripts dir holds the `aggregate_funnel` wrapper + arch binaries
+      # it shells out to. up.sh extracts user_scripts from the image (gitignored).
+      - ./clickhouse/user_defined_function.xml:/etc/clickhouse-server/user_defined_function.xml:ro
+      - ./clickhouse/user_scripts:/var/lib/clickhouse/user_scripts:ro
     healthcheck:
       test:
         ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://127.0.0.1:8123/ping || exit 1']
