@@ -1,1 +1,4 @@
 .env
+# 65MB MaxMind GeoIP DB for the feature-flags service. Extracted from the posthog
+# image on first boot by up.sh (see RUNBOOK §GeoIP); not worth committing.
+share/GeoLite2-City.mmdb

@@ -9,22 +9,36 @@
 
 ## 0. TL;DR — the happy path
 
+A **faithful** local PostHog now runs from this directory's compose (proven 2026-08-13: the app's exact capture + flags paths work). Only PostHog is local; Supabase/backend/RevenueCat stay remote.
+
 ```bash
-# 1. Local PostHog (best-effort — see §1 for the honest caveats)
-cd infra/posthog && ./up.sh              # http://localhost:8000, wait for migrations
+# 1. Bring up local PostHog (first boot pulls images + migrates, ~3–5 min).
+#    up.sh guards disk headroom and extracts the GeoIP DB the flags service needs.
+cd infra/posthog && ./up.sh              # http://localhost:8000
 
-# 2. Create the project in the UI, then grab two keys:
-#    - project ingestion key  (phc_…)  → the app
-#    - personal API key       (phx_…)  → provisioning
-cp .env.example .env && $EDITOR .env     # fill POSTHOG_* for provisioning
+# 2. First-run setup — create the org/user/project + print the project key (phc_).
+POSTHOG_HOST=http://localhost:8000 node bootstrap.mjs
 
-# 3. Provision flags + dashboards (idempotent; same command for prod)
-node provision.mjs
+# 3. Provision flags + funnel dashboard (idempotent; SAME command for prod).
+#    Needs a personal API key (phx_); mint one — bootstrap can't (see §1c):
+#      docker compose -p aura-posthog exec -T web python manage.py shell -c \
+#        "from posthog.models.personal_api_key import PersonalAPIKey, hash_key_value; \
+#         from posthog.models.utils import generate_random_token_personal; \
+#         from posthog.models import User; u=User.objects.get(email='dev@aura.local'); \
+#         v=generate_random_token_personal(); \
+#         PersonalAPIKey.objects.create(user=u,label='aura-provision',secure_value=hash_key_value(v),mask_value=v[:8],scopes=['*']); \
+#         print('KEY='+v)"
+POSTHOG_HOST=http://localhost:8000 POSTHOG_PROJECT_ID=1 \
+  POSTHOG_PERSONAL_API_KEY=phx_... node provision.mjs
 
-# 4. Point the app at it
-#    apps/mobile/.env.local:
+# 4. Verify the app's integration end-to-end (capture + flags over one origin).
+POSTHOG_HOST=http://localhost:8000 POSTHOG_PROJECT_API_KEY=phc_... node smoke.mjs
+
+# 5. Point the app at it — apps/mobile/.env.local (host must be reachable FROM the
+#    device: LAN IP for a physical device, 10.0.2.2 for Android emulator, localhost
+#    for iOS sim):
 #      EXPO_PUBLIC_POSTHOG_KEY=phc_...
-#      EXPO_PUBLIC_POSTHOG_HOST=http://localhost:8000
+#      EXPO_PUBLIC_POSTHOG_HOST=http://<host>:8000
 ```
 
 ---
@@ -38,21 +52,40 @@ Attempting the local stack on this machine (~29G free, disk already 90% full) dr
 - **Recommended:** use **PostHog Cloud** (free tier). The app code, `provision.mjs`, and `smoke.mjs` all work against Cloud unchanged — that was always the point of building instance-agnostic.
 - To reclaim space for a local run, `docker system prune -a` removes UNUSED images (review first — it deletes images not currently used by a running container).
 
-## 1. Running PostHog locally — the honest picture
+## 1. Running PostHog locally — the working architecture
 
-Modern PostHog is **not** a single container. It is a ~15-service mesh (Postgres, ClickHouse, Kafka, Zookeeper, Redis, MinIO, plus dedicated `feature-flags`, `capture`, `personhog`, `hypercache`, `temporal`, `cyclotron` services and a Caddy TLS proxy). The official self-host (`docker-compose.hobby.yml`) is built for a VM **with a domain**, not clean `localhost`.
+Modern PostHog is **not** a single container: `posthog/posthog:latest` is a Django image that serves only the **UI + REST API**. In PostHog's service split, the two paths the app actually uses were moved into dedicated Rust services. Our `docker-compose.yml` runs exactly the subset the app depends on, behind a small Caddy front door so the app sees **one origin** just like Cloud:
 
-Consequences (learned 2026-08-10):
+| Service         | Image                                                                       | Owns                                                         |
+| --------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `caddy`         | `caddy:2-alpine`                                                            | Front door `:8000` → routes each path (Caddyfile)            |
+| `web`           | `posthog/posthog:latest`                                                    | UI + REST API (`/`, `/api/*`)                                |
+| `worker`        | `posthog/posthog:latest`                                                    | Celery async jobs (not in the app's path)                    |
+| `capture`       | `ghcr.io/posthog/posthog/capture:master`                                    | Event ingest: `/e`, `/i/v0`, `/batch`, `/capture` → Kafka    |
+| `feature-flags` | `ghcr.io/posthog/posthog/feature-flags:master`                              | Flag resolution: `/flags`, local-evaluation (reads Postgres) |
+| `migrate`       | `posthog/posthog:latest` (one-shot)                                         | Postgres + ClickHouse schema, then exits                     |
+| datastores      | postgres 15, clickhouse **26.6**, redpanda (Kafka), zookeeper, redis, minio | state                                                        |
 
-- A hand-rolled lean compose (`docker-compose.yml` here) starts the datastores but the modern PostHog app image + flag service won't fully serve flags without the rest of the mesh. It's kept as a **datastore/dev scaffold**, not a faithful instance.
-- **Recommended faithful local run:** PostHog's official hobby installer, which orchestrates the full stack in Docker:
-  ```bash
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/posthog/posthog/HEAD/bin/deploy-hobby)"
-  # When prompted for a domain, use `localhost`; it brings up the full compose.
-  ```
-- **Lightest & closest to prod:** a free **PostHog Cloud** project. `provision.mjs` + the app env don't care whether the host is local or cloud — that's the point.
+**Proven 2026-08-13:** `smoke.mjs` passes over `:8000` — capture returns 200 and all 4 provisioned flags resolve, via both `localhost` and the LAN IP a device would use.
 
-**Disk note:** your machine was at ~90% (29G free). The full stack + ClickHouse data will eat several GB; watch `df -h` and `./down.sh --volumes` to reclaim it.
+### 1b. What we deliberately DON'T run (and the consequence)
+
+**Event ingestion** — moving captured events from Kafka _into ClickHouse_ — is a separate `-node` plugin-server / ingestion mesh (`ingestion-general`, etc.) that the app does **not** depend on. So: captured events reach Kafka and 200 the SDK (the SDK's whole contract), but **won't appear in Activity / insights** locally without that mesh. Feature flags and event _acceptance_ — the app's real dependencies — work fully. If you need events visible in the UI, add PostHog's ingestion node image from `docker-compose.hobby.yml`.
+
+Also omitted (not needed for the app): `personhog`, `hypercache`, `temporal`, `cyclotron`, `replay-capture`, `capture-ai`, `browserless`, and Caddy TLS (we serve plain HTTP on localhost).
+
+### 1c. Gotchas discovered standing this up (all fixed in-repo)
+
+- **Nginx Unit serves nothing (HTTP 000/502).** The `web` image ships `certs/`+`scripts/` in `/var/lib/unit`, so Unit's entrypoint sees a non-empty statedir and _skips_ loading the app config → empty `listeners:{}`. Fix: `NGINX_UNIT_PRELOAD_CONFIG=true` (pre-bakes config into a fresh `--statedir`).
+- **`/decide` is gone, `/flags` moved.** In `latest`, `/e`, `/flags`, `/decide` all resolve to the React catch-all (CSRF 403) on `web` — they're owned by `capture`/`feature-flags` now. That's why the Caddy routing (not the monolith) is load-bearing. Modern SDKs use `/flags?v=2`; `/decide` is not served.
+- **feature-flags won't boot without a GeoIP DB.** It hard-requires `MAXMIND_DB_PATH`; `up.sh` extracts the `.mmdb` PostHog bundles in its own image into `./share` (gitignored, 65MB).
+- **capture panics on a missing topic var.** Its v1 sink needs the _complete_ `CAPTURE_V1_SINK_MSK_KAFKA_TOPIC_*` set (incl. `EXCEPTION`, `HEATMAP`, `CLIENT_INGESTION_WARNING`) or it exits at boot.
+- **Memory: the Docker VM is ~7.5 GB.** Full-fat `web` (4 Unit workers) + `worker` (default celery concurrency) OOM-kill each other. Capped to `NGINX_UNIT_APP_PROCESSES=2` and `WEB_CONCURRENCY=1` → steady state ~6 GB. The `migrate` one-shot also OOMs if you re-`up` while `worker` is already running; a cold `down && up` runs migrate _first_ (it gates web/worker) with room to spare — prefer that over re-`up`.
+- **ClickHouse must be 26.6**; 24.x rejects `TTL on DateTime64` (Code 450) mid-migration. Migrate runs **Postgres then ClickHouse sequentially** (CH migrations read a Postgres table) with a `SYSTEM FLUSH LOGS` between them (one CH migration views `system.crash_log`, which only exists after a flush/crash).
+- **bootstrap can't mint the personal key (CSRF-rotation 403).** Mint it via the Django shell instead (see §0 step 3).
+- **provision insights need the query format.** Modern PostHog rejects legacy `filters` on `/insights/`; `provision.mjs` now sends an `InsightVizNode`/`FunnelsQuery`.
+
+**Disk:** the full stack + ClickHouse data is several GB; `up.sh` refuses to start under 25 G free. `./down.sh` stops it; add `--volumes` to wipe data.
 
 ---
 
@@ -151,3 +184,10 @@ Keep this runbook + `provision.mjs` the source of truth: **add a flag → add it
   - Added `smoke.mjs` — validates the app's exact integration (capture via `/i/v0/e/`, flags via `/flags`) against any instance with the project key.
   - Attempted a local bring-up; documented the modern-mesh reality (§1) and the recommended faithful paths (official hobby installer / Cloud). No faithful local instance stood up in the sandbox; artifacts are instance-agnostic by design.
   - **Incident (§1a):** a second attempt (monolith image + Redpanda + ClickHouse) filled the disk to 96% and stopped local Supabase. Stopped the pull, cleaned up PostHog resources, restored Supabase (`npx supabase start`, no data loss). Added a ≥25G disk guard to `up.sh`. Conclusion: run PostHog on **Cloud** (or a machine with real disk headroom), not this one.
+
+- **2026-08-13** — **Faithful local instance now runs** (supersedes the "no local instance" conclusion above).
+  - Pinned ClickHouse to `26.6-alpine`; made `migrate` a sequential Postgres-then-ClickHouse one-shot with `SYSTEM FLUSH LOGS`; mounted PostHog's own CH `default.xml` (macros + clusters).
+  - Discovered `latest` splits capture + flags out of the Django monolith. Added `capture` + `feature-flags` Rust services + a `caddy` front door on `:8000` (`Caddyfile`) so the app sees one origin. Documented what we omit (ingestion mesh, §1b) and why.
+  - Fixed the Unit no-listener bug (`NGINX_UNIT_PRELOAD_CONFIG`), the GeoIP hard-requirement (`up.sh` extracts the `.mmdb`), the capture topic-var panic, and right-sized memory for the ~7.5 GB Docker VM (`NGINX_UNIT_APP_PROCESSES=2`, `WEB_CONCURRENCY=1`).
+  - Fixed `provision.mjs` to create insights via the modern query format (legacy `filters` now rejected). Personal API key minted via Django shell (bootstrap's session-based mint hits a CSRF-rotation 403).
+  - **Verified:** `smoke.mjs` green over `:8000` (localhost + LAN IP) — capture 200, 4 flags resolve `control`. Bound the app in `apps/mobile/.env.local` (`EXPO_PUBLIC_POSTHOG_KEY` + `EXPO_PUBLIC_POSTHOG_HOST`), everything else (Supabase/backend/RevenueCat) unchanged.

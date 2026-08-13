@@ -1,9 +1,13 @@
-# Local PostHog for Aura — monolith + datastores (2026-08-10).
+# Local PostHog for Aura — service mesh + datastores (2026-08-13).
 #
 # Only PostHog runs locally; the app keeps using its normal Supabase/RevenueCat/
-# backend. Built from PostHog's own choices: the `posthog/posthog` monolith image
-# (web/worker/plugins), Redpanda as the Kafka broker, and ClickHouse with
-# SKIP_USER_SETUP. Serves the UI + event ingestion + feature flags on :8000.
+# backend. `posthog/posthog:latest` is NOT a monolith any more — the Django image
+# (web/worker) serves only the UI + REST API. The two paths the Aura app actually
+# uses were split into dedicated Rust services in PostHog's service split:
+#   • event capture      → `capture`        (/e, /i/v0, /batch, /capture)
+#   • feature flags       → `feature-flags`  (/flags, local-evaluation)
+# A small `caddy` front door owns host :8000 and routes each path to the service
+# that owns it (see Caddyfile), so the app sees one origin exactly like cloud.
 #
 #   ./up.sh      → http://localhost:8000  (first boot runs migrations, 2–5 min)
 #   ./down.sh    (add --volumes to wipe)
@@ -63,18 +67,42 @@ services:
       timeout: 5s
       retries: 20
 
-  clickhouse:
-    image: clickhouse/clickhouse-server:24.12-alpine
+  zookeeper:
+    image: zookeeper:3.8
     restart: on-failure
+    environment:
+      ZOO_4LW_COMMANDS_WHITELIST: 'ruok,srvr,mntr,conf, zk'
+      ZOO_STANDALONE_ENABLED: 'true'
+    healthcheck:
+      # bash /dev/tcp — the zookeeper image ships bash but not always nc.
+      test: ['CMD', 'bash', '-c', 'echo > /dev/tcp/127.0.0.1/2181']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  clickhouse:
+    # Must match the version PostHog's migrations target: they pin 26.6.2.158,
+    # and 26.6 is the floor for features the migrations use — e.g. TTL on a
+    # DateTime64 column, which 24.x rejects with "TTL expression result column
+    # should have DateTime or Date type" (Code 450) partway through the schema.
+    image: clickhouse/clickhouse-server:26.6-alpine
+    restart: on-failure
+    depends_on:
+      zookeeper: { condition: service_healthy }
     environment:
       CLICKHOUSE_SKIP_USER_SETUP: '1'
       KAFKA_HOSTS: 'kafka:9092'
     ulimits:
       nofile: { soft: 262144, hard: 262144 }
-    volumes: [chdata:/var/lib/clickhouse]
+    volumes:
+      - chdata:/var/lib/clickhouse
+      # PostHog's own config (clusters, macros, settings) + a tiny override for
+      # this environment (IPv4 listen, ZooKeeper). Both merge into config.d.
+      - ./clickhouse/posthog-default.xml:/etc/clickhouse-server/config.d/posthog-default.xml:ro
+      - ./clickhouse/listen.xml:/etc/clickhouse-server/config.d/zz-listen.xml:ro
     healthcheck:
       test:
-        ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1']
+        ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://127.0.0.1:8123/ping || exit 1']
       interval: 5s
       timeout: 10s
       retries: 30
@@ -92,7 +120,6 @@ services:
       - --mode=dev-container
       - --smp=1
       - --default-log-level=warn
-      - --set=redpanda.auto_create_topics_enabled=true
     volumes: [redpanda:/var/lib/redpanda/data]
     healthcheck:
       test: ['CMD-SHELL', 'rpk cluster health | grep -q "Healthy:.*true" || exit 1']
@@ -110,21 +137,162 @@ services:
     command: -c 'mkdir -p /data/posthog && minio server --address ":19000" --console-address ":19001" /data'
     volumes: [miniodata:/data]
 
+  # One-shot schema migration, run before web/worker so `docker-server`'s
+  # migrate-check passes on first boot (it exits under `set -e` while migrations
+  # are pending, which otherwise crash-loops web hundreds of times).
+  #
+  # Postgres THEN ClickHouse, sequentially and on purpose: `migrate_clickhouse`
+  # reads the `posthog_instancesetting` Postgres table, so running the two in
+  # parallel (which `bin/migrate` does) races a fresh DB and dies. Both are
+  # idempotent, so this is a cheap no-op on every boot after the first.
+  migrate:
+    <<: *posthog
+    restart: 'no'
+    # `bash -c`, NOT `-lc`: a login shell re-sources profile files and resets PATH
+    # away from the image's /python-runtime, so `python` can't import Django. A
+    # plain -c inherits the entrypoint's PATH, same as the other services' commands.
+    #
+    # SYSTEM FLUSH LOGS between the two migrates is load-bearing: one CH migration
+    # creates a monitoring VIEW over `system.crash_log`, a system table CH only
+    # materialises after its first crash — so on a healthy fresh server it doesn't
+    # exist and migrate_clickhouse dies with "Unknown table system.crash_log". The
+    # flush force-creates all configured *_log tables (crash_log included) empty.
+    command:
+      - bash
+      - -c
+      - >-
+        python manage.py migrate &&
+        python -c "import urllib.request; urllib.request.urlopen('http://clickhouse:8123/', data=b'SYSTEM FLUSH LOGS')" &&
+        python manage.py migrate_clickhouse
+
   web:
     <<: *posthog
     command: ./bin/docker-server
-    ports: ['8000:8000']
+    # Nginx Unit's stock entrypoint only loads the app's listener config when
+    # /var/lib/unit is EMPTY — but this image ships certs/ and scripts/ there, so
+    # the check fails, config load is "skipped", and Unit comes up with an empty
+    # `listeners: {}` → nothing binds :8000 → every request gets 000. This flag
+    # takes bin/docker-server-unit's other branch: it pre-bakes the rendered
+    # config into a fresh --statedir and starts unitd against it, sidestepping the
+    # empty-dir check completely. (It also avoids the double-worker-load startup.)
+    environment:
+      <<: *posthog-env
+      NGINX_UNIT_PRELOAD_CONFIG: 'true'
+      # 2 Unit worker processes, not the image default of 4. Each forks a full
+      # Django (~1GB); 4 of them plus the celery worker overran the 7.5GB Docker VM
+      # and the OOM killer took a Unit worker mid-boot ("app process exited on
+      # signal 9" → 502). Two is plenty of concurrency for a local rig.
+      NGINX_UNIT_APP_PROCESSES: '2'
+      # Django resolves flags itself for some server-side paths; point it at the
+      # Rust flags service so those agree with what the app gets over /flags.
+      FEATURE_FLAGS_SERVICE_URL: 'http://feature-flags:3001'
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    # No host port — caddy is the front door on :8000 and proxies to web:8000.
+    expose: ['8000']
 
+  # Celery worker — async background jobs (insight refresh, cohort recalcs, etc.).
+  # NOT in the app's request path: capture and flag reads never touch it, so it's
+  # here for UI completeness, not for the integration the app depends on.
+  # WEB_CONCURRENCY=1 caps it to a single fork (~1GB); the default forks several
+  # full-Django workers and, stacked on web, overruns the 7.5GB Docker VM.
   worker:
     <<: *posthog
     command: ./bin/docker-worker-celery --with-scheduler
+    environment:
+      <<: *posthog-env
+      WEB_CONCURRENCY: '1'
+    depends_on:
+      migrate: { condition: service_completed_successfully }
 
-  plugins:
-    <<: *posthog
-    command: ./bin/plugin-server --no-restart-loop
+  # Event capture (Rust). Owns /e, /i/v0, /batch, /capture — the SDK's ingest
+  # paths. Accepts the event over HTTP and produces it to Kafka, returning 200 to
+  # the client (the SDK's whole contract). Moving those Kafka events on into
+  # ClickHouse is a SEPARATE concern (the `-node` plugin-server / ingestion mesh),
+  # which the app does not depend on and we deliberately don't run locally — so
+  # captured events reach Kafka and 200 the client, but won't appear in Activity/
+  # insights without ingestion. See RUNBOOK §1b. Env mirrors PostHog's own
+  # docker-compose.base.yml, with redis/kafka pointed at this stack's services.
+  capture:
+    image: ghcr.io/posthog/posthog/capture:master
+    restart: on-failure
+    depends_on:
+      kafka: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      ADDRESS: '0.0.0.0:3000'
+      CAPTURE_MODE: 'events'
+      KAFKA_HOSTS: 'kafka:9092'
+      KAFKA_TOPIC: 'events_plugin_ingestion'
+      REDIS_URL: 'redis://redis:6379/'
+      RUST_LOG: 'info,rdkafka=warn'
+      # The v1 sink router requires EVERY topic var below — a missing one panics
+      # the process at boot ("Environment variable TOPIC_* is missing"). This is
+      # the complete set from PostHog's docker-compose.base.yml. Redpanda
+      # auto-creates the topics on first produce, so they need not pre-exist.
+      CAPTURE_V1_SINKS: 'msk'
+      CAPTURE_V1_SINK_MSK_KAFKA_HOSTS: 'kafka:9092'
+      CAPTURE_V1_SINK_MSK_KAFKA_TOPIC_MAIN: 'events_plugin_ingestion'
+      CAPTURE_V1_SINK_MSK_KAFKA_TOPIC_HISTORICAL: 'events_plugin_ingestion_historical'
+      CAPTURE_V1_SINK_MSK_KAFKA_TOPIC_OVERFLOW: 'events_plugin_ingestion_overflow'
+      CAPTURE_V1_SINK_MSK_KAFKA_TOPIC_DLQ: 'events_plugin_ingestion_dlq'
+      CAPTURE_V1_SINK_MSK_KAFKA_TOPIC_EXCEPTION: 'ingestion-errortracking-main'
+      CAPTURE_V1_SINK_MSK_KAFKA_TOPIC_HEATMAP: 'heatmaps_ingestion'
+      CAPTURE_V1_SINK_MSK_KAFKA_TOPIC_CLIENT_INGESTION_WARNING: 'ingestion-clientwarnings-main-1'
+    expose: ['3000']
+
+  # Feature-flag resolution (Rust). Owns /flags + local-evaluation. Reads flag
+  # definitions straight from the migrated Postgres (the same DB Django writes to
+  # when you create a flag in the UI) and caches in Redis. It hard-requires a
+  # MaxMind GeoIP DB at MAXMIND_DB_PATH and refuses to boot without it (geoip init
+  # failure → shutdown), so up.sh extracts the .mmdb PostHog bundles in its own
+  # image into ./share and we mount it here. See RUNBOOK §GeoIP.
+  feature-flags:
+    image: ghcr.io/posthog/posthog/feature-flags:master
+    restart: on-failure
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    volumes:
+      - ./share:/share:ro
+    environment:
+      ADDRESS: '0.0.0.0:3001'
+      WRITE_DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
+      READ_DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
+      PERSONS_WRITE_DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
+      PERSONS_READ_DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
+      MAXMIND_DB_PATH: '/share/GeoLite2-City.mmdb'
+      REDIS_URL: 'redis://redis:6379/'
+      COOKIELESS_REDIS_HOST: 'redis'
+      COOKIELESS_REDIS_PORT: '6379'
+      RUST_LOG: 'info'
+    healthcheck:
+      # This image ships curl, not wget — a wget-based check reports a false
+      # "unhealthy" while the service is actually serving fine on :3001.
+      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:3001/_readiness || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    expose: ['3001']
+
+  # Front door. Presents one origin on :8000 and routes each path to the service
+  # that owns it (web / capture / feature-flags). This is what makes the app see a
+  # single PostHog host exactly like cloud does. See ./Caddyfile.
+  caddy:
+    image: caddy:2-alpine
+    restart: on-failure
+    depends_on:
+      web: { condition: service_started }
+      capture: { condition: service_started }
+      feature-flags: { condition: service_started }
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    ports: ['8000:8000']
 
 volumes:
   pgdata:
   chdata:
   redpanda:
   miniodata:
+  caddydata:

@@ -1,0 +1,12 @@
+<clickhouse>
+    <!-- Only the two things PostHog's own config.d/posthog-default.xml doesn't
+         cover for this environment. Clusters + macros come from PostHog's config. -->
+
+    <!-- IPv6 is disabled in the Docker Desktop VM. -->
+    <listen_host>0.0.0.0</listen_host>
+
+    <!-- PostHog uses ReplicatedMergeTree + ON CLUSTER DDL → needs ZooKeeper. -->
+    <zookeeper>
+        <node><host>zookeeper</host><port>2181</port></node>
+    </zookeeper>
+</clickhouse>

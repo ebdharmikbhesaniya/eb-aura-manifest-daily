@@ -166,11 +166,18 @@ async function ensureDashboard(spec) {
     await api('POST', `/insights/`, {
       name: insight.name,
       dashboards: [board.id],
-      filters: {
-        insight: 'FUNNELS',
-        funnel_viz_type: 'steps',
-        date_from: '-30d',
-        events: insight.events.map((id, order) => ({ id, name: id, type: 'events', order })),
+      // Modern PostHog rejects legacy `filters` on insights ("Creating or
+      // updating insights with legacy filters is not available for this user").
+      // Insights are now query-based: an InsightVizNode wrapping a FunnelsQuery,
+      // one EventsNode per funnel step.
+      query: {
+        kind: 'InsightVizNode',
+        source: {
+          kind: 'FunnelsQuery',
+          series: insight.events.map((id) => ({ kind: 'EventsNode', event: id, name: id })),
+          funnelsFilter: { funnelVizType: 'steps' },
+          dateRange: { date_from: '-30d' },
+        },
       },
     });
     console.log(`    + insight "${insight.name}" created`);

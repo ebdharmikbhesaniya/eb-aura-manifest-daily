@@ -1,0 +1,42 @@
+# Front door for local PostHog (2026-08-13).
+#
+# `posthog/posthog:latest` is a service mesh: the Django monolith (`web`) serves
+# only the UI + REST API. Event capture and feature-flag resolution — the two
+# paths the Aura app actually uses — were split out into dedicated Rust services
+# (`capture`, `feature-flags`). Hitting them on `web` returns the React catch-all
+# with a CSRF 403, which is exactly what broke the smoke test before this proxy
+# existed. Caddy restores a single `:8000` origin and routes each path to the
+# service that now owns it, mirroring PostHog's own hobby Caddyfile (trimmed to
+# the services we run — no replay/ai/logs/livestream/surveys).
+{
+	admin off
+	auto_https off
+}
+
+http://localhost:8000, http://127.0.0.1:8000, :8000 {
+	# Event ingestion (posthog SDK capture): /e, /i/v0, /batch, /capture.
+	@capture {
+		path /e /e/ /e/*
+		path /i/v0 /i/v0/ /i/v0/*
+		path /i/v1/analytics/events /i/v1/analytics/events/
+		path /batch /batch/ /batch/*
+		path /capture /capture/ /capture/*
+	}
+	handle @capture {
+		reverse_proxy capture:3000
+	}
+
+	# Feature-flag resolution + local evaluation.
+	@flags {
+		path /flags /flags/ /flags/*
+		path /api/feature_flag/local_evaluation /api/feature_flag/local_evaluation/ /api/feature_flag/local_evaluation/*
+	}
+	handle @flags {
+		reverse_proxy feature-flags:3001
+	}
+
+	# Everything else — UI, REST API, static assets — is the Django monolith.
+	handle {
+		reverse_proxy web:8000
+	}
+}

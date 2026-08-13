@@ -15,6 +15,18 @@ if [ "${avail_gb:-0}" -lt "$MIN_GB" ]; then
   exit 1
 fi
 
+# The feature-flags service hard-requires a MaxMind GeoIP DB and refuses to boot
+# without it. PostHog bundles one inside its own image; extract it into ./share
+# (gitignored, 65MB) if missing so a fresh clone comes up clean.
+MMDB=share/GeoLite2-City.mmdb
+if [ ! -f "$MMDB" ]; then
+  echo "→ Extracting GeoIP DB for the feature-flags service (one-time)…"
+  mkdir -p share
+  cid=$(docker create posthog/posthog:latest)
+  docker cp "$cid:/code/share/GeoLite2-City.mmdb" "$MMDB"
+  docker rm "$cid" >/dev/null
+fi
+
 echo "→ ${avail_gb}G free — starting PostHog (first boot pulls images + runs migrations, 2–5 min)."
 docker compose up -d
 echo "Open http://localhost:8000 once healthy.  Watch: docker compose -p aura-posthog logs -f web"
