@@ -56,23 +56,26 @@ Attempting the local stack on this machine (~29G free, disk already 90% full) dr
 
 Modern PostHog is **not** a single container: `posthog/posthog:latest` is a Django image that serves only the **UI + REST API**. In PostHog's service split, the two paths the app actually uses were moved into dedicated Rust services. Our `docker-compose.yml` runs exactly the subset the app depends on, behind a small Caddy front door so the app sees **one origin** just like Cloud:
 
-| Service         | Image                                                                       | Owns                                                         |
-| --------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `caddy`         | `caddy:2-alpine`                                                            | Front door `:8000` → routes each path (Caddyfile)            |
-| `web`           | `posthog/posthog:latest`                                                    | UI + REST API (`/`, `/api/*`)                                |
-| `worker`        | `posthog/posthog:latest`                                                    | Celery async jobs (not in the app's path)                    |
-| `capture`       | `ghcr.io/posthog/posthog/capture:master`                                    | Event ingest: `/e`, `/i/v0`, `/batch`, `/capture` → Kafka    |
-| `feature-flags` | `ghcr.io/posthog/posthog/feature-flags:master`                              | Flag resolution: `/flags`, local-evaluation (reads Postgres) |
-| `migrate`       | `posthog/posthog:latest` (one-shot)                                         | Postgres + ClickHouse schema, then exits                     |
-| datastores      | postgres 15, clickhouse **26.6**, redpanda (Kafka), zookeeper, redis, minio | state                                                        |
+| Service         | Image                                                                                                                     | Owns                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `caddy`         | `caddy:2-alpine`                                                                                                          | Front door `:8000` → routes each path (Caddyfile)            |
+| `web`           | `posthog/posthog:latest`                                                                                                  | UI + REST API (`/`, `/api/*`)                                |
+| `worker`        | `posthog/posthog:latest`                                                                                                  | Celery async jobs (not in the app's path)                    |
+| `capture`       | `ghcr.io/posthog/posthog/capture:master`                                                                                  | Event ingest: `/e`, `/i/v0`, `/batch`, `/capture` → Kafka    |
+| `ingestion`     | `posthog/posthog-node:latest`                                                                                             | Plugin-server: Kafka → ClickHouse (`ingestion-v2-combined`)  |
+| `feature-flags` | `ghcr.io/posthog/posthog/feature-flags:master`                                                                            | Flag resolution: `/flags`, local-evaluation (reads Postgres) |
+| `migrate`       | `posthog/posthog:latest` (one-shot)                                                                                       | Postgres + ClickHouse schema, then exits                     |
+| datastores      | postgres 15, clickhouse **26.6 (Debian, not -alpine)**, redpanda (Kafka), zookeeper (**persistent volume**), redis, minio | state                                                        |
 
-**Proven 2026-08-13:** `smoke.mjs` passes over `:8000` — capture returns 200 and all 4 provisioned flags resolve, via both `localhost` and the LAN IP a device would use.
+**Proven 2026-08-13:** `smoke.mjs` passes over `:8000` (capture 200, 4 flags resolve). Events flow end-to-end into ClickHouse and the funnel insights render real conversion numbers.
 
-### 1b. What we deliberately DON'T run (and the consequence)
+### 1b. Event ingestion (now included)
 
-**Event ingestion** — moving captured events from Kafka _into ClickHouse_ — is a separate `-node` plugin-server / ingestion mesh (`ingestion-general`, etc.) that the app does **not** depend on. So: captured events reach Kafka and 200 the SDK (the SDK's whole contract), but **won't appear in Activity / insights** locally without that mesh. Feature flags and event _acceptance_ — the app's real dependencies — work fully. If you need events visible in the UI, add PostHog's ingestion node image from `docker-compose.hobby.yml`.
+`capture` accepts events onto Kafka; the `ingestion` service (plugin-server, `ingestion-v2-combined`) then moves them **Kafka → ClickHouse**, which is what makes events show up in Activity / Live events / insights / funnels. The path is: capture → `events_plugin_ingestion` (Kafka) → plugin-server → `clickhouse_events_json` (Kafka) → ClickHouse Kafka-engine table → `events_json_mv` → `sharded_events` → `events`. Person processing (creating `posthog_person` rows, distinct-id → person mapping) runs **in-process** in the plugin-server; we do NOT run PostHog's separate `personhog-router`.
 
-Also omitted (not needed for the app): `personhog`, `hypercache`, `temporal`, `cyclotron`, `replay-capture`, `capture-ai`, `browserless`, and Caddy TLS (we serve plain HTTP on localhost).
+Getting this working needed four fixes beyond just adding the container — see §1c (person column, Kafka stability, ZK volume, glibc ClickHouse).
+
+Still omitted (genuinely not needed for the app): the rest of the ingestion mesh (`ingestion-sessionreplay`, `ingestion-error-tracking`, `ingestion-logs`, `ingestion-traces`), `personhog`, `hypercache`, `temporal`, `cyclotron`, `replay-capture`, `capture-ai`, `browserless`, and Caddy TLS (plain HTTP on localhost).
 
 ### 1c. Gotchas discovered standing this up (all fixed in-repo)
 
@@ -86,6 +89,13 @@ Also omitted (not needed for the app): `personhog`, `hypercache`, `temporal`, `c
 - **provision insights need the query format.** Modern PostHog rejects legacy `filters` on `/insights/`; `provision.mjs` now sends an `InsightVizNode`/`FunnelsQuery`.
 - **Funnel insights need ClickHouse executable UDFs.** PostHog's funnel math runs as CH UDFs (`aggregate_funnel`, …) that shell out to bundled binaries. Without them every funnel insight errors "Function with name `aggregate_funnel` does not exist" and the dashboard tile dumps its raw SQL instead of a chart (trends tiles are unaffected). Fixed by mounting the bare-name `clickhouse/user_defined_function.xml` (the deploy config — _not_ the `_v12` versioned cloud-migration XML the image also ships) + `clickhouse/user_scripts/` (extracted by up.sh). CH auto-loads the XML via its default `*_function.*ml` glob.
 - **Onboarding wizard never self-verifies without ingestion.** "Verify installation" waits for events in ClickHouse; AI-observability waits for `$ai_generation` events the app never sends. Marked the team onboarded directly (`Team.has_completed_onboarding_for` = all products, `completed_snippet_onboarding`, `ingested_event`; `ProductIntent.onboarding_completed_at`; org `setup_section_2_completed`) to drop into the product.
+
+**Ingestion (§1b) took four more fixes** — the plugin-server container alone wasn't enough:
+
+- **Person schema skew.** `posthog-node:latest` (a different commit than `posthog/posthog:latest`) writes `posthog_person.last_seen_at`; the Django model declares the field but the migrations never added the DB column, so every message errored (`column does not exist`) and nothing reached ClickHouse. Reconciled with `ALTER TABLE posthog_person ADD COLUMN IF NOT EXISTS last_seen_at timestamptz NULL`.
+- **Redpanda crash loop.** Once the ingestion consumers joined, Redpanda's single reactor stalled (up to 17s) and the seastar watchdog aborted it — 130+ restarts, each rebalancing every consumer so ClickHouse never drained a batch. Added `--overprovisioned` (stop reactor busy-poll) and `--unsafe-bypass-fsync=true` (drop disk-IO waits) to the Redpanda command; `restart: unless-stopped` on capture/ingestion/kafka so a clean-exit (0) on a broker blip still comes back.
+- **ZooKeeper had no persistent volume.** ClickHouse's 91 ReplicatedMergeTree tables keep replica metadata in ZK (`/clickhouse/tables/…`); a past ZK restart wiped it, dropping every table to **readonly** so no insert could land. Gave ZK `zkdata`/`zkdatalog` volumes and ran `SYSTEM RESTORE REPLICA` on all 91 tables to rebuild the metadata from local data. (To repair again: `SELECT database||'.'||table FROM system.replicas WHERE is_readonly` then `SYSTEM RESTORE REPLICA <t>` for each — and redirect the `docker exec` stdin from /dev/null inside the loop, or it eats the list.)
+- **ClickHouse must be the Debian image, not `-alpine`.** Funnel math runs as the `aggregate_funnel` executable UDF, whose binary is glibc-linked; under Alpine/musl it fails with `error while loading shared libraries: libgcc_s.so.1`, so any funnel with real data crashes (`ATTEMPT_TO_READ_AFTER_EOF`). Switched to `clickhouse/clickhouse-server:26.6` (same version, glibc). Empty funnels never invoked the binary, which is why this hid until events existed.
 
 **Disk:** the full stack + ClickHouse data is several GB; `up.sh` refuses to start under 25 G free. `./down.sh` stops it; add `--volumes` to wipe data.
 
@@ -193,3 +203,6 @@ Keep this runbook + `provision.mjs` the source of truth: **add a flag → add it
   - Fixed the Unit no-listener bug (`NGINX_UNIT_PRELOAD_CONFIG`), the GeoIP hard-requirement (`up.sh` extracts the `.mmdb`), the capture topic-var panic, and right-sized memory for the ~7.5 GB Docker VM (`NGINX_UNIT_APP_PROCESSES=2`, `WEB_CONCURRENCY=1`).
   - Fixed `provision.mjs` to create insights via the modern query format (legacy `filters` now rejected). Personal API key minted via Django shell (bootstrap's session-based mint hits a CSRF-rotation 403).
   - **Verified:** `smoke.mjs` green over `:8000` (localhost + LAN IP) — capture 200, 4 flags resolve `control`. Bound the app in `apps/mobile/.env.local` (`EXPO_PUBLIC_POSTHOG_KEY` + `EXPO_PUBLIC_POSTHOG_HOST`), everything else (Supabase/backend/RevenueCat) unchanged.
+  - Mounted the ClickHouse funnel UDFs (`aggregate_funnel`) so funnel insights render instead of dumping SQL; completed project onboarding directly in the DB.
+
+- **2026-08-13 (later)** — **Event ingestion added** (lifts the §1b caveat). Added the `ingestion` plugin-server (`posthog/posthog-node:latest`, `ingestion-v2-combined`); events now flow Kafka → ClickHouse and populate Activity/insights/funnels. Required four fixes documented in §1c: added `posthog_person.last_seen_at`, stabilised Redpanda (`--overprovisioned --unsafe-bypass-fsync`, `unless-stopped`), gave ZooKeeper persistent volumes + `SYSTEM RESTORE REPLICA` on all 91 tables, and switched ClickHouse from `-alpine` to the Debian image so the glibc UDF binaries run. **Verified:** events land in `posthog.events` in real time and the Acquisition funnel returns real step counts (…→purchase_completed).

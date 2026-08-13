@@ -69,10 +69,18 @@ services:
 
   zookeeper:
     image: zookeeper:3.8
-    restart: on-failure
+    restart: unless-stopped
     environment:
       ZOO_4LW_COMMANDS_WHITELIST: 'ruok,srvr,mntr,conf, zk'
       ZOO_STANDALONE_ENABLED: 'true'
+    # PERSISTENT volumes are load-bearing: ClickHouse's 91 ReplicatedMergeTree
+    # tables keep their replica metadata in ZooKeeper (/clickhouse/tables/…). With
+    # no volume, any ZK restart wipes that subtree; CH then can't recreate it (it's
+    # only written at CREATE TABLE time), so every replicated table drops to
+    # readonly and NO insert — event ingestion included — can land. See RUNBOOK §1c.
+    volumes:
+      - zkdata:/data
+      - zkdatalog:/datalog
     healthcheck:
       # bash /dev/tcp — the zookeeper image ships bash but not always nc.
       test: ['CMD', 'bash', '-c', 'echo > /dev/tcp/127.0.0.1/2181']
@@ -85,8 +93,13 @@ services:
     # and 26.6 is the floor for features the migrations use — e.g. TTL on a
     # DateTime64 column, which 24.x rejects with "TTL expression result column
     # should have DateTime or Date type" (Code 450) partway through the schema.
-    image: clickhouse/clickhouse-server:26.6-alpine
-    restart: on-failure
+    #
+    # NOT the -alpine variant: PostHog's funnel UDF binaries (aggregate_funnel) are
+    # glibc-linked and fail under Alpine's musl ("error while loading shared
+    # libraries: libgcc_s.so.1"), so every funnel with real data crashes the UDF
+    # (ATTEMPT_TO_READ_AFTER_EOF). The Debian image (what PostHog ships) runs them.
+    image: clickhouse/clickhouse-server:26.6
+    restart: unless-stopped
     depends_on:
       zookeeper: { condition: service_healthy }
     environment:
@@ -118,7 +131,10 @@ services:
 
   kafka:
     image: redpandadata/redpanda:v24.2.7
-    restart: on-failure
+    # unless-stopped: a reactor-stall abort exits non-zero AND a clean drain can
+    # exit 0; either way we want it back, not left down taking capture/ingestion
+    # with it.
+    restart: unless-stopped
     command:
       - redpanda
       - start
@@ -128,6 +144,16 @@ services:
       - --advertise-rpc-addr=kafka:33145
       - --mode=dev-container
       - --smp=1
+      # Stability on a shared, IO-constrained Docker VM. Once the ingestion
+      # consumers joined, Redpanda's single reactor stalled for seconds (up to 17s)
+      # and the seastar watchdog aborted it — a restart loop that rebalanced every
+      # Kafka consumer and stopped ClickHouse's engine tables from ever draining
+      # clickhouse_events_json into `events`. --overprovisioned stops the reactor
+      # busy-polling (yields CPU instead of spinning), --unsafe-bypass-fsync drops
+      # the fsync waits that caused the disk-IO stalls. Both are standard for local
+      # dev (we don't need Redpanda durability here) and end the crash loop.
+      - --overprovisioned
+      - --unsafe-bypass-fsync=true
       - --default-log-level=warn
     volumes: [redpanda:/var/lib/redpanda/data]
     healthcheck:
@@ -216,15 +242,17 @@ services:
 
   # Event capture (Rust). Owns /e, /i/v0, /batch, /capture — the SDK's ingest
   # paths. Accepts the event over HTTP and produces it to Kafka, returning 200 to
-  # the client (the SDK's whole contract). Moving those Kafka events on into
-  # ClickHouse is a SEPARATE concern (the `-node` plugin-server / ingestion mesh),
-  # which the app does not depend on and we deliberately don't run locally — so
-  # captured events reach Kafka and 200 the client, but won't appear in Activity/
-  # insights without ingestion. See RUNBOOK §1b. Env mirrors PostHog's own
+  # the client (the SDK's whole contract). The `ingestion` service below then
+  # moves those Kafka events on into ClickHouse. Env mirrors PostHog's own
   # docker-compose.base.yml, with redis/kafka pointed at this stack's services.
+  #
+  # restart: unless-stopped (not on-failure) — capture treats a Kafka broker blip
+  # as a CLEAN shutdown (exit 0), and on-failure won't restart an exit-0 container,
+  # so a momentary Redpanda restart would silently leave capture down (→ Caddy 502
+  # on /i/*). unless-stopped brings it back regardless of exit code.
   capture:
     image: ghcr.io/posthog/posthog/capture:master
-    restart: on-failure
+    restart: unless-stopped
     depends_on:
       kafka: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -284,6 +312,47 @@ services:
       retries: 20
     expose: ['3001']
 
+  # Event INGESTION (plugin-server, Node). Consumes captured events from Kafka
+  # (events_plugin_ingestion) and writes them into ClickHouse — the step that
+  # makes events actually appear in Activity / insights / funnels. Without it
+  # capture still 200s the SDK but nothing lands in CH (this is the §1b caveat,
+  # now lifted). Env mirrors PostHog's docker-compose.base.yml `ingestion-general`
+  # with redis pointed at our `redis`. personhog is intentionally omitted — the
+  # base dev compose runs this mode with in-process person handling, no separate
+  # personhog-router. AI-blob offload is left unset so any $ai_* payloads store
+  # inline (the app sends none anyway).
+  ingestion:
+    image: posthog/posthog-node:latest
+    restart: unless-stopped
+    command: node nodejs/dist/index.js
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      clickhouse: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    # Same GeoIP DB the flags service uses — the plugin-server looks for it at
+    # ../share (i.e. /code/share) to geo-enrich events; without it, it logs a
+    # warning and skips geo (non-fatal). Reuse the one up.sh already extracted.
+    volumes:
+      - ./share/GeoLite2-City.mmdb:/code/share/GeoLite2-City.mmdb:ro
+    environment:
+      PLUGIN_SERVER_MODE: 'ingestion-v2-combined'
+      DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
+      PERSONS_DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
+      BEHAVIORAL_COHORTS_DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
+      KAFKA_HOSTS: 'kafka:9092'
+      REDIS_URL: 'redis://redis:6379/'
+      CLICKHOUSE_HOST: 'clickhouse'
+      CLICKHOUSE_DATABASE: 'posthog'
+      CLICKHOUSE_SECURE: 'false'
+      CLICKHOUSE_VERIFY: 'false'
+      COOKIELESS_REDIS_HOST: 'redis'
+      COOKIELESS_REDIS_PORT: '6379'
+      CDP_REDIS_HOST: 'redis'
+      ENCRYPTION_SALT_KEYS: '00beef0000beef0000beef0000beef00'
+      SECRET_KEY: 'aura_local_dev_secret_change_me_0123456789abcdef'
+
   # Front door. Presents one origin on :8000 and routes each path to the service
   # that owns it (web / capture / feature-flags). This is what makes the app see a
   # single PostHog host exactly like cloud does. See ./Caddyfile.
@@ -305,3 +374,5 @@ volumes:
   redpanda:
   miniodata:
   caddydata:
+  zkdata:
+  zkdatalog:
