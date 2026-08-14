@@ -26,11 +26,11 @@ page at fetch time — **verify at posthog.com/pricing before budgeting.**
 
 ## Feature Management
 
-| Product           | Status    | RN?                    | Free tier → rate             | What it does / Aura fit                                                                                                           |
-| ----------------- | --------- | ---------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Feature Flags** | ✅ in use | ✅ (+ Node local-eval) | 1M requests/mo → $0.0001/ea  | % rollouts, targeting, multivariate, JSON payloads. Your 4 flags resolve here.                                                    |
-| **Experiments**   | ★ next    | ✅                     | billed via Flags             | A/B/n with randomization + stats (Bayesian/frequentist, CUPED). Rides on flags you already wired — **lowest-friction next step.** |
-| **Surveys**       | ★ next    | ✅                     | 1.5k responses/mo → $0.10/ea | In-app NPS/PMF/churn/open-text, targeted by event/flag/cohort. Post-Letter feeling check; churn reason at cancel.                 |
+| Product           | Status     | RN?                    | Free tier → rate             | What it does / Aura fit                                                                                                                                                                                                                   |
+| ----------------- | ---------- | ---------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Feature Flags** | ✅ in use  | ✅ (+ Node local-eval) | 1M requests/mo → $0.0001/ea  | % rollouts, targeting, multivariate, JSON payloads. Your 4 flags resolve here.                                                                                                                                                            |
+| **Experiments**   | ★ next     | ✅                     | billed via Flags             | A/B/n with randomization + stats (Bayesian/frequentist, CUPED). Rides on flags you already wired — **lowest-friction next step.**                                                                                                         |
+| **Surveys**       | 🚧 blocked | ✅ (SDK ≥4.6x)         | 1.5k responses/mo → $0.10/ea | In-app NPS/PMF/churn, targeted by event/flag/cohort. **Blocked:** installed `posthog-react-native@4.57` has no survey code — needs upgrade + provider wiring + native rebuild. Rating/choice only when done (no open-text — 14 §privacy). |
 
 ## Monitoring
 
