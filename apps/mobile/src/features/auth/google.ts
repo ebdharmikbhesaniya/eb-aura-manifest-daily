@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { TurboModuleRegistry } from 'react-native';
 
 import { env } from '@/lib/env';
@@ -51,6 +52,11 @@ function loadModule(): GoogleSignInModule | null {
  */
 export function googleAuthAvailable(): boolean {
   if (!env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID) return false;
+
+  // Google Sign-In is only available natively if client config files were present during the build
+  const hasConfig = Constants.expoConfig?.extra?.hasGoogleSignInConfig ?? false;
+  if (!hasConfig) return false;
+
   return loadModule() !== null;
 }
 

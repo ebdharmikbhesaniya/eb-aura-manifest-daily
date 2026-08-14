@@ -1,4 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ExpoConfig } from 'expo/config';
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Brand is isolated to this file (01 §2, product 00 §7 Q1).
@@ -25,6 +28,46 @@ const BRAND = {
  */
 type BuildEnv = 'development' | 'staging' | 'production';
 const buildEnv = (process.env.APP_ENV ?? 'development') as BuildEnv;
+
+// Resolve paths to the config files
+const resolveConfigPath = (fileVar: string | undefined): string | null => {
+  if (!fileVar) return null;
+  return path.isAbsolute(fileVar) ? fileVar : path.resolve(__dirname, fileVar);
+};
+
+const googleServicesJsonPath = resolveConfigPath(
+  process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
+);
+const googleServicesInfoPlistPath = resolveConfigPath(
+  process.env.GOOGLE_SERVICES_INFO_PLIST ?? './GoogleService-Info.plist',
+);
+
+const hasAndroidGoogleServices = googleServicesJsonPath
+  ? fs.existsSync(googleServicesJsonPath)
+  : false;
+const hasIosGoogleServices = googleServicesInfoPlistPath
+  ? fs.existsSync(googleServicesInfoPlistPath)
+  : false;
+
+// Detect target platforms during build/prebuild
+const isIosBuild =
+  process.env.EAS_BUILD_PLATFORM === 'ios' ||
+  process.argv.includes('ios') ||
+  process.argv.includes('--platform=ios') ||
+  process.argv.some((arg) => arg.includes('run:ios'));
+
+const isAndroidBuild =
+  process.env.EAS_BUILD_PLATFORM === 'android' ||
+  process.argv.includes('android') ||
+  process.argv.includes('--platform=android') ||
+  process.argv.some((arg) => arg.includes('run:android'));
+
+// Enable Firebase config plugins only when the config file for the targeted platform is present on disk.
+const includeFirebase = (() => {
+  if (isIosBuild) return hasIosGoogleServices;
+  if (isAndroidBuild) return hasAndroidGoogleServices;
+  return hasIosGoogleServices && hasAndroidGoogleServices;
+})();
 
 /**
  * Store-build env guard.
@@ -159,9 +202,7 @@ const config: ExpoConfig = {
     //
     // Spread rather than `?? undefined`: under `exactOptionalPropertyTypes` an
     // explicit `undefined` is not assignable to an optional property.
-    ...(process.env.GOOGLE_SERVICES_JSON
-      ? { googleServicesFile: process.env.GOOGLE_SERVICES_JSON }
-      : {}),
+    ...(hasAndroidGoogleServices ? { googleServicesFile: googleServicesJsonPath as string } : {}),
   },
 
   ios: {
@@ -200,9 +241,7 @@ const config: ExpoConfig = {
     //
     // Spread for the same `exactOptionalPropertyTypes` reason as Android above.
     // The file is a credential: never commit it.
-    ...(process.env.GOOGLE_SERVICES_INFO_PLIST
-      ? { googleServicesFile: process.env.GOOGLE_SERVICES_INFO_PLIST }
-      : {}),
+    ...(hasIosGoogleServices ? { googleServicesFile: googleServicesInfoPlistPath as string } : {}),
   },
 
   plugins: [
@@ -295,28 +334,24 @@ const config: ExpoConfig = {
     // the Android build outright if google-services.json is absent — so
     // including it unconditionally would mean no Google project, no build at
     // all. With neither file the gate hides the button (features/auth/google).
-    ...(process.env.GOOGLE_SERVICES_JSON || process.env.GOOGLE_SERVICES_INFO_PLIST
-      ? ([
-          '@react-native-google-signin/google-signin',
-          // Must accompany the plugin above on iOS: without it `pod install`
-          // fails on AppCheckCore's non-modular dependencies and there is no
-          // iOS build at all. See plugins/withGoogleSignInPods.js.
-          './plugins/withGoogleSignInPods',
-        ] as const)
+    ...(includeFirebase
+      ? [
+          '@react-native-google-signin/google-signin' as any,
+          '@react-native-firebase/app' as any,
+          '@react-native-firebase/analytics' as any,
+        ]
       : []),
-
-    // Firebase Analytics → GA4 ad-conversion tracking (spec 2026-07-31). Reads
-    // the same google-services.json / GoogleService-Info.plist already wired for
-    // auth/FCM; the JS side stays a no-op until initGa4() enables collection.
-    '@react-native-firebase/app',
-    '@react-native-firebase/analytics',
+    // Must accompany the plugin above on iOS: without it `pod install`
+    // fails on AppCheckCore's non-modular dependencies and there is no
+    // iOS build at all. See plugins/withGoogleSignInPods.js.
+    './plugins/withGoogleSignInPods' as any,
     [
       // React Native Firebase requires STATIC frameworks on iOS. Same
       // static-linkage class of issue already handled for AppCheckCore in
       // plugins/withGoogleSignInPods.js — verify a clean `pod install`.
       'expo-build-properties',
       { ios: { useFrameworks: 'static' } },
-    ],
+    ] as any,
     // The App Tracking Transparency prompt (spec §7); the usage string is in
     // ios.infoPlist above.
     'expo-tracking-transparency',
@@ -338,6 +373,8 @@ const config: ExpoConfig = {
     eas: {
       projectId: process.env.EAS_PROJECT_ID ?? 'd9ec1b00-6bd1-4535-8a38-0a7bad13752e',
     },
+    // Expose whether Google Sign-In is configured with client files for the targeted build
+    hasGoogleSignInConfig: includeFirebase,
   },
 };
 
