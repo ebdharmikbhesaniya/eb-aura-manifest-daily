@@ -35,6 +35,15 @@ export class AnalyticsService implements OnModuleDestroy {
     });
   }
 
+  /**
+   * Report an unexpected exception to PostHog Error Tracking (13 §monitoring).
+   * id-only `distinctId` and no request body/user content in the properties —
+   * exception payloads must never carry PII (14 §privacy). No-op without a key.
+   */
+  captureException(userId: string | undefined, error: unknown): void {
+    this.client?.captureException(error, userId, { source: 'backend' });
+  }
+
   async onModuleDestroy(): Promise<void> {
     // Buffered events must not die with the process on deploy.
     await this.client?.shutdown();

@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 
 import { AccountModule } from './account/account.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { AuthModule } from './auth/auth.module';
 import { GenerationModule } from './generation/generation.module';
 import { validateEnv, type Env } from './config/env.schema';
@@ -57,5 +59,8 @@ import { SupabaseModule } from './supabase/supabase.module';
     NotificationsModule,
     SchedulerModule,
   ],
+  // Global filter → PostHog Error Tracking for 5xx/uncaught (AnalyticsModule is
+  // @Global, so AnalyticsService injects here).
+  providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
 })
 export class AppModule {}
