@@ -1,8 +1,8 @@
 import { BottomSheetScrollView, type BottomSheetModal } from '@gorhom/bottom-sheet';
-import { forwardRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { forwardRef, useEffect, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 
-import { Chip, Input, PillButton, SerifDisplay } from '@/components';
+import { Card, Chip, Input, PillButton, SerifDisplay } from '@/components';
 import { Sheet } from '@/components';
 import { affirmationsCopy } from '@/copy/affirmations';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -55,6 +55,15 @@ export const GuidedSheet = forwardRef<BottomSheetModal, GuidedSheetProps>(functi
 
   const [goalArea, setGoalArea] = useState<string | null>(null);
   const [goalText, setGoalText] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Auto-select the first candidate when candidates list is populated
+  useEffect(() => {
+    const firstCandidate = candidates[0];
+    if (firstCandidate && !selectedId) {
+      setSelectedId(firstCandidate.id);
+    }
+  }, [candidates, selectedId]);
 
   const label = (text: string) => <SerifDisplay variant="title">{text}</SerifDisplay>;
 
@@ -136,30 +145,55 @@ export const GuidedSheet = forwardRef<BottomSheetModal, GuidedSheetProps>(functi
               </Text>
             )}
 
-            {candidates.map((candidate) => (
-              <View
-                key={candidate.id}
-                style={{ gap: spacing.xs }}
-                testID={`candidate-${candidate.id}`}
-              >
-                <SerifDisplay variant="momentTitle">{candidate.text}</SerifDisplay>
-
-                {candidate.whyLine && (
-                  <Text
-                    allowFontScaling={false}
-                    style={[scaledType('bodySmall', scale), { color: colors.text.secondary }]}
+            {candidates.map((candidate) => {
+              const isSelected = selectedId === candidate.id;
+              return (
+                <Pressable
+                  key={candidate.id}
+                  onPress={() => setSelectedId(candidate.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  testID={`candidate-${candidate.id}`}
+                >
+                  <Card
+                    variant="solid"
+                    style={{
+                      borderWidth: 2,
+                      borderColor: isSelected ? colors.cta.background : colors.surface.border,
+                      backgroundColor: isSelected ? colors.surface.cardGlassy : colors.surface.card,
+                      padding: spacing.md,
+                      gap: spacing.xs,
+                    }}
                   >
-                    {candidate.whyLine}
-                  </Text>
-                )}
+                    <SerifDisplay variant="momentTitle">{candidate.text}</SerifDisplay>
 
-                <PillButton
-                  title={affirmationsCopy.keep}
-                  onPress={() => onKeep(candidate.id)}
-                  testID={`candidate-keep-${candidate.id}`}
-                />
-              </View>
-            ))}
+                    {candidate.whyLine && (
+                      <Text
+                        allowFontScaling={false}
+                        style={[
+                          scaledType('bodySmall', scale),
+                          {
+                            color: isSelected ? colors.text.primary : colors.text.secondary,
+                            marginTop: spacing.xs,
+                          },
+                        ]}
+                      >
+                        {candidate.whyLine}
+                      </Text>
+                    )}
+                  </Card>
+                </Pressable>
+              );
+            })}
+
+            <PillButton
+              title={affirmationsCopy.keep}
+              disabled={!selectedId}
+              onPress={() => {
+                if (selectedId) onKeep(selectedId);
+              }}
+              testID="guided-candidates-keep-selected"
+            />
           </View>
         )}
       </BottomSheetScrollView>
