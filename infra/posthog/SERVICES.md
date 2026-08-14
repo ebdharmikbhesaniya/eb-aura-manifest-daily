@@ -15,14 +15,14 @@ page at fetch time — **verify at posthog.com/pricing before budgeting.**
 
 ## Analytics
 
-| Product               | Status    | RN?                | Free tier → rate            | What it does / Aura fit                                                                                            |
-| --------------------- | --------- | ------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Product Analytics** | ✅ in use | ✅ (+ Node)        | 1M events/mo → $0.00005/ea  | Insight engine: Trends, Funnels, Retention, Paths, Lifecycle. Your dashboards run on it.                           |
-| **Session Replay**    | ★ next    | ✅ screenshot-mode | 2.5k mobile/mo → $0.010/ea  | DVR playback of sessions + console/network/errors. GA on RN — **mask sensitive views** (Letter, journal).          |
-| **Web Analytics**     | ○         | 🌐 web-only        | billed w/ Product Analytics | GA-style traffic dashboard. Only if Aura adds a marketing site.                                                    |
-| **Group Analytics**   | ○         | ✅                 | paid add-on                 | Aggregate events by org/household. Low fit (consumer app). ⚠ Bills **all** identified events project-wide once on. |
-| **Revenue Analytics** | β         | Stripe/events      | free · beta                 | MRR/growth metrics. RevenueCat already covers this.                                                                |
-| **Heatmaps**          | ○         | 🌐 web-only        | no separate meter           | Click hotspots via Toolbar. Not on RN.                                                                             |
+| Product               | Status    | RN?                | Free tier → rate            | What it does / Aura fit                                                                                                            |
+| --------------------- | --------- | ------------------ | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Product Analytics** | ✅ in use | ✅ (+ Node)        | 1M events/mo → $0.00005/ea  | Insight engine: Trends, Funnels, Retention, Paths, Lifecycle. Your dashboards run on it.                                           |
+| **Session Replay**    | ⛔ skip   | ✅ screenshot-mode | 2.5k mobile/mo → $0.010/ea  | DVR playback of sessions. **Skipped by privacy review** — screenshot-mode would capture the Letter / journal / name (14 §privacy). |
+| **Web Analytics**     | ○         | 🌐 web-only        | billed w/ Product Analytics | GA-style traffic dashboard. Only if Aura adds a marketing site.                                                                    |
+| **Group Analytics**   | ○         | ✅                 | paid add-on                 | Aggregate events by org/household. Low fit (consumer app). ⚠ Bills **all** identified events project-wide once on.                 |
+| **Revenue Analytics** | β         | Stripe/events      | free · beta                 | MRR/growth metrics. RevenueCat already covers this.                                                                                |
+| **Heatmaps**          | ○         | 🌐 web-only        | no separate meter           | Click hotspots via Toolbar. Not on RN.                                                                                             |
 
 ## Feature Management
 
@@ -41,10 +41,10 @@ page at fetch time — **verify at posthog.com/pricing before budgeting.**
 
 ## AI
 
-| Product                              | Status | RN?               | Free tier → rate        | What it does / Aura fit                                                                                                           |
-| ------------------------------------ | ------ | ----------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **AI Observability** (LLM analytics) | ★ next | Node/OpenAI       | via events / AI credits | Captures every LLM call (prompt/response/tokens/cost/latency) into traces. Instrument the OpenAI **Letter generation** in NestJS. |
-| **PostHog AI** (formerly Max)        | ○      | web app + Slack β | credits from $0.01      | In-app AI analyst — plain-English questions → insights/HogQL/dashboards. Enable AI data processing in org settings.               |
+| Product                              | Status           | RN?               | Free tier → rate        | What it does / Aura fit                                                                                                                                   |
+| ------------------------------------ | ---------------- | ----------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AI Observability** (LLM analytics) | ✅ metadata-only | Node/OpenAI       | via events / AI credits | Captures every LLM call. **Implemented metadata-only** — `$ai_generation` with model/tokens/latency; prompt/response deliberately withheld (14 §privacy). |
+| **PostHog AI** (formerly Max)        | ○                | web app + Slack β | credits from $0.01      | In-app AI analyst — plain-English questions → insights/HogQL/dashboards. Enable AI data processing in org settings.                                       |
 
 ## Data & Infrastructure
 

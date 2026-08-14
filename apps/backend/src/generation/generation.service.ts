@@ -3,7 +3,12 @@ import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 
 import { AnalyticsService } from '../analytics/analytics.service';
 import { MemoryContextService } from '../memory/memory-context.service';
-import { LLM_PROVIDER, type LlmProvider } from '../providers/llm/llm-provider.interface';
+import {
+  LLM_PROVIDER,
+  type LlmGenerateRequest,
+  type LlmGenerateResponse,
+  type LlmProvider,
+} from '../providers/llm/llm-provider.interface';
 import { TTS_PROVIDER, type TtsProvider } from '../providers/tts/tts-provider.interface';
 import { CrisisDetectionService } from '../safety/crisis-detection.service';
 import { SUPABASE_CLIENT, type ServiceRoleClient } from '../supabase/supabase.module';
@@ -159,6 +164,39 @@ export class GenerationService implements OnModuleInit {
   }
 
   /**
+   * Call the LLM and emit a PostHog AI-Observability event (metadata only — token
+   * counts, latency, model, success). The prompt/response never leave the server
+   * (14 §privacy); `captureAiGeneration` omits `$ai_input`/`$ai_output` by design.
+   */
+  private async tracedGenerate(
+    userId: string,
+    artifact: JobArtifact,
+    req: LlmGenerateRequest,
+  ): Promise<LlmGenerateResponse> {
+    const started = Date.now();
+    try {
+      const response = await this.llm.generate(req);
+      this.analytics.captureAiGeneration(userId, {
+        model: req.model ?? 'default',
+        artifact,
+        inputTokens: response.usage.inputTokens,
+        outputTokens: response.usage.outputTokens,
+        latencyMs: Date.now() - started,
+        isError: false,
+      });
+      return response;
+    } catch (error) {
+      this.analytics.captureAiGeneration(userId, {
+        model: req.model ?? 'default',
+        artifact,
+        latencyMs: Date.now() - started,
+        isError: true,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * LLM call → defensive JSON parse → QA gate. Throws QaFailedError on a gate
    * failure; the state machine turns that into one corrective regeneration whose
    * retry re-enters here with no change (the corrective note lives in the prompt
@@ -179,7 +217,7 @@ export class GenerationService implements OnModuleInit {
       : context;
     const built = this.prompts.build(artifact, withDesire, refineInput);
 
-    const response = await this.llm.generate({
+    const response = await this.tracedGenerate(userId, artifact, {
       system: built.system,
       prompt: built.prompt,
       maxTokens: built.maxTokens,
@@ -230,7 +268,7 @@ export class GenerationService implements OnModuleInit {
   ): Promise<void> {
     const built = this.prompts.build('affirmation_guided', context, undefined, guided);
 
-    const response = await this.llm.generate({
+    const response = await this.tracedGenerate(job.user_id, 'affirmation_guided', {
       system: built.system,
       prompt: built.prompt,
       maxTokens: built.maxTokens,

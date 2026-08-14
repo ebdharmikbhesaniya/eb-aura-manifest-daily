@@ -102,7 +102,10 @@ describe('GenerationService (pipeline)', () => {
         { provide: CreditsService, useValue: { refund } },
         { provide: MemoryContextService, useValue: { assemble } },
         { provide: JobsService, useValue: { registerRunner: (r: JobRunner) => (runner = r) } },
-        { provide: AnalyticsService, useValue: { capture } },
+        {
+          provide: AnalyticsService,
+          useValue: { capture, captureAiGeneration: jest.fn(), captureException: jest.fn() },
+        },
         {
           provide: ConfigService,
           useValue: {
