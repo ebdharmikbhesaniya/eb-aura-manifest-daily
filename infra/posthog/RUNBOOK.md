@@ -31,6 +31,13 @@ POSTHOG_HOST=http://localhost:8000 node bootstrap.mjs
 POSTHOG_HOST=http://localhost:8000 POSTHOG_PROJECT_ID=1 \
   POSTHOG_PERSONAL_API_KEY=phx_... node provision.mjs
 
+# 3b. Build the six perspective dashboards (acquisition, retention, experiments,
+#     monetization, reliability, error tracking). Run AFTER provision.mjs (the
+#     Experiments dashboard breaks down by the flags it creates). Same env vars,
+#     scopes dashboard:write + insight:write. Idempotent.
+POSTHOG_HOST=http://localhost:8000 POSTHOG_PROJECT_ID=1 \
+  POSTHOG_PERSONAL_API_KEY=phx_... node dashboards.mjs
+
 # 4. Verify the app's integration end-to-end (capture + flags over one origin).
 POSTHOG_HOST=http://localhost:8000 POSTHOG_PROJECT_API_KEY=phc_... node smoke.mjs
 
