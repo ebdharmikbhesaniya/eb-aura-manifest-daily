@@ -15,6 +15,9 @@ jest.mock('expo-router', () => ({
 jest.mock('@/lib/analytics', () => ({
   analytics: { capture: jest.fn() },
   initAnalytics: jest.fn(),
+  // useVariant (onboarding experiments) reads these; default = control fallback.
+  getFeatureFlag: () => undefined,
+  onFeatureFlags: () => () => {},
 }));
 jest.mock('../commit', () => ({
   submitAnswer: jest.fn(async () => undefined),

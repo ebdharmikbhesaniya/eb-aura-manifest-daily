@@ -9,8 +9,9 @@ import { useOnboardingDraft } from '@/stores/onboardingDraft';
 import { useTheme } from '@/theme/ThemeProvider';
 
 import { EditGuardSheet } from './EditGuardSheet';
-import { previousScreen, QUESTION_SCREENS, screenRoute } from './flow';
+import { previousScreen, QUESTION_SCREENS, screenRoute, visibleQuestionScreens } from './flow';
 import { ProgressHeader } from './ProgressHeader';
+import { useHiddenScreens } from './useHiddenScreens';
 
 export interface ConversationScreenProps {
   question: string;
@@ -67,7 +68,11 @@ export function ConversationScreen({
    * was "3/10", which reads as though the app skipped two steps behind her back.
    * The first question is question one.
    */
-  const stepIndex = screenId ? QUESTION_SCREENS.indexOf(screenId) : -1;
+  // Experiments can hide a question screen (e.g. onboarding-dream-home=off), so
+  // the counter measures the questions actually shown — never a step she'll skip.
+  const hidden = useHiddenScreens();
+  const visibleQuestions = visibleQuestionScreens(hidden);
+  const stepIndex = screenId ? visibleQuestions.indexOf(screenId) : -1;
   const hasHeader = stepIndex >= 0;
 
   /**
@@ -80,7 +85,7 @@ export function ConversationScreen({
    * dead end. With nothing to revise, back simply means back.
    */
   const hasSomethingToRevise = QUESTION_SCREENS.some((id) => answers[id]);
-  const previous = screenId ? previousScreen(screenId) : null;
+  const previous = screenId ? previousScreen(screenId, hidden) : null;
 
   const stepBack = () => {
     if (!previous) return;
@@ -102,7 +107,7 @@ export function ConversationScreen({
       {hasHeader && (
         <ProgressHeader
           step={stepIndex + 1}
-          total={QUESTION_SCREENS.length}
+          total={visibleQuestions.length}
           {...(showEditGuard && onBack
             ? {
                 onBack,

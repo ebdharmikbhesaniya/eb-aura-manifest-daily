@@ -9,6 +9,7 @@ import { haptic } from '@/theme/haptics';
 
 import { completeOnboarding, submitAnswer } from './commit';
 import { nextScreen, screenRoute } from './flow';
+import { useHiddenScreens } from './useHiddenScreens';
 
 /**
  * One hook per conversation screen: views, submits, advances, and understands
@@ -20,6 +21,8 @@ export function useConversation(screenId: OnboardingScreenId) {
   const userId = useAppState((s) => s.userId);
   const isEditing = useOnboardingDraft((s) => s.editReturnScreen !== null);
   const draftAnswer = useOnboardingDraft((s) => s.answers[screenId]);
+  // Screens hidden by the onboarding experiments — skipped when advancing.
+  const hidden = useHiddenScreens();
 
   useEffect(() => {
     analytics.capture('onboarding_screen_viewed', { screen_id: screenId });
@@ -40,7 +43,7 @@ export function useConversation(screenId: OnboardingScreenId) {
       return;
     }
 
-    const next = nextScreen(screenId);
+    const next = nextScreen(screenId, hidden);
     if (next) {
       useOnboardingDraft.getState().advanceTo(next);
       router.push(screenRoute(next) as never);
@@ -60,7 +63,7 @@ export function useConversation(screenId: OnboardingScreenId) {
   /** Advance without an answer (S1/S2 — no data screens). */
   const advance = (): void => {
     void haptic('onboardingContinue');
-    const next = nextScreen(screenId);
+    const next = nextScreen(screenId, hidden);
     if (!next) return;
     useOnboardingDraft.getState().advanceTo(next);
     router.push(screenRoute(next) as never);

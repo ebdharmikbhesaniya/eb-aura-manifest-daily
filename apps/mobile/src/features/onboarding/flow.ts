@@ -65,14 +65,41 @@ export const QUESTION_SCREENS: readonly OnboardingScreenId[] = SCREEN_ORDER.filt
   (id) => ANSWER_TYPE[id] !== 'none',
 );
 
-export function nextScreen(current: OnboardingScreenId): OnboardingScreenId | null {
-  const index = SCREEN_ORDER.indexOf(current);
-  return SCREEN_ORDER[index + 1] ?? null;
+const NO_HIDDEN: ReadonlySet<OnboardingScreenId> = new Set();
+
+/**
+ * The next screen after `current`, skipping any an experiment has hidden (see
+ * useHiddenScreens). `hidden` defaults to empty, so the shipped flow and every
+ * existing caller behave exactly as before.
+ */
+export function nextScreen(
+  current: OnboardingScreenId,
+  hidden: ReadonlySet<OnboardingScreenId> = NO_HIDDEN,
+): OnboardingScreenId | null {
+  for (let i = SCREEN_ORDER.indexOf(current) + 1; i < SCREEN_ORDER.length; i++) {
+    const id = SCREEN_ORDER[i];
+    if (id && !hidden.has(id)) return id;
+  }
+  return null;
 }
 
-export function previousScreen(current: OnboardingScreenId): OnboardingScreenId | null {
-  const index = SCREEN_ORDER.indexOf(current);
-  return index > 0 ? (SCREEN_ORDER[index - 1] ?? null) : null;
+/** The previous visible screen before `current`, skipping hidden ones symmetrically. */
+export function previousScreen(
+  current: OnboardingScreenId,
+  hidden: ReadonlySet<OnboardingScreenId> = NO_HIDDEN,
+): OnboardingScreenId | null {
+  for (let i = SCREEN_ORDER.indexOf(current) - 1; i >= 0; i--) {
+    const id = SCREEN_ORDER[i];
+    if (id && !hidden.has(id)) return id;
+  }
+  return null;
+}
+
+/** The question screens actually shown given `hidden` — the honest progress denominator. */
+export function visibleQuestionScreens(
+  hidden: ReadonlySet<OnboardingScreenId> = NO_HIDDEN,
+): readonly OnboardingScreenId[] {
+  return QUESTION_SCREENS.filter((id) => !hidden.has(id));
 }
 
 /** Expo Router path for a screen id — route files are named by id (06 §1). */
