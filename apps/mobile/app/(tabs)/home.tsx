@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Screen } from '@/components';
 import { momentsCopy } from '@/copy/moments';
+import { EXPERIMENTS, ON_OFF_VARIANTS } from '@/features/experiments/keys';
+import { useVariant } from '@/features/experiments/useVariant';
 import { HomeScreen } from '@/features/moments/HomeScreen';
 import { hasSeenFirstRun, markFirstRunSeen } from '@/features/moments/firstRun';
 import { ManifestSheet } from '@/features/moments/ManifestSheet';
@@ -83,6 +85,15 @@ export default function HomeRoute() {
   // Glow's post-onboarding tutorial. Shown once, then dismissed for good.
   const [showFirstRun, setShowFirstRun] = useState(() => !hasSeenFirstRun());
 
+  // home-first-run experiment (2026-08-14) — the reference wiring for useVariant.
+  // `control` (shipped) shows the welcome card; `off` hides it, to test whether a
+  // leaner first Home lifts activation. Reading the flag makes PostHog emit
+  // `$feature_flag_called` (the exposure); `firstrun_welcome_*` are the typed
+  // outcome events the Experiments dashboard breaks down by `$feature/home-first-run`.
+  const firstRunVariant = useVariant(EXPERIMENTS.homeFirstRun, 'control', ON_OFF_VARIANTS);
+  const showFirstRunCard = showFirstRun && firstRunVariant === 'control';
+  const firstRunReportedRef = useRef(false);
+
   // The legible "why" under today's moment — named from a value she chose in
   // onboarding, so the personalization she can't see (Living Memory) is felt.
   const topValue = profile?.values?.[0];
@@ -90,13 +101,16 @@ export default function HomeRoute() {
     ? momentsCopy.home.personalization.replace('{value}', topValue.toLowerCase())
     : null;
 
-  // Report the first-Home welcome exposure once, on the first landing that shows
-  // it — the top of the activation funnel.
+  // Report the first-Home welcome exposure once, the first time the card actually
+  // shows (control variant + not yet seen). Flags load async, so this can fire a
+  // render or two after mount; the ref guards against a double count. Dismissing
+  // flips `showFirstRunCard` false and must not re-fire.
   useEffect(() => {
-    if (showFirstRun) analytics.capture('firstrun_welcome_shown', {});
-    // Only the mount-time value matters; dismissing flips it false and must not
-    // re-fire.
-  }, []);
+    if (showFirstRunCard && !firstRunReportedRef.current) {
+      firstRunReportedRef.current = true;
+      analytics.capture('firstrun_welcome_shown', {});
+    }
+  }, [showFirstRunCard]);
 
   // iOS ad-attribution consent (spec §7). Asked once, on the first Home landing
   // after the Letter/paywall — never mid-onboarding. No-op on Android and after
@@ -302,7 +316,7 @@ export default function HomeRoute() {
             : null
         }
         personalization={personalization}
-        showFirstRun={showFirstRun}
+        showFirstRun={showFirstRunCard}
         onDismissFirstRun={() => {
           analytics.capture('firstrun_welcome_dismissed', {});
           markFirstRunSeen();
