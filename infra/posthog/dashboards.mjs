@@ -14,7 +14,8 @@
  *   node infra/posthog/dashboards.mjs
  *
  * Get POSTHOG_PERSONAL_API_KEY from: <host> → Settings → Personal API keys
- *   (scopes needed: dashboard:write, insight:write).
+ *   (scopes needed: dashboard:write, insight:write). Or just run `posthog-cli
+ *   login` — this script falls back to that stored key automatically.
  * POSTHOG_PROJECT_ID is in the URL: <host>/project/<id>/…
  *
  * Run `provision.mjs` FIRST — it creates the feature flags the Experiments
@@ -29,14 +30,17 @@
  *     app error events and populates immediately.
  */
 
-const HOST = (process.env.POSTHOG_HOST || 'http://localhost:8000').replace(/\/$/, '');
-const PROJECT_ID = process.env.POSTHOG_PROJECT_ID || '1';
-const API_KEY = process.env.POSTHOG_PERSONAL_API_KEY;
+import { resolveApiKey, resolveHost, resolveProjectId, usingCliKey } from './_cliAuth.mjs';
+
+const HOST = resolveHost('http://localhost:8000');
+const PROJECT_ID = resolveProjectId('1');
+const API_KEY = resolveApiKey();
 
 if (!API_KEY) {
-  console.error('✗ POSTHOG_PERSONAL_API_KEY is required. See the header of this file.');
+  console.error('✗ No personal API key. Set POSTHOG_PERSONAL_API_KEY, or run `posthog-cli login`.');
   process.exit(1);
 }
+if (usingCliKey) console.log('→ Using the personal API key from `posthog-cli login`.');
 
 const base = `${HOST}/api/projects/${PROJECT_ID}`;
 const headers = { Authorization: `Bearer ${API_KEY}`, 'Content-Type': 'application/json' };

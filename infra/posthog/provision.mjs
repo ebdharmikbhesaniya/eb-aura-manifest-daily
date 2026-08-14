@@ -13,7 +13,8 @@
  *   node infra/posthog/provision.mjs
  *
  * Get POSTHOG_PERSONAL_API_KEY from: <host> → Settings → Personal API keys
- * (scopes: feature_flag:write, dashboard:write, insight:write).
+ * (scopes: feature_flag:write, dashboard:write, insight:write). Or just run
+ * `posthog-cli login` — the scripts fall back to that stored key automatically.
  * POSTHOG_PROJECT_ID is in the URL: <host>/project/<id>/…
  *
  * Flags are created ACTIVE but at 0% rollout (everyone → `control` = today's
@@ -21,14 +22,17 @@
  * See RUNBOOK.md for what each flag/experiment/event means and how to run one.
  */
 
-const HOST = (process.env.POSTHOG_HOST || 'http://localhost:8000').replace(/\/$/, '');
-const PROJECT_ID = process.env.POSTHOG_PROJECT_ID || '1';
-const API_KEY = process.env.POSTHOG_PERSONAL_API_KEY;
+import { resolveApiKey, resolveHost, resolveProjectId, usingCliKey } from './_cliAuth.mjs';
+
+const HOST = resolveHost('http://localhost:8000');
+const PROJECT_ID = resolveProjectId('1');
+const API_KEY = resolveApiKey();
 
 if (!API_KEY) {
-  console.error('✗ POSTHOG_PERSONAL_API_KEY is required. See the header of this file.');
+  console.error('✗ No personal API key. Set POSTHOG_PERSONAL_API_KEY, or run `posthog-cli login`.');
   process.exit(1);
 }
+if (usingCliKey) console.log('→ Using the personal API key from `posthog-cli login`.');
 
 const base = `${HOST}/api/projects/${PROJECT_ID}`;
 const headers = {

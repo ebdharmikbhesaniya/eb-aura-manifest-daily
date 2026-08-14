@@ -177,14 +177,20 @@ To run one: in PostHog, create an **Experiment** on the flag with a goal metric 
 
 1. **Create/confirm the prod PostHog project** (Cloud or self-host). Note the ingestion key (`phc_…`) and project id.
 2. **App env (prod build):** set `EXPO_PUBLIC_POSTHOG_KEY` (and `EXPO_PUBLIC_POSTHOG_HOST` if not Cloud US) in `apps/mobile/eas.json` `base.env`. Rebuild.
-3. **Provision:** create a personal API key (`phx_…`, scopes `feature_flag:write` + `dashboard:write` + `insight:write`), then run BOTH scripts (idempotent — safe to re-run):
+3. **Provision.** Simplest: run `posthog-cli login` once (stores a key at `~/.posthog/credentials.json`), then just:
    ```bash
-   POSTHOG_HOST=https://us.i.posthog.com POSTHOG_PROJECT_ID=<id> \
-   POSTHOG_PERSONAL_API_KEY=phx_... node infra/posthog/provision.mjs   # flags + growth funnels
-   POSTHOG_HOST=https://us.i.posthog.com POSTHOG_PROJECT_ID=<id> \
-   POSTHOG_PERSONAL_API_KEY=phx_... node infra/posthog/dashboards.mjs  # the six perspective dashboards
+   node infra/posthog/provision.mjs    # flags + growth funnels
+   node infra/posthog/dashboards.mjs   # the six perspective dashboards
    ```
+   Both scripts fall back to the CLI key **and** resolve host + project id from it (`_cliAuth.mjs`) — zero env vars needed. To target a different project or pass an explicit key, env vars still win — note the API host is `us.posthog.com` (the app), **not** the `us.i.posthog.com` ingestion host:
+   ```bash
+   POSTHOG_HOST=https://us.posthog.com POSTHOG_PROJECT_ID=<id> \
+   POSTHOG_PERSONAL_API_KEY=phx_... node infra/posthog/provision.mjs
+   ```
+   Scopes if minting a key by hand: `feature_flag:write` + `dashboard:write` + `insight:write`. Idempotent — safe to re-run.
    > Until `dashboards.mjs` runs, PostHog shows only its own auto-created "starter dashboard" — the six Aura dashboards are code and appear only after provisioning.
+   >
+   > **Applied to PostHog Cloud project `557376` on 2026-08-14:** 4 flags, `Aura · Growth funnels`, and the six `Aura · 1…6` dashboards (39 insights) all created. Tiles are empty until real events arrive (next EAS build).
 4. **Verify** events land (Activity → Live events) and the dashboards populate.
 5. **Run experiments** per §5, one at a time.
 
