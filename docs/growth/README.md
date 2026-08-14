@@ -26,7 +26,7 @@ Aura has an explicit anti-dark-pattern / anti-resentment doctrine (product 01 §
 
 ## Where Aura already beats Glow (don't re-solve)
 
-Baked **ElevenLabs voice** + a **generative Letter/moment** (a real wow, vs static quotes) · a considered **design system** (Ember & Bone, the Orb) · a **hard paywall + trial-timeline** already shipped (Glow's endpoint) · a **Conversation onboarding** with a **progress header** and a **full per-screen funnel** · **PostHog + GA4 + Sentry**, privacy-clean · **dark mode** day-one.
+Baked **ElevenLabs voice** + a **generative Letter/moment** (a real wow, vs static quotes) · a considered **design system** (Ember & Bone, the Orb) · a **hard paywall + trial-timeline** already shipped (Glow's endpoint) · a **Conversation onboarding** with a **progress header** and a **full per-screen funnel** · **PostHog (analytics + Error Tracking) + GA4**, privacy-clean · **dark mode** day-one.
 
 ## Prioritized roadmap
 

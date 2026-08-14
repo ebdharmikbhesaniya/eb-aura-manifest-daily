@@ -57,7 +57,7 @@ The struggle + crisis-adjacent items are `tier=sensitive`. Technical guarantees:
 
 ## 6. Full-deletion runbook (product 18 §4 — "delete means delete")
 
-`POST /v1/account/delete` executes (03 §5): Storage objects → `auth.admin.deleteUser` cascade → RevenueCat subscriber delete → PostHog person deletion → local wipe. Queued retries for 3–4; completion audit row in an ops table (user-id hash only). Stated window: 30 days. Also: anon-sweep (90-day inactive anonymous users) runs the same runbook. Sentry data: PII scrubbing on; user context is id-only.
+`POST /v1/account/delete` executes (03 §5): Storage objects → `auth.admin.deleteUser` cascade → RevenueCat subscriber delete → PostHog person deletion → local wipe. Queued retries for 3–4; completion audit row in an ops table (user-id hash only). Stated window: 30 days. Also: anon-sweep (90-day inactive anonymous users) runs the same runbook. PostHog Error Tracking: no PII in exception payloads; user context is id-only (consistent with the app's privacy design).
 
 ## 7. GDPR/CCPA rights mapping (product 18 §platform)
 

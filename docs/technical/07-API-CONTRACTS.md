@@ -106,7 +106,7 @@ Header `Authorization: <REVENUECAT_WEBHOOK_AUTH>`. Handles: `INITIAL_PURCHASE`, 
 
 - `key` is a stable machine key from the shared `ApiErrorKey` union: `unauthorized` · `entitlement_required` · `credits_exhausted` · `refine_limit_reached` · `already_ready` · `crisis_support` · `validation_failed` · `rate_limited` · `generation_failed` · `internal`.
 - Mobile maps `key → copy` (in-voice, product 14 error rules); `message` is developer-facing only.
-- HTTP: 400 validation · 401 auth · 402 entitlement · 409 conflict · 422 crisis/semantic · 429 rate/credits · 5xx internal (Sentry).
+- HTTP: 400 validation · 401 auth · 402 entitlement · 409 conflict · 422 crisis/semantic · 429 rate/credits · 5xx internal (captured to PostHog Error Tracking).
 
 ## 6. Versioning & compatibility
 

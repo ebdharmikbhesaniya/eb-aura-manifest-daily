@@ -53,9 +53,9 @@ Region: Supabase + Railway co-located `us-east` (US-first market, product 02).
 
 | Signal                            | Tool                                                  | Alert threshold                                                   |
 | --------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------- |
-| Crashes (mobile)                  | Sentry RN                                             | new-issue spike                                                   |
-| Backend errors + traces           | Sentry Node                                           | error rate >1% of requests                                        |
-| Generation failures               | PostHog `generation_failed` + Sentry                  | >3% of jobs/hour                                                  |
+| Crashes (mobile)                  | PostHog Error Tracking (`posthog-react-native`)       | new-issue spike                                                   |
+| Backend errors + traces           | PostHog Error Tracking (`posthog-node`)               | error rate >1% of requests                                        |
+| Generation failures               | PostHog `generation_failed` + Error Tracking          | >3% of jobs/hour                                                  |
 | **QA flags / never-include leak** | PostHog `generation_qa_flagged`                       | leak = page immediately (P1, product 18)                          |
 | Latency                           | pipeline `latency_ms` p90                             | letter >40s p90 sustained                                         |
 | Uptime                            | Railway health checks + external ping on `/v1/health` | down >2 min                                                       |

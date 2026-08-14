@@ -58,11 +58,11 @@ Rationale: Phase 10 (paywall) is pulled forward right after the Letter because t
 - **Objective:** Working monorepo with all three workspaces building, linting, testing in CI; local Supabase; skeleton apps boot.
 - **User outcome:** None user-visible; every later phase moves faster and safer.
 - **Dependencies:** None.
-- **Backend tasks:** NestJS skeleton (`app.module`, config with zod-validated env, `HealthModule` with `/v1/health`, Sentry init, pino logging); `mock` LLM/TTS provider stubs registered.
-- **Mobile tasks:** Expo app init (TS strict, dev client, expo-router skeleton with placeholder tabs), EAS project + `eas.json` profiles, Sentry init, MMKV + supabase client wiring stubs, path aliases.
+- **Backend tasks:** NestJS skeleton (`app.module`, config with zod-validated env, `HealthModule` with `/v1/health`, PostHog (`posthog-node`) init incl. Error Tracking, pino logging); `mock` LLM/TTS provider stubs registered.
+- **Mobile tasks:** Expo app init (TS strict, dev client, expo-router skeleton with placeholder tabs), EAS project + `eas.json` profiles, PostHog (`posthog-react-native`) init incl. Error Tracking, MMKV + supabase client wiring stubs, path aliases.
 - **Database changes:** `supabase init` + config; empty migration baseline; type-generation script.
 - **API endpoints:** `GET /v1/health`.
-- **External integrations:** Sentry (both), EAS, GitHub Actions CI (`lint`/`typecheck`/`test`/build via Turborepo), husky + lint-staged.
+- **External integrations:** PostHog incl. Error Tracking (both), EAS, GitHub Actions CI (`lint`/`typecheck`/`test`/build via Turborepo), husky + lint-staged.
 - **Analytics events:** None (PostHog wrapper stub created in `packages/shared` events scaffold).
 - **Tests:** CI green: unit test harness runs in all 3 workspaces (one trivial test each); health e2e (supertest).
 - **Edge cases:** Node/pnpm versions pinned; `.env.example` complete; fresh-clone bootstrap documented in README (one command to running local stack).
@@ -530,7 +530,7 @@ The funnel is now install → onboarding → ritual → Letter → **paywall** �
 - **Objective:** Complete the measurement layer: full-catalog audit, experiments live, dashboards + alarms (doc 13; product 17).
 - **User outcome:** None directly; the product learns or dies (product 05).
 - **Dependencies:** All instrumented phases (6–10 minimum).
-- **Backend tasks:** Server-event audit vs catalog; `exp_ondemand_limit` flag read at credit check; `experiment_assignments` writes; QA-flag alarm hook to Sentry.
+- **Backend tasks:** Server-event audit vs catalog; `exp_ondemand_limit` flag read at credit check; `experiment_assignments` writes; QA-flag alarm hook to PostHog.
 - **Mobile tasks:** Event audit vs product doc 17 (every event, correct payloads, single emitter); `exp_trial_variant` + `exp_paywall_hero` flag wiring on paywall; assignment-once semantics; super-properties verification.
 - **Database changes:** Migration: `experiment_assignments` + RLS.
 - **API endpoints:** None.
@@ -550,7 +550,7 @@ The funnel is now install → onboarding → ritual → Letter → **paywall** �
 - **Database changes:** None.
 - **API endpoints:** None.
 - **External integrations:** App Store Connect (listing, subscriptions review, privacy labels), phased-release config.
-- **Analytics events:** `account_deleted`; final `crash`-adjacent Sentry verification.
+- **Analytics events:** `account_deleted`; final `crash`-adjacent PostHog Error Tracking verification.
 - **Tests:** Full Maestro suite green on release build; performance assertions recorded; accessibility checklist signed; 16 §5 checklist complete.
 - **Edge cases:** Review-team flow (demo account works without 24h waits); iPad rendering (iPhone-only target but must not break); low-storage device (cache eviction); iOS minimum-version verification.
 - **Definition of Done:** App Store submission accepted; launch runbook executed (16 §8); phased rollout live; day-1 monitoring dashboard watch scheduled; every release-blocking checklist in docs 12/14/15/16 checked.

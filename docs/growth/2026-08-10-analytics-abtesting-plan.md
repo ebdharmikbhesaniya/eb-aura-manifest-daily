@@ -12,7 +12,7 @@
 - **GA4 fan-out** (`src/lib/ga4.ts`) for ad attribution on a whitelist (`onboarding_completed`, `purchase`).
 - **Full onboarding funnel:** `onboarding_started` → `onboarding_screen_viewed {screen_id}` (per screen) → `onboarding_answer_submitted` → `onboarding_completed {duration_s, questions_answered}`.
 - **Paywall events:** `paywall_viewed {surface}`, `paywall_dismissed`, `purchase_completed`.
-- **Sentry** for errors.
+- **PostHog Error Tracking** for exceptions — same PostHog project as product analytics, errors as a distinct stream.
 
 ## The gap
 

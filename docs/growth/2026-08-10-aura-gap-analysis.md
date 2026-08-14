@@ -40,7 +40,7 @@ Legend: ✅ have · 🟡 partial · ❌ missing · ⛔ conflicts with Aura value
 
 | Glow lever                                | Aura status | Notes                                                                                                                                                                                |
 | ----------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| PostHog + ad-attribution analytics        | ✅          | PostHog (catalog-only, autocapture off) + GA4 fan-out + Sentry. Privacy-clean by design.                                                                                             |
+| PostHog + ad-attribution analytics        | ✅          | PostHog (catalog-only, autocapture off) + GA4 fan-out + PostHog Error Tracking. Privacy-clean by design.                                                                             |
 | PostHog **experiments / feature flags**   | ❌          | No `getVariant` / flags / experiment hooks. **This is the single highest-leverage infra add** — it unlocks data-driven onboarding iteration (Glow's whole method). → analytics plan. |
 | RevenueCat experiments                    | ❌          | See monetization.                                                                                                                                                                    |
 | ASC Product Page Optimization (icon A/B)  | ❌          | Store-side; queue an icon test. → analytics plan.                                                                                                                                    |

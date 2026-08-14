@@ -89,7 +89,7 @@ Cron runs are logged (`job`, `window`, `users_processed`, `failures`) for the ge
 ## 7. Cross-cutting
 
 - **Rate limiting:** `@nestjs/throttler` — per-user: 10 generation requests/min, 60 reads/min; webhook route excluded (auth by shared secret instead).
-- **Observability:** Sentry (errors + slow-transaction traces on the pipeline); structured pino logs with `user_id` hashed; `generation_failed` / `generation_qa_flagged` events to PostHog (the quality alarm — product doc 17).
+- **Observability:** PostHog Error Tracking via `posthog-node` (exceptions captured as a distinct stream from catalog events; user context id-only, no PII in payloads); structured pino logs with `user_id` hashed; `generation_failed` / `generation_qa_flagged` events to PostHog (the quality alarm — product doc 17).
 - **Health:** `/v1/health` returns db + storage + provider reachability (used by host health checks and the uptime monitor in 16 §6).
 - **Hosting recommendation:** Railway (simplest) or Fly.io (regional control). Single region co-located with the Supabase project region. One small instance suffices at launch; crons run in-process (`@nestjs/schedule`) — acceptable because instance count is 1; if scaled horizontally, crons move to a dedicated worker process (documented upgrade path, 16 §7).
 

@@ -135,8 +135,7 @@ Migration workflow: write SQL migration → `supabase db reset` locally → `pnp
 | `LLM_PROVIDER` / `LLM_API_KEY` / `LLM_MODEL`                 | backend | Provider abstraction switch (08)      |
 | `ELEVENLABS_API_KEY` / `ELEVENLABS_VOICE_ID`                 | backend |                                       |
 | `REVENUECAT_WEBHOOK_AUTH`                                    | backend | Shared secret header                  |
-| `POSTHOG_SERVER_KEY`                                         | backend |                                       |
-| `SENTRY_DSN_MOBILE` / `SENTRY_DSN_BACKEND`                   | each    |                                       |
+| `POSTHOG_SERVER_KEY`                                         | backend | Also powers PostHog Error Tracking    |
 
 `.env.example` lists names + comments only. EAS secrets hold mobile values per profile; backend host holds server values (16).
 

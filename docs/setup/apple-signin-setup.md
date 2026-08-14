@@ -181,7 +181,7 @@ eas build -p ios --profile preview
 
 Provider sign-in failures are reported by `reportAuthFailure()` in
 `src/features/auth/session.ts`: the Supabase error is `console.warn`ed in `__DEV__`
-(read it in the Metro log) and captured to Sentry in every build, tagged
+(read it in the Metro log) and captured to PostHog Error Tracking in every build, tagged
 `area: auth`. The UI still shows only in-voice copy — never an error code
 (product 14) — so the log is where the cause lives.
 

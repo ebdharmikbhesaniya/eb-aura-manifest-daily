@@ -31,8 +31,7 @@ graph TB
         LLM[LLM Provider<br/>behind LlmProvider abstraction<br/>launch vendor: OpenAI]
         TTS[ElevenLabs TTS<br/>behind TtsProvider abstraction]
         RC[RevenueCat]
-        PH[PostHog<br/>analytics + feature flags]
-        SENTRY[Sentry]
+        PH[PostHog<br/>analytics + feature flags<br/>+ error tracking]
     end
 
     APP -->|CRUD: profiles, memory,<br/>gratitude, favorites| DB
@@ -41,7 +40,6 @@ graph TB
     APP -->|generation requests<br/>Supabase JWT| GEN
     APP --> RC
     APP --> PH
-    APP --> SENTRY
     GEN --> LLM
     GEN --> TTS
     GEN -->|writes moments,<br/>audio| DB
@@ -50,7 +48,7 @@ graph TB
     CRON --> PUSH
     RC -->|webhooks| HOOKS
     HOOKS -->|subscription_state| DB
-    GEN --> SENTRY
+    GEN --> PH
 ```
 
 ## 2. Core architectural decisions
@@ -70,19 +68,19 @@ graph TB
 
 ## 3. Responsibility matrix
 
-| Concern                                                                         | Owner                                          | Notes                                              |
-| ------------------------------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------- |
-| Auth sessions, JWT                                                              | Supabase Auth                                  | Backend verifies the same JWT (guard)              |
-| Profile, memory, people, gratitude, favorites CRUD                              | Mobile ↔ Supabase (RLS)                        | No backend hop                                     |
-| Letter / moment / affirmation generation                                        | NestJS                                         | Only path that touches LLM/TTS keys                |
-| Generation QA (tokens, banned phrases, Never-Include, length)                   | NestJS QA gate                                 | Release-blocking rules from product docs 08, 14    |
-| Crisis-language check                                                           | NestJS (pre-generation step)                   | Product doc 18                                     |
-| Audio files                                                                     | Supabase Storage                               | Written by backend, read by mobile via signed URLs |
-| Daily pre-generation, D7 milestone, trial reminders, win-back note, auto-soften | NestJS cron                                    | 04, 11                                             |
-| Push tokens                                                                     | Supabase table (mobile writes)                 | Backend reads to send                              |
-| Purchases, entitlements                                                         | RevenueCat SDK (mobile) + webhooks (backend)   | `subscription_state` mirrored in Postgres          |
-| Events, flags                                                                   | PostHog SDK (mobile) + server events (backend) | Typed catalog in `packages/shared`                 |
-| Crash/error reporting                                                           | Sentry (both apps)                             | Generation-failure alarms                          |
+| Concern                                                                         | Owner                                          | Notes                                                                          |
+| ------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| Auth sessions, JWT                                                              | Supabase Auth                                  | Backend verifies the same JWT (guard)                                          |
+| Profile, memory, people, gratitude, favorites CRUD                              | Mobile ↔ Supabase (RLS)                        | No backend hop                                                                 |
+| Letter / moment / affirmation generation                                        | NestJS                                         | Only path that touches LLM/TTS keys                                            |
+| Generation QA (tokens, banned phrases, Never-Include, length)                   | NestJS QA gate                                 | Release-blocking rules from product docs 08, 14                                |
+| Crisis-language check                                                           | NestJS (pre-generation step)                   | Product doc 18                                                                 |
+| Audio files                                                                     | Supabase Storage                               | Written by backend, read by mobile via signed URLs                             |
+| Daily pre-generation, D7 milestone, trial reminders, win-back note, auto-soften | NestJS cron                                    | 04, 11                                                                         |
+| Push tokens                                                                     | Supabase table (mobile writes)                 | Backend reads to send                                                          |
+| Purchases, entitlements                                                         | RevenueCat SDK (mobile) + webhooks (backend)   | `subscription_state` mirrored in Postgres                                      |
+| Events, flags                                                                   | PostHog SDK (mobile) + server events (backend) | Typed catalog in `packages/shared`                                             |
+| Crash/error reporting                                                           | PostHog Error Tracking (both apps)             | Exceptions as a distinct stream from catalog events; generation-failure alarms |
 
 ## 4. Primary data flows
 
@@ -123,8 +121,7 @@ Full deployment detail → 16.
 | OpenAI (ChatGPT API) | Text generation (launch default, behind `LlmProvider` abstraction) | **No-training / no-retention API terms mandatory** (zero-retention via API data controls — verify at account setup); latency <40s letter, <20s moment | Locked (founder decision 2026-07-17) |
 | ElevenLabs           | TTS                                                                | No-retention terms; word timestamps                                                                                                                   | Locked (behind abstraction)          |
 | RevenueCat           | Subscriptions                                                      | —                                                                                                                                                     | Locked                               |
-| PostHog              | Analytics + flags                                                  | No free-text content ever sent (enforced by typed events)                                                                                             | Locked                               |
-| Sentry               | Errors                                                             | PII scrubbing on                                                                                                                                      | Locked                               |
+| PostHog              | Analytics + flags + error tracking                                 | No free-text content ever sent (enforced by typed events); exception payloads carry no PII, user context id-only                                      | Locked                               |
 | Expo (EAS)           | Build, submit, push                                                | —                                                                                                                                                     | Locked                               |
 
 ## 7. Resolution of product Open Questions (doc 20) — technical items

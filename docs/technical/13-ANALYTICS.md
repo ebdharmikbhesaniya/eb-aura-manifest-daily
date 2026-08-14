@@ -24,7 +24,7 @@ Super properties on every event (product 17): `session_id`, `subscription_state`
 - **Memory/moat:** `memory_item_created {category, source}` · `memory_item_deleted {category}` · `never_include_added` · `what_aura_knows_viewed` · `callback_delivered {type}` · `milestone_letter_played {day}`
 - **Monetization:** `paywall_viewed {surface}` · `locked_feature_touched {feature}` · `subscription_renewed` · `subscription_cancelled` · `trial_reminder_sent` · `winback_note_sent`/`_converted`
 - **Lifecycle:** `app_open {source}` · `notification_permission_result` · `notification_softened` · `account_deleted`
-- **Quality:** `generation_failed {surface, reason}` · `generation_qa_flagged {rule}` · `audio_start_latency_ms` · `playback_error` (crashes → Sentry, not PostHog)
+- **Quality:** `generation_failed {surface, reason}` · `generation_qa_flagged {rule}` · `audio_start_latency_ms` · `playback_error` (crashes/exceptions → PostHog Error Tracking, a distinct stream from these catalog product events)
 
 Ownership: mobile emits UX events; backend emits generation/webhook/cron events. Each event has exactly one emitter (catalog annotates it) — no double counting.
 
@@ -47,7 +47,7 @@ Ownership: mobile emits UX events; backend emits generation/webhook/cron events.
 2. **Ritual & retention** — D1/D7/D30 cohorts (free vs paid), ritual completion >40% DAU, notification open >60%.
 3. **Revenue** — RC dashboard primary; PostHog funnel for paywall surfaces.
 4. **Memory moat** — callback-containing moments vs plain: favorite rate + completion rate; retention curve by memory-item count.
-5. **Generation quality** — `generation_failed`/`generation_qa_flagged` rates by rule + latency p75/p90; **alarm**: QA-flag rate >5% or any `never_include` leak → Sentry alert (the "repetition complaints" early-warning from product 19 pivot signals).
+5. **Generation quality** — `generation_failed`/`generation_qa_flagged` rates by rule + latency p75/p90; **alarm**: QA-flag rate >5% or any `never_include` leak → PostHog alert (the "repetition complaints" early-warning from product 19 pivot signals).
 
 ## 7. Phase mapping
 

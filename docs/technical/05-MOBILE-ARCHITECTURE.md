@@ -78,7 +78,7 @@ radii: chip 14 · field 16 · card 22 · pill/FAB round · shadow 0 12 32 ink/10
 ## 8. Error & loading conventions (product docs 13, 14)
 
 - Never spinners: loading = orb + one in-voice line (from `src/copy/loading.ts`), or Sand skeleton shimmer for lists.
-- Errors: crossfade to in-voice retry copy; error taxonomy mapped from the API envelope (07 §5) to copy keys; codes never shown. Sentry captures the technical detail.
+- Errors: crossfade to in-voice retry copy; error taxonomy mapped from the API envelope (07 §5) to copy keys; codes never shown. PostHog Error Tracking captures the technical detail.
 - All companion copy lives in `src/copy/*.ts` typed catalogs — single audit surface for the banned-phrase test (15 §5).
 
 ## 9. Boot sequence
@@ -87,7 +87,7 @@ radii: chip 14 · field 16 · card 22 · pill/FAB round · shadow 0 12 32 ink/10
 cold start → splash (static orb)
 → load session (secure store) | signInAnonymously
 → hydrate MMKV stores + query cache
-→ RevenueCat logIn(userId) · PostHog identify · Sentry setUser (id only)
+→ RevenueCat logIn(userId) · PostHog identify (id only — also the person errors attach to)
 → route: !onboarding_completed_at → (onboarding) : (tabs)/home
 → prefetch: today's moment (+audio), affirmation state, gratitude today
 ```
