@@ -111,6 +111,14 @@ export function HomeScreen({
       }}
       showsVerticalScrollIndicator={false}
     >
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{ flex: 1, gap: spacing.xs }}>
+          <Label>{formatHomeDate()}</Label>
+          <SerifDisplay variant="title">{greeting}</SerifDisplay>
+        </View>
+        <Orb state="idle" size={HEADER_ORB_SIZE} testID="home-orb" />
+      </View>
+
       {showFirstRun && (
         <View testID="home-first-run-welcome">
           <Card
@@ -136,14 +144,6 @@ export function HomeScreen({
           </Card>
         </View>
       )}
-
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <View style={{ flex: 1, gap: spacing.xs }}>
-          <Label>{formatHomeDate()}</Label>
-          <SerifDisplay variant="title">{greeting}</SerifDisplay>
-        </View>
-        <Orb state="idle" size={HEADER_ORB_SIZE} testID="home-orb" />
-      </View>
 
       <View style={{ gap: spacing.sm }}>
         <Label>{momentsCopy.home.todayLabel}</Label>
