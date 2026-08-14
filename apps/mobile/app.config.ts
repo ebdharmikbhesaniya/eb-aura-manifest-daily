@@ -350,7 +350,28 @@ const config: ExpoConfig = {
       // static-linkage class of issue already handled for AppCheckCore in
       // plugins/withGoogleSignInPods.js — verify a clean `pod install`.
       'expo-build-properties',
-      { ios: { useFrameworks: 'static' } },
+      {
+        ios: {
+          useFrameworks: 'static',
+          // Build React Native from source instead of using the prebuilt
+          // ReactNativeDependencies/React-Core-prebuilt XCFrameworks.
+          //
+          // The prebuilt core ships without RN's debug-only symbols, but the
+          // third-party pods that are still compiled FROM SOURCE (RNScreens,
+          // RNGestureHandler, RNReanimated, RNGoogleSignin) reference them from
+          // their ShadowNode/Props vtables. The result is a Debug link that dies
+          // with ~180 undefined symbols — `facebook::react::Sealable::Sealable()`,
+          // `ShadowNode::getDebugName/getDebugValue/getDebugChildren() const`,
+          // `BaseViewProps::getDebugProps() const` — plus RCTPackagerConnection
+          // and RCTReconnectingWebSocket from expo-dev-launcher.
+          //
+          // The `ld: warning` about SwiftUICore printed just above that list is
+          // NOT the cause: it is a benign implicit-autolink warning coming from
+          // ExpoModulesCore's swiftinterface, and it is still emitted on a green
+          // build. Chasing it instead of the undefined symbols leads nowhere.
+          buildReactNativeFromSource: true,
+        },
+      },
     ] as any,
     // The App Tracking Transparency prompt (spec §7); the usage string is in
     // ios.infoPlist above.
