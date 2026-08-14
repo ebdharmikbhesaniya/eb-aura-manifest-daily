@@ -126,14 +126,16 @@ Still omitted (genuinely not needed for the app): the rest of the ingestion mesh
 
 Provisioned by `provision.mjs`. All created **active at 100% control**, so nothing changes until you ramp.
 
-| Flag key                 | Registry                           | Variants (control first)                             | Gated in code?                                          | Why                                                                  |
-| ------------------------ | ---------------------------------- | ---------------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------- |
-| `onboarding-dream-home`  | `EXPERIMENTS.onboardingDreamHome`  | `control` = shown · `off` = hidden                   | **Not yet** — dream-home ships unconditionally (see §5) | Depth converts (Glow); test whether the 7th question helps or hurts. |
-| `onboarding-commit-beat` | `EXPERIMENTS.onboardingCommitBeat` | `control` = shown · `off` = hidden                   | **Not yet**                                             | Isolate the commitment beat's lift on trial-start.                   |
-| `home-first-run`         | `EXPERIMENTS.homeFirstRun`         | `control` = shown · `off` = hidden                   | **Not yet**                                             | Isolate first-run activation's lift on trial→paid / retention.       |
-| `paywall-layout`         | `EXPERIMENTS.paywallLayout`        | `control` = single trial-timeline · `steps` = 3-step | **Not yet** (steps variant not built)                   | Test single rich screen vs Glow's one-info-per-screen sequence.      |
+| Flag key                 | Registry                           | Variants (control first)                             | Gated in code?                                                    | Why                                                                  |
+| ------------------------ | ---------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `onboarding-dream-home`  | `EXPERIMENTS.onboardingDreamHome`  | `control` = shown · `off` = hidden                   | **Yes** — `useHiddenScreens` skips `s07-dream-home` when `off`    | Depth converts (Glow); test whether the 7th question helps or hurts. |
+| `onboarding-commit-beat` | `EXPERIMENTS.onboardingCommitBeat` | `control` = shown · `off` = hidden                   | **Yes** — `useHiddenScreens` skips `s13-commit` when `off`        | Isolate the commitment beat's lift on trial-start.                   |
+| `home-first-run`         | `EXPERIMENTS.homeFirstRun`         | `control` = shown · `off` = hidden                   | **Yes** — `app/(tabs)/home.tsx` hides the welcome card when `off` | Isolate first-run activation's lift on trial→paid / retention.       |
+| `paywall-layout`         | `EXPERIMENTS.paywallLayout`        | `control` = single trial-timeline · `steps` = 3-step | **Deferred** — `steps` layout not built (see below)               | Test single rich screen vs Glow's one-info-per-screen sequence.      |
 
-> **"Not yet" is deliberate.** The three onboarding changes shipped straight (they ARE today's control). The flags exist so you can turn each into a real A/B with a one-line gate (§5) whenever you choose — the tracking + infra are ready now, the gating is the "run the experiment" step.
+> **Three are wired, one is deferred (2026-08-14).** `home-first-run`, `onboarding-dream-home` and `onboarding-commit-beat` now read their flag via `useVariant` (`control` = today's behaviour byte-for-byte, so nothing changed until you ramp). To run one, just ramp its `off` arm — no code change (§5).
+>
+> **`paywall-layout` is deliberately NOT wired.** Its `steps` arm is a 3-step one-info-per-screen paywall that **does not exist** — `PaywallScreen.tsx` only renders the single `TrialTimeline` layout. Wiring it would mean either a meaningless experiment (both arms identical) or shipping a broken empty arm, so it waits until the `steps` layout is designed and built as a real feature. The flag stays at 100% control; nothing renders or breaks. When you build `steps`, wire it in `PaywallScreen.tsx` with `useVariant(EXPERIMENTS.paywallLayout, 'control', ['control', 'steps'])` and branch the layout.
 
 ---
 
@@ -158,20 +160,16 @@ Exposure attribution for experiments is PostHog's native `$feature_flag_called` 
 
 ## 5. How to actually run an experiment (control = current)
 
-Each onboarding flag needs a **one-line gate** added when you decide to run it. Pattern (dream-home shown):
+The three onboarding/home flags are **already gated** — the code reads the variant via `useVariant` and `control` is today's behaviour, so there is **no code change to run them**. `home-first-run` branches in `app/(tabs)/home.tsx`; the two onboarding flags branch through `useHiddenScreens` → `nextScreen`/`previousScreen` skipping the hidden screen (`flow.ts`). The reference wiring pattern, for the next flag you add:
 
 ```ts
-// flow.ts — make SCREEN_ORDER a function of the variant
 import { useVariant } from '@/features/experiments/useVariant';
-import { EXPERIMENTS } from '@/features/experiments/keys';
-// in the resume/host that builds the flow:
-const v = useVariant(EXPERIMENTS.onboardingDreamHome, 'control', ['control', 'off']);
-const order = v === 'off' ? SCREEN_ORDER.filter((s) => s !== 's07-dream-home') : SCREEN_ORDER;
+import { EXPERIMENTS, ON_OFF_VARIANTS } from '@/features/experiments/keys';
+const variant = useVariant(EXPERIMENTS.homeFirstRun, 'control', ON_OFF_VARIANTS);
+// then branch behaviour on `variant`, keeping `control` === today's UI byte-for-byte.
 ```
 
-For `home-first-run` / `onboarding-commit-beat` it's even simpler — wrap the render/insertion in `useVariant(...) === 'control'`. **Keep control === today's behaviour.**
-
-Then: in PostHog, create an **Experiment** on the flag with a goal metric (e.g. `trial_started` for the paywall/commit ones, `onboarding_completed` + `trial_started` for dream-home), ramp the non-control variant to 50%, and decide on **conversion/revenue**, not completion, at the sample threshold (~300 users / ~50 conversions per arm). Then delete the losing path.
+To run one: in PostHog, create an **Experiment** on the flag with a goal metric (e.g. `trial_started` / `onboarding_completed` + `trial_started` for dream-home), ramp the non-control variant to 50%, and decide on **conversion/revenue**, not completion, at the sample threshold (~300 users / ~50 conversions per arm). Then delete the losing path. (`paywall-layout` is the exception — build its `steps` layout first; see §3.)
 
 ---
 
@@ -179,13 +177,15 @@ Then: in PostHog, create an **Experiment** on the flag with a goal metric (e.g. 
 
 1. **Create/confirm the prod PostHog project** (Cloud or self-host). Note the ingestion key (`phc_…`) and project id.
 2. **App env (prod build):** set `EXPO_PUBLIC_POSTHOG_KEY` (and `EXPO_PUBLIC_POSTHOG_HOST` if not Cloud US) in `apps/mobile/eas.json` `base.env`. Rebuild.
-3. **Provision:** create a personal API key (`phx_…`, scopes in §0), then:
+3. **Provision:** create a personal API key (`phx_…`, scopes `feature_flag:write` + `dashboard:write` + `insight:write`), then run BOTH scripts (idempotent — safe to re-run):
    ```bash
    POSTHOG_HOST=https://us.i.posthog.com POSTHOG_PROJECT_ID=<id> \
-   POSTHOG_PERSONAL_API_KEY=phx_... node infra/posthog/provision.mjs
+   POSTHOG_PERSONAL_API_KEY=phx_... node infra/posthog/provision.mjs   # flags + growth funnels
+   POSTHOG_HOST=https://us.i.posthog.com POSTHOG_PROJECT_ID=<id> \
+   POSTHOG_PERSONAL_API_KEY=phx_... node infra/posthog/dashboards.mjs  # the six perspective dashboards
    ```
-   Idempotent — safe to re-run after adding flags/insights.
-4. **Verify** events land (Activity → Live events) and the dashboard populates.
+   > Until `dashboards.mjs` runs, PostHog shows only its own auto-created "starter dashboard" — the six Aura dashboards are code and appear only after provisioning.
+4. **Verify** events land (Activity → Live events) and the dashboards populate.
 5. **Run experiments** per §5, one at a time.
 
 Keep this runbook + `provision.mjs` the source of truth: **add a flag → add it to `keys.ts` → add it to `provision.mjs` → document it here**, in that order.
