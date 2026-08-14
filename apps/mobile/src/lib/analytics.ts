@@ -2,6 +2,7 @@ import type { AnalyticsClient, SuperProperties } from '@aura/shared';
 import PostHog from 'posthog-react-native';
 
 import { env } from './env';
+import { scrubExceptionEvent } from './errorScrub';
 import { logGa4Event } from './ga4';
 
 /**
@@ -47,10 +48,30 @@ export function initAnalytics(): void {
     // Explicit events only — see the privacy note above.
     defaultOptIn: true,
     disabled: false,
+    // Error Tracking (13 §monitoring). Autocapture is scoped to EXCEPTIONS only —
+    // uncaught JS errors + unhandled promise rejections. Event autocapture stays
+    // OFF (privacy note above); the two are unrelated settings. Native iOS/Android
+    // crash capture (`nativeCrashes`) needs the optional @posthog/react-native-plugin,
+    // which isn't installed — add it, then flip nativeCrashes on.
+    errorTracking: { autocapture: { uncaughtExceptions: true, unhandledRejections: true } },
+    // Privacy backstop (14 §privacy): scrub every outbound $exception payload of any
+    // long free-text that could echo user content before it leaves the device.
+    // Cast bridges our internally-typed scrub to the SDK's BeforeSendFn (its
+    // CaptureEvent.properties uses JsonType, not unknown); runtime shape matches.
+    before_send: scrubExceptionEvent as never,
     // Point at a self-hosted / local / EU instance when set; PostHog Cloud US
     // otherwise (the SDK default). Feature flags resolve against this host too.
     ...(env.EXPO_PUBLIC_POSTHOG_HOST ? { host: env.EXPO_PUBLIC_POSTHOG_HOST } : {}),
   });
+}
+
+/**
+ * Report a caught or render-boundary exception to PostHog Error Tracking. The
+ * `before_send` scrub still runs on the payload; keep `properties` free of user
+ * content. No client (dev without a key) → a silent no-op, like every emitter here.
+ */
+export function captureException(error: unknown, properties?: Record<string, unknown>): void {
+  client?.captureException(error, { source: 'mobile', ...properties });
 }
 
 /**

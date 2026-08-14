@@ -17,7 +17,7 @@ _Last updated: 2026-08-14_
 | 3   | **Experiments (A/B)**    | ✅ implemented (3/4 flags)    | `home.tsx`, `useHiddenScreens`, `flow.ts`                                                              | `f9c073f`, `61d11fa`  |
 | 4   | **API + SQL/HogQL**      | ✅ implemented (provisioning) | `infra/posthog/provision.mjs`, `dashboards.mjs`                                                        | `704dd22`, `187142e`  |
 | 5   | **CLI / Wizard**         | ✅ implemented                | `posthog-cli login` → `_cliAuth.mjs` fallback                                                          | `187142e`             |
-| 6   | **Error Tracking**       | 🟡 in progress                | backend filter done; mobile pending                                                                    | _this batch_          |
+| 6   | **Error Tracking**       | ✅ implemented                | backend filter + `captureException`; mobile exception autocapture + `AppErrorBoundary` + `errorScrub`  | `596cf26`, mobile     |
 | 7   | **Session Replay**       | ⬜ pending                    | mobile SDK config + masking                                                                            | —                     |
 | 8   | **Surveys**              | ⬜ pending                    | mobile SDK + targeting                                                                                 | —                     |
 | 9   | **AI Observability**     | ⬜ pending                    | backend OpenAI (Letter gen) instrumentation                                                            | —                     |
@@ -45,5 +45,8 @@ _Last updated: 2026-08-14_
 
 ## Changelog
 
+- **2026-08-14** — **Error Tracking ✅ complete.** Mobile: exception + unhandled-rejection
+  autocapture in `analytics.ts`, `captureException` export, `errorScrub` (before_send PII
+  guard), root `AppErrorBoundary`. Backend already shipped (below). Next up: Session Replay.
 - **2026-08-14** — Tracker created. Error Tracking started: backend `captureException`
   - global `AllExceptionsFilter` (5xx→PostHog, 4xx untouched, no message leak), 5 tests green.

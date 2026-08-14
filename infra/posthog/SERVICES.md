@@ -34,10 +34,10 @@ page at fetch time — **verify at posthog.com/pricing before budgeting.**
 
 ## Monitoring
 
-| Product            | Status  | RN?                        | Free tier → rate                 | What it does / Aura fit                                                                                                                                              |
-| ------------------ | ------- | -------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Error Tracking** | ★ next  | ✅ native crashes (+ Node) | 100k exceptions/mo → $0.00037/ea | Auto-captures + groups exceptions into issues, source-mapped stacks, release tagging, links replay+events. **The Sentry replacement** — see the implementation plan. |
-| **Logs**           | β newer | OTLP / backend             | separate pricing                 | OpenTelemetry log store, correlated with replays. Backend-side; nice-to-have.                                                                                        |
+| Product            | Status         | RN?                        | Free tier → rate                 | What it does / Aura fit                                                                                                                                                                                                                                                                              |
+| ------------------ | -------------- | -------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Error Tracking** | ✅ implemented | ✅ JS autocapture (+ Node) | 100k exceptions/mo → $0.00037/ea | Auto-captures + groups exceptions into issues, source-mapped stacks, release tagging, links replay+events. **The Sentry replacement** — shipped (mobile autocapture + boundary, backend 5xx filter). Native crashes pending `@posthog/react-native-plugin`; source-map upload pending (plan task 6). |
+| **Logs**           | β newer        | OTLP / backend             | separate pricing                 | OpenTelemetry log store, correlated with replays. Backend-side; nice-to-have.                                                                                                                                                                                                                        |
 
 ## AI
 
