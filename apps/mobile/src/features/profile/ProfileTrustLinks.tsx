@@ -16,7 +16,9 @@ export function ProfileTrustLinks() {
 
   return (
     <>
-      <View style={{ gap: spacing.sm }}>
+      {/* Hugs its label — see ProfileAccountSection for why the page separates
+          at the section boundary rather than under every heading. */}
+      <View style={{ gap: spacing.xs }}>
         <Label>{profileCopy.account.trustLabel}</Label>
         <RowGroup separatorInset="leading">
           <ListRow

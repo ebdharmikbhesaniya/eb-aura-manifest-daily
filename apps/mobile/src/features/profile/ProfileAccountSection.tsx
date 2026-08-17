@@ -29,7 +29,12 @@ export function ProfileAccountSection({
   const { spacing } = useTheme();
 
   return (
-    <View style={{ gap: spacing.sm }}>
+    // A label belongs to the group beneath it, so it HUGS it: the separation on
+    // this page lives between sections (ProfileTab's `spacing.md`), not between
+    // a heading and the card it names. At the old `spacing.sm` the two gaps were
+    // 8 and 12 — near enough to read as one rhythm, which left the labels
+    // floating between groups rather than attached to one.
+    <View style={{ gap: spacing.xs }}>
       <Label>{profileCopy.account.label}</Label>
       <RowGroup separatorInset="leading">
         <ListRow

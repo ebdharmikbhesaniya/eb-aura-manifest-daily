@@ -45,7 +45,9 @@ export function ProfileMemoryRows({
     people.length > 0 ? people.map(personLine).join(' · ') : profileCopy.people.empty;
 
   return (
-    <View style={{ gap: spacing.sm }}>
+    // Hugs its label — see ProfileAccountSection for why the page separates at
+    // the section boundary rather than under every heading.
+    <View style={{ gap: spacing.xs }}>
       <Label>{profileCopy.account.memoryLabel}</Label>
       <RowGroup separatorInset="leading">
         <ListRow
