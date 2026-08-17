@@ -35,4 +35,23 @@ describe('ensureSession', () => {
     // no `signInAnonymously` at all, so any attempt to call one would throw.
     expect(mockAuth).not.toHaveProperty('signInAnonymously');
   });
+
+  /**
+   * "No stored session" and "could not verify the stored one" both arrive as a
+   * null session, and conflating them is what showed the sign-in wall to a
+   * signed-in user whose token refresh had failed — indistinguishable, to her,
+   * from being silently signed out and losing everything she has written.
+   *
+   * A refresh failure must reach useBoot's catch as a boot failure instead, so
+   * she gets the honest "I can't reach you right now" line and the stored
+   * session survives to the next launch.
+   */
+  it('throws rather than reporting "no session" when the refresh failed', async () => {
+    mockAuth.getSession.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'Network request failed' },
+    } as never);
+
+    await expect(ensureSession()).rejects.toThrow('Network request failed');
+  });
 });
