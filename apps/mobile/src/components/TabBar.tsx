@@ -23,31 +23,66 @@ export interface TabBarProps {
   };
 }
 
-/** The bar's content height above the safe-area inset — drives scroll clearance. */
-const BAR_CONTENT_HEIGHT = 58;
+/**
+ * The capsule's own height: its `spacing.xs` padding either side of a selection
+ * pill that stacks a `lg` glyph over an 11pt caption. Stated as a constant
+ * because the scroll clearance below has to know it without measuring.
+ */
+const BAR_HEIGHT = 58;
 
 /**
- * Bottom space a scrolling tab screen must leave clear, for THIS device. The bar
- * docks to the bottom edge, so a screen must clear its content height plus the
- * safe-area inset it pads itself with.
+ * How far the capsule floats above the bottom edge.
+ *
+ * On a home-indicator phone the safe-area inset IS that gap — the bar rides
+ * just clear of the indicator, which is what iOS's own floating bar does. With
+ * no inset (older phones, most Android) there is nothing to clear, so the bar
+ * needs a margin of its own or it would sit welded to the screen edge, which is
+ * the exact docked look this replaced.
  */
-export function useTabBarClearance(): number {
+function useTabBarOffset(): number {
   const insets = useSafeAreaInsets();
   const { spacing } = useTheme();
-  return insets.bottom + BAR_CONTENT_HEIGHT + spacing.md;
+  return insets.bottom > 0 ? insets.bottom : spacing.md;
+}
+
+/**
+ * Bottom space a scrolling tab screen must leave clear, for THIS device.
+ *
+ * The bar no longer docks, so this is the float offset PLUS the capsule itself
+ * PLUS a gap — without the last term the final row stops flush against the
+ * capsule's underside and reads as clipped rather than as ended.
+ */
+export function useTabBarClearance(): number {
+  const offset = useTabBarOffset();
+  const { spacing } = useTheme();
+  return offset + BAR_HEIGHT + spacing.md;
 }
 
 /**
  * The bottom tab bar (product 12 §navigation, 06 §6): four tabs, no more — the
- * IA does not grow tabs. A clean docked bar with a rounded top edge, each tab a
- * glyph over its label. The active tab FILLS its glyph in and colours it ember,
- * with a soft ember chip behind it — the modern bottom-nav idiom, the clearest
- * "you are here". The title is the label AND the `accessibilityLabel`, so voice
- * and sighted users read the same word.
+ * IA does not grow tabs.
+ *
+ * A FLOATING capsule, not a docked slab. It is inset by the same
+ * `layout.screenMargin` every screen already uses down its sides and rides
+ * above the home indicator, so the gradient runs on underneath it and the bar
+ * reads as a control resting on the page rather than as a white sheet the page
+ * stops against. That is the current iOS idiom (the system's own floating bar),
+ * and it is what the docked version got wrong: squared to the screen edges and
+ * padded by the full safe-area inset, it grew into a slab that owned the whole
+ * bottom of the display.
+ *
+ * The active tab now takes a soft ember pill BEHIND its glyph and caption, the
+ * way the system bar capsules its selection. An earlier revision dropped that
+ * chip as "noise on our warm surface" — true when the chip sat on the bone page
+ * itself, but the capsule gives it a white ground to sit on, and selection that
+ * is carried by colour alone is the weaker signal of the two.
+ *
+ * The title is the label AND the `accessibilityLabel`, so voice and sighted
+ * users read the same word.
  */
 export function TabBar({ state, descriptors, navigation }: TabBarProps) {
-  const { colors, radii, spacing, iconSizes, shadows } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { colors, layout, radii, spacing, iconSizes, shadows } = useTheme();
+  const offset = useTabBarOffset();
   const scale = clampedFontScale();
 
   return (
@@ -55,23 +90,20 @@ export function TabBar({ state, descriptors, navigation }: TabBarProps) {
       accessibilityRole="tablist"
       style={{
         position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
+        left: layout.screenMargin,
+        right: layout.screenMargin,
+        bottom: offset,
         flexDirection: 'row',
         backgroundColor: colors.surface.card,
-        borderTopLeftRadius: radii.sheet,
-        borderTopRightRadius: radii.sheet,
-        // A hairline at the seam, and the safe-area inset padded into the bar.
-        borderTopWidth: 1,
+        // Fully round: the capsule is the shape, so the radius is not a
+        // softened corner but the silhouette itself.
+        borderRadius: radii.pill,
+        borderWidth: 1,
         borderColor: colors.surface.border,
-        paddingTop: spacing.sm,
-        paddingBottom: insets.bottom + spacing.xs,
-        paddingHorizontal: spacing.sm,
-        // Soft lift so the bar reads above the screen it caps — the field preset,
-        // flipped to throw its shadow UP from the docked edge.
-        ...shadows.field,
-        shadowOffset: { width: 0, height: -4 },
+        padding: spacing.xs,
+        // A floating control casts DOWNWARD — the docked bar threw its shadow up
+        // from a seam that no longer exists.
+        ...shadows.card,
       }}
     >
       {state.routes.map((route) => {
@@ -91,8 +123,6 @@ export function TabBar({ state, descriptors, navigation }: TabBarProps) {
             testID={`tab-${route.name}`}
             style={({ pressed }) => ({
               flex: 1,
-              alignItems: 'center',
-              gap: 4,
               opacity: pressed ? 0.6 : 1,
             })}
             onPress={() => {
@@ -108,25 +138,37 @@ export function TabBar({ state, descriptors, navigation }: TabBarProps) {
               }
             }}
           >
-            {/* The active mark is the FILLED, ember glyph itself — no chip behind
-                it. The reference's highlight reads as noise on our warm surface,
-                and the fill + colour already says "you are here" cleanly. */}
-            <View style={{ paddingVertical: 5 }}>
-              <TabIcon name={route.name} size={iconSizes.lg} color={iconColor} focused={focused} />
-            </View>
-
-            <Text
-              numberOfLines={1}
-              allowFontScaling={false}
+            {/* The selection capsule. It STRETCHES to its tab's slot rather than
+                hugging its contents, so the four pills are one width and the
+                mark does not appear to resize as she moves between a short
+                label and "Affirmations". Transparent when resting, so the
+                unselected tabs stay bare glyphs on the white ground. */}
+            <View
+              testID={`tab-capsule-${route.name}`}
               style={{
-                fontSize: 11 * scale,
-                letterSpacing: 0.1,
-                color: labelColor,
-                fontWeight: focused ? '600' : '400',
+                alignSelf: 'stretch',
+                alignItems: 'center',
+                gap: 2,
+                paddingVertical: 6,
+                borderRadius: radii.pill,
+                backgroundColor: focused ? colors.accent.emberFaint : 'transparent',
               }}
             >
-              {title}
-            </Text>
+              <TabIcon name={route.name} size={iconSizes.lg} color={iconColor} focused={focused} />
+
+              <Text
+                numberOfLines={1}
+                allowFontScaling={false}
+                style={{
+                  fontSize: 11 * scale,
+                  letterSpacing: 0.1,
+                  color: labelColor,
+                  fontWeight: focused ? '600' : '400',
+                }}
+              >
+                {title}
+              </Text>
+            </View>
           </Pressable>
         );
       })}

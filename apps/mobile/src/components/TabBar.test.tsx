@@ -48,6 +48,10 @@ function iconColor(tab: string): unknown {
   return StyleSheet.flatten(screen.getByTestId(`tab-icon-${tab}`).props.style).color;
 }
 
+function capsuleFill(tab: string): unknown {
+  return StyleSheet.flatten(screen.getByTestId(`tab-capsule-${tab}`).props.style).backgroundColor;
+}
+
 const light = colorSchemes.light;
 
 describe('TabBar', () => {
@@ -85,6 +89,19 @@ describe('TabBar', () => {
 
     expect(iconColor('home')).toBe(light.text.primary);
     expect(iconColor('gratitude')).toBe(light.accent.emberDeep);
+  });
+
+  it('capsules only the active tab, and moves the capsule with the index', async () => {
+    // Colour alone carried "you are here" before the capsule existed, which is
+    // the one selection cue a colour-blind user cannot read. The pill is the
+    // redundant, shape-based half of that signal — so it has to follow the
+    // index, not just exist on tab zero.
+    await render(<TabBar {...makeProps({ index: 2 })} />, { wrapper });
+
+    expect(capsuleFill('gratitude')).toBe(light.accent.emberFaint);
+    expect(capsuleFill('home')).toBe('transparent');
+    expect(capsuleFill('affirmations')).toBe('transparent');
+    expect(capsuleFill('profile')).toBe('transparent');
   });
 
   it('reports selection to assistive tech', async () => {
