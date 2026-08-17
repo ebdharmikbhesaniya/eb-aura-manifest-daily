@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Screen, useTabBarClearance } from '@/components';
 import { paywallCopy } from '@/copy/paywall';
@@ -36,7 +37,8 @@ import { ProfileTrustLinks } from './ProfileTrustLinks';
 export function ProfileTab() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { layout, spacing } = useTheme();
+  const { spacing } = useTheme();
+  const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
   const userId = useAppState((s) => s.userId);
 
@@ -93,19 +95,21 @@ export function ProfileTab() {
   const name = (profile?.name ?? '').trim();
 
   return (
-    <Screen testID="profile-tab">
+    <Screen testID="profile-tab" scrollsUnderStatusBar>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          // The SAME margin `Screen` already applies down both sides, so the
-          // name sits as far below the safe area as it does in from the edge —
-          // Apple's standard content margin, and what Home and Gratitude use.
-          // This was `spacing.xl` (32), tuned back when no SafeAreaProvider was
-          // mounted and the top inset resolved to 0, so it was carrying the
-          // status bar on its own. Now the inset is real (59pt on a Dynamic
-          // Island phone) and stacking 32 on top of it opened a gap under the
-          // notch that read as a layout bug rather than as breathing room.
-          paddingTop: layout.screenMargin,
+          // The screen released the top inset, so this list owns it. Carrying it
+          // as CONTENT padding rather than as padding on the container is what
+          // lets her name travel under the status bar on the way up, instead of
+          // being sliced off at the container's edge partway down the screen.
+          //
+          // `spacing.sm` on top of the inset is the whole resting gap. It used to
+          // be a full `spacing.xl` (32) — tuned before a SafeAreaProvider was
+          // mounted, when the inset resolved to 0 and that padding was clearing
+          // the status bar single-handed. Once the inset became real the two
+          // stacked into a hole under the notch.
+          paddingTop: insets.top + spacing.sm,
           // The tab bar floats over this screen — without the clearance the last
           // card ends up underneath it.
           paddingBottom: tabBarClearance,

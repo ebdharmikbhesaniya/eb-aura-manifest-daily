@@ -35,13 +35,17 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 /** The safe-area container is the gradient's only child. */
-function contentStyle() {
+function content() {
   const gradient = screen.getByTestId('screen');
-  const [content] = gradient.children;
-  if (!content || typeof content === 'string') {
+  const [child] = gradient.children;
+  if (!child || typeof child === 'string') {
     throw new Error('expected the safe-area container');
   }
-  return StyleSheet.flatten(content.props.style);
+  return child;
+}
+
+function contentStyle() {
+  return StyleSheet.flatten(content().props.style);
 }
 
 describe('Screen', () => {
@@ -77,6 +81,33 @@ describe('Screen', () => {
     );
 
     expect(contentStyle().paddingHorizontal).toBeUndefined();
+  });
+
+  it('pads every safe-area edge by default', async () => {
+    await render(
+      <Screen testID="screen">
+        <Text>content</Text>
+      </Screen>,
+      { wrapper },
+    );
+
+    // The library normalises the edge list into a per-edge mode map.
+    expect(content().props.edges).toMatchObject({ top: 'additive', bottom: 'additive' });
+  });
+
+  it('releases the top edge for a screen that scrolls under the status bar', async () => {
+    // The released inset does not vanish — the screen re-applies it as CONTENT
+    // padding, which is the difference between a list that travels under the
+    // status bar and one guillotined at the container's edge. The bottom stays
+    // held: nothing scrolls out through the home indicator.
+    await render(
+      <Screen testID="screen" scrollsUnderStatusBar>
+        <Text>content</Text>
+      </Screen>,
+      { wrapper },
+    );
+
+    expect(content().props.edges).toMatchObject({ top: 'off', bottom: 'additive' });
   });
 
   it('merges a caller style into the content container', async () => {
