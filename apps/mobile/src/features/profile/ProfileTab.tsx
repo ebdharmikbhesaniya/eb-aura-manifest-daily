@@ -36,7 +36,7 @@ import { ProfileTrustLinks } from './ProfileTrustLinks';
 export function ProfileTab() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { spacing } = useTheme();
+  const { layout, spacing } = useTheme();
   const tabBarClearance = useTabBarClearance();
   const userId = useAppState((s) => s.userId);
 
@@ -97,7 +97,15 @@ export function ProfileTab() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: spacing.xl,
+          // The SAME margin `Screen` already applies down both sides, so the
+          // name sits as far below the safe area as it does in from the edge —
+          // Apple's standard content margin, and what Home and Gratitude use.
+          // This was `spacing.xl` (32), tuned back when no SafeAreaProvider was
+          // mounted and the top inset resolved to 0, so it was carrying the
+          // status bar on its own. Now the inset is real (59pt on a Dynamic
+          // Island phone) and stacking 32 on top of it opened a gap under the
+          // notch that read as a layout bug rather than as breathing room.
+          paddingTop: layout.screenMargin,
           // The tab bar floats over this screen — without the clearance the last
           // card ends up underneath it.
           paddingBottom: tabBarClearance,
