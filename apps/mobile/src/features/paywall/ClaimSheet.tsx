@@ -96,6 +96,13 @@ export const ClaimSheet = forwardRef<BottomSheetModal, ClaimSheetProps>(function
               placeholder={paywallCopy.claim.emailPlaceholder}
               keyboardType="email-address"
               autoCapitalize="none"
+              // This address IS the way back to her letters — the sheet's whole
+              // argument. Hand-typing it is the step worth removing.
+              autoComplete="email"
+              returnKeyType="go"
+              onSubmitEditing={() => {
+                if (email.trim() !== '') void runEmail();
+              }}
               testID="claim-email-input"
             />
             <PillButton

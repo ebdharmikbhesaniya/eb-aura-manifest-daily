@@ -33,6 +33,9 @@ export const onboardingCopy = {
 
   s03Name: {
     question: 'What should I call you?',
+    // Names the field for the screen reader and gives the empty box something
+    // to say; the helper below it stays the guidance.
+    placeholder: 'Your name',
     // Quiet guidance under the field (v4 S3).
     helper: 'Just your given name is perfect.',
     primary: 'Continue',
@@ -43,6 +46,9 @@ export const onboardingCopy = {
   s04SelfDescription: {
     question:
       'Since we’ve just met, {name} — how would you describe yourself? Whatever comes to mind.',
+    // "Whatever comes to mind" is already in the question, so the placeholder
+    // lowers the bar rather than repeating it — a FEW words is enough.
+    placeholder: 'A few words about you',
     primary: 'Continue',
     skip: 'Skip for now',
     // Reflection when she skipped (product 07 S4 edge).
@@ -112,6 +118,8 @@ export const onboardingCopy = {
 
   s10Struggle: {
     question: 'Last one, and it matters most. What’s the thing that feels heaviest right now?',
+    // Invitational, never clinical — the field must not read as an intake form.
+    placeholder: 'In your own words',
     primary: 'Continue',
     skip: 'Not today',
     // Gentle, non-clinical; NEVER followed by a sales beat (product 07 S10).

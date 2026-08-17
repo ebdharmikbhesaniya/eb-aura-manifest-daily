@@ -34,7 +34,18 @@ export function S03Name() {
       <Input
         value={name}
         onChangeText={setName}
+        // The question sits above the field, not in it — so an empty field had
+        // nothing to name it, for sighted use or for a screen reader.
+        placeholder={onboardingCopy.s03Name.placeholder}
         autoFocus
+        // The field autofocuses, so the keyboard is already up and Continue is
+        // behind it — the return key is the nearest way forward.
+        returnKeyType="go"
+        onSubmitEditing={() => {
+          // Same guard as `primaryDisabled`, so return cannot submit a name
+          // Continue would have refused.
+          if (name.trim() !== '' && !tooLong) void submit(name.trim());
+        }}
         // The gentle trim replaces the helper when it applies — one line under
         // the field, never two (v4 S3).
         hint={tooLong ? onboardingCopy.s03Name.tooLong : onboardingCopy.s03Name.helper}

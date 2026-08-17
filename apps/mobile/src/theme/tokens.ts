@@ -231,6 +231,21 @@ export const layout = {
   /** Paired actions inside a card sit lower than the primary pill (v4 §affirmation). */
   cardButtonHeight: 44,
   /**
+   * Single-line input height. Fixed rather than padding-derived so every field
+   * in the app is the same height and the text can be centred against a known
+   * box — a padding-derived field drifts with the platform's font metrics, which
+   * is how text ends up sitting off-centre. Sits between the 44pt row and the
+   * 54pt primary pill, and clears the 44pt minimum tap target.
+   */
+  fieldHeight: 50,
+  /**
+   * Composer fields (gratitude, "describe yourself") open at three lines of
+   * `body` plus padding. A multiline field that opens one line tall reads as a
+   * single-line field and asks for a sentence when the screen asked for a
+   * paragraph.
+   */
+  fieldHeightMultiline: 96,
+  /**
    * Home stacks its sections closer than the 32pt section rhythm (v4 §home).
    * Off the 4pt grid because v4 is: the screen carries five sections and the
    * grid spacing pushed the last one below the fold.

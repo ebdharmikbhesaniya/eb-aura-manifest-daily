@@ -99,7 +99,15 @@ export function EditFieldSheet({
               </Text>
             ) : (
               <View style={{ gap: spacing.md }}>
-                <Input value={value} onChangeText={setValue} multiline={multiline} autoFocus />
+                <Input
+                  value={value}
+                  onChangeText={setValue}
+                  // Generic on purpose: this sheet edits any profile field, and
+                  // the row it opened from already named which one.
+                  placeholder={profileCopy.edit.placeholder}
+                  multiline={multiline}
+                  autoFocus
+                />
                 <PillButton title={profileCopy.edit.save} onPress={save} />
                 <TextButton title={profileCopy.edit.cancel} onPress={onClose} />
               </View>

@@ -63,6 +63,12 @@ export function NeverIncludeScreen({ onBack }: NeverIncludeScreenProps = {}) {
             value={draft}
             onChangeText={setDraft}
             placeholder={memoryCopy.neverInclude.addPlaceholder}
+            // This screen is a list she adds to repeatedly, so the return key
+            // has to add — reaching for "Add" between every term is the whole
+            // friction. `submit` already no-ops on an empty draft and clears
+            // the field, which is exactly the loop the keyboard wants.
+            returnKeyType="done"
+            onSubmitEditing={submit}
           />
           <TextButton title={memoryCopy.neverInclude.addAction} onPress={submit} />
         </View>

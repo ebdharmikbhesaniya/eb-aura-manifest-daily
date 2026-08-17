@@ -140,6 +140,18 @@ export const SignInSheet = forwardRef<BottomSheetModal, SignInSheetProps>(functi
               placeholder={authCopy.signIn.emailPlaceholder}
               keyboardType="email-address"
               autoCapitalize="none"
+              // Lets the OS offer her saved address. This is the sign-IN gate:
+              // typing an email by hand is the step where a returning user
+              // mistypes and lands on "we don't know that address".
+              autoComplete="email"
+              // One field, one action — the keyboard's key should perform it
+              // rather than dead-end above a button she has to reach for.
+              returnKeyType="go"
+              onSubmitEditing={() => {
+                // Mirrors the button's own guard, so the return key cannot fire
+                // a request the disabled button would have refused.
+                if (email.trim() !== '' && !busy) void runEmail();
+              }}
               testID="signin-email-input"
             />
             {unknown && (

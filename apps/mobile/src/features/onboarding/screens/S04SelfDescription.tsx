@@ -71,6 +71,9 @@ export function S04SelfDescription() {
       <Input
         value={text}
         onChangeText={setText}
+        // Lowers the bar on the app's most open-ended question: the empty box
+        // says a few words will do, before the nudge under it has to.
+        placeholder={onboardingCopy.s04SelfDescription.placeholder}
         multiline
         autoFocus
         {...(text.trim() === '' ? { hint: onboardingCopy.s04SelfDescription.emptyNudge } : {})}

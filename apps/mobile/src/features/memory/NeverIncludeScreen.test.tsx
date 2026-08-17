@@ -54,6 +54,21 @@ describe('NeverIncludeScreen (product 10 §45: sacred)', () => {
     expect(view.getByDisplayValue('')).toBeTruthy();
   });
 
+  /**
+   * She adds terms in a run, and reaching for "Add" between each one is the
+   * friction. The return key runs the same `submit`, guard and clear.
+   */
+  it('adds a term from the keyboard return key too', async () => {
+    mockedApi.addNeverIncludeTerm.mockResolvedValue(undefined);
+    const view = await render(<NeverIncludeScreen />, { wrapper });
+
+    await fireEvent.changeText(view.getByDisplayValue(''), 'the diagnosis');
+    await fireEvent(view.getByDisplayValue('the diagnosis'), 'submitEditing');
+
+    expect(mockedApi.addNeverIncludeTerm).toHaveBeenCalledWith('user-1', 'the diagnosis');
+    expect(view.getByDisplayValue('')).toBeTruthy();
+  });
+
   it('ignores an empty add rather than erroring', async () => {
     const view = await render(<NeverIncludeScreen />, { wrapper });
 

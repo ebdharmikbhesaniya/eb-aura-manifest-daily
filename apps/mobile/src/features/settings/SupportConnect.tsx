@@ -1,5 +1,6 @@
 import { Linking, Text, View } from 'react-native';
-import { useState } from 'react';
+import type { TextInput } from 'react-native';
+import { useRef, useState } from 'react';
 
 import { Input, Label, ListRow, PillButton, RowGroup } from '@/components';
 import { settingsCopy } from '@/copy/settings';
@@ -20,6 +21,9 @@ export function SupportConnect() {
   const { colors, spacing, typography } = useTheme();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  // The only real two-field form in the app, so the only place a "next" key has
+  // somewhere to go.
+  const messageRef = useRef<TextInput | null>(null);
 
   const canSend = message.trim().length > 0;
 
@@ -48,6 +52,11 @@ export function SupportConnect() {
           placeholder={settingsCopy.support.form.emailPlaceholder}
           keyboardType="email-address"
           autoCapitalize="none"
+          autoComplete="email"
+          // "next" rather than "go": this field is the reply-to, not the
+          // message, so the action key hands her to the field that matters.
+          returnKeyType="next"
+          onSubmitEditing={() => messageRef.current?.focus()}
           testID="support-email"
         />
         <Input
@@ -55,6 +64,9 @@ export function SupportConnect() {
           onChangeText={setMessage}
           placeholder={settingsCopy.support.form.messagePlaceholder}
           multiline
+          // No returnKeyType here on purpose — the message is multiline, so the
+          // return key has to stay a return key.
+          fieldRef={messageRef}
           testID="support-message"
         />
         <PillButton

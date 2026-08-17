@@ -5,6 +5,8 @@ import { MotionProvider } from '@/theme/motion';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { useOnboardingDraft } from '@/stores/onboardingDraft';
 
+import { submitAnswer } from '../commit';
+
 import { S03Name } from './S03Name';
 import { S06Values } from './S06Values';
 import { S10Struggle } from './S10Struggle';
@@ -40,6 +42,9 @@ function wrapper({ children }: { children: ReactNode }) {
 describe('conversation screens (product 07 rules)', () => {
   beforeEach(() => {
     useOnboardingDraft.getState().reset();
+    // The return-key guards below assert submitAnswer was NOT called, which
+    // only means anything against a clean call log.
+    jest.clearAllMocks();
   });
 
   describe('S3 name — the one unskippable question', () => {
@@ -67,6 +72,39 @@ describe('conversation screens (product 07 rules)', () => {
 
       expect(view.getByText(/what do the people closest to you use/i)).toBeTruthy();
       expect(view.getByLabelText('Continue').props.accessibilityState.disabled).toBe(true);
+    });
+
+    /**
+     * The field autofocuses, so the keyboard covers Continue — the return key
+     * has to work. It must honour the SAME guard as the button, or return
+     * becomes a way to submit what Continue refuses.
+     */
+    it('advances on the keyboard return key once the name is valid', async () => {
+      const view = await render(<S03Name />, { wrapper });
+
+      await fireEvent.changeText(view.getByDisplayValue(''), 'Dharmik');
+      await fireEvent(view.getByDisplayValue('Dharmik'), 'submitEditing');
+
+      expect(submitAnswer).toHaveBeenCalledWith('user-1', 's03-name', 'Dharmik', false);
+    });
+
+    it('refuses the return key on an empty name, exactly as Continue does', async () => {
+      const view = await render(<S03Name />, { wrapper });
+
+      await fireEvent(view.getByDisplayValue(''), 'submitEditing');
+
+      // Return must not smuggle through what the disabled button refuses.
+      expect(submitAnswer).not.toHaveBeenCalled();
+    });
+
+    it('refuses the return key on an absurdly long name, as the nudge implies', async () => {
+      const view = await render(<S03Name />, { wrapper });
+      const tooLong = 'a name far far far longer than anyone is actually called anywhere';
+
+      await fireEvent.changeText(view.getByDisplayValue(''), tooLong);
+      await fireEvent(view.getByDisplayValue(tooLong), 'submitEditing');
+
+      expect(submitAnswer).not.toHaveBeenCalled();
     });
   });
 

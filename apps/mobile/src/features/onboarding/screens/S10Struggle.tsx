@@ -53,7 +53,15 @@ export function S10Struggle() {
       skipTitle={onboardingCopy.s10Struggle.skip}
       onSkip={() => void submit(null, true)}
     >
-      <Input value={text} onChangeText={setText} multiline autoFocus />
+      <Input
+        value={text}
+        onChangeText={setText}
+        // The heaviest question in the flow gets the lightest prompt — an empty
+        // box after that question reads as an interrogation.
+        placeholder={onboardingCopy.s10Struggle.placeholder}
+        multiline
+        autoFocus
+      />
     </ConversationScreen>
   );
 }

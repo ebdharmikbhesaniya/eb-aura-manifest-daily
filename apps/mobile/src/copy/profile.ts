@@ -51,6 +51,9 @@ export const profileCopy = {
   },
 
   edit: {
+    // One placeholder for every field the sheet edits — it opens over a named
+    // row, so the row's label already says WHICH field this is.
+    placeholder: 'Tell me',
     save: 'Save',
     cancel: 'Never mind',
     // The memory contract on every save (09 §6, product 10 §44): edits take

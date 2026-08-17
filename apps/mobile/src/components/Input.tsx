@@ -1,4 +1,6 @@
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
+import type { ComponentType, RefObject } from 'react';
+import type { TextInputProps } from 'react-native';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
@@ -50,6 +52,13 @@ export interface InputProps {
   returnKeyType?: 'next' | 'done' | 'go';
   onSubmitEditing?: () => void;
   /**
+   * Focus handle for the NEXT field in a form, so `returnKeyType="next"` can
+   * actually move focus. Without it "next" only relabels the key and then does
+   * nothing when tapped, which is worse than leaving the key alone — she taps
+   * it, the keyboard stays put, and the form looks broken.
+   */
+  fieldRef?: RefObject<TextInput | null>;
+  /**
    * Renders `BottomSheetTextInput` instead of a plain one. REQUIRED for any
    * field inside a `Sheet`.
    *
@@ -67,6 +76,12 @@ export interface InputProps {
  * Text input (v3 §inputs): borderless on the card surface, body-size text,
  * soft olive focus glow. The glow is an overlay so focus never shifts
  * layout — the field breathes awake rather than snapping a border on.
+ *
+ * EVERY field in the app renders through here — there is no bare `TextInput`
+ * in `features/`. That is what makes the vertical-centring fix below a
+ * one-place fix rather than fifteen, and it is worth keeping true: a field
+ * added outside this component silently opts out of the height, the centring
+ * and the focus glow at once.
  */
 export function Input({
   value,
@@ -81,11 +96,12 @@ export function Input({
   autoComplete,
   returnKeyType,
   onSubmitEditing,
+  fieldRef,
   inSheet = false,
   testID,
   sunken = false,
 }: InputProps) {
-  const { colors, durations, radii, shadows, spacing, typography } = useTheme();
+  const { colors, durations, layout, radii, shadows, spacing, typography } = useTheme();
   const motion = useMotion();
   const glow = useSharedValue(0);
 
@@ -103,15 +119,71 @@ export function Input({
         });
   };
 
-  // Same props either way — only the host component differs, so the design
-  // system stays one field rather than two that can drift.
-  const Field = inSheet ? BottomSheetTextInput : TextInput;
+  /**
+   * Same props either way — only the host component differs, so the design
+   * system stays one field rather than two that can drift.
+   *
+   * Annotated rather than inferred because the two branches disagree about
+   * their ref type: `BottomSheetTextInput` is typed against the copy of
+   * `TextInput` that react-native-gesture-handler re-exports, so the inferred
+   * union has a ref no real ref satisfies. Both accept `TextInputProps` and
+   * both forward to a real `TextInput` at runtime, so naming that contract here
+   * is the accurate description, not a loophole.
+   */
+  const Field = (inSheet ? BottomSheetTextInput : TextInput) as unknown as ComponentType<
+    TextInputProps & { ref?: RefObject<TextInput | null> }
+  >;
+
+  /**
+   * `typography.body` is 15/24, and that 24pt leading is the reason text used
+   * to sit low in every single-line field in the app: iOS lays a single-line
+   * `TextInput`'s glyphs against the BOTTOM of the line box rather than its
+   * middle, so a 24pt box around 15pt text pushes the glyphs down by the
+   * difference. It reads as "the text isn't centred" and no amount of padding
+   * fixes it, because the offset is inside the line box.
+   *
+   * So the leading is stripped here and handed back only to multiline below.
+   * Splitting it this way rather than dropping `lineHeight` from the token
+   * keeps paragraphs readable: leading is wrong for one line and load-bearing
+   * for several.
+   */
+  const { lineHeight, ...bodyNoLeading } = typography.body;
+
+  /**
+   * The two fields are different objects, not one with tweaks — a single-line
+   * field is a control and a multiline field is a page to write on, and they
+   * disagree about every metric below.
+   */
+  const metrics = multiline
+    ? {
+        // Opens at three lines. A composer that opens one line tall reads as a
+        // single-line field, and she answers "describe yourself" in four words.
+        minHeight: layout.fieldHeightMultiline,
+        padding: spacing.md,
+        // Handed back: this is the case the leading was designed for.
+        lineHeight,
+        // Text starts at the top and grows down; centring a half-written
+        // paragraph in its box would make it drift while she types.
+        textAlignVertical: 'top' as const,
+      }
+    : {
+        // A FIXED height with NO vertical padding is the fix. It leaves the
+        // platform one unambiguous box to centre in; a padding-derived height
+        // is whatever the font's metrics happen to make it, which is how these
+        // fields drifted off-centre and off each other in the first place.
+        height: layout.fieldHeight,
+        paddingHorizontal: spacing.md,
+        paddingVertical: 0,
+        // Android honours this; iOS centres a single-line field natively.
+        textAlignVertical: 'center' as const,
+      };
 
   return (
     <View>
       <View>
         <Field
           testID={testID}
+          {...(fieldRef !== undefined && { ref: fieldRef })}
           value={value}
           onChangeText={onChangeText}
           multiline={multiline}
@@ -127,16 +199,21 @@ export function Input({
           placeholderTextColor={colors.text.secondary}
           {...(placeholder !== undefined && { placeholder })}
           style={[
-            typography.body,
+            bodyNoLeading,
             {
               // v4 §gratitude sinks the field into the page colour so it reads
               // as somewhere to write rather than another white card.
               backgroundColor: sunken ? colors.bg.base : colors.surface.card,
               borderRadius: radii.field,
-              padding: spacing.md,
               color: colors.text.primary,
+              // Android's counterpart to the leading problem above: it reserves
+              // extra room above and below the glyphs for ascenders the font
+              // may never use, which offsets the text inside the field the same
+              // way. Harmless on iOS, which ignores it.
+              includeFontPadding: false,
             },
-            multiline && { textAlignVertical: 'top' },
+            // Last, so the per-mode metrics win over anything above them.
+            metrics,
           ]}
         />
         <Animated.View

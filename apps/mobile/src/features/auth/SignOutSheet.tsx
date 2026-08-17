@@ -103,6 +103,13 @@ export const SignOutSheet = forwardRef<BottomSheetModal, SignOutSheetProps>(func
               placeholder={paywallCopy.claim.emailPlaceholder}
               keyboardType="email-address"
               autoCapitalize="none"
+              // She is signing out with unclaimed letters — the one moment a
+              // mistyped address costs her the account. Autofill it.
+              autoComplete="email"
+              returnKeyType="go"
+              onSubmitEditing={() => {
+                if (email.trim() !== '') void runEmail();
+              }}
               testID="signout-claim-email-input"
             />
             <PillButton
