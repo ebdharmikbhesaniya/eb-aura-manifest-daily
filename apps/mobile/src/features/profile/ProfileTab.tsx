@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Screen, useTabBarClearance } from '@/components';
 import { paywallCopy } from '@/copy/paywall';
@@ -38,7 +37,6 @@ export function ProfileTab() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { spacing } = useTheme();
-  const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
   const userId = useAppState((s) => s.userId);
 
@@ -95,21 +93,25 @@ export function ProfileTab() {
   const name = (profile?.name ?? '').trim();
 
   return (
-    <Screen testID="profile-tab" scrollsUnderStatusBar>
+    <Screen testID="profile-tab">
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          // The screen released the top inset, so this list owns it. Carrying it
-          // as CONTENT padding rather than as padding on the container is what
-          // lets her name travel under the status bar on the way up, instead of
-          // being sliced off at the container's edge partway down the screen.
+          // Sits on top of the safe-area inset `Screen` already pads on, so this
+          // is breathing room only — the status bar is cleared before it starts.
           //
-          // `spacing.sm` on top of the inset is the whole resting gap. It used to
-          // be a full `spacing.xl` (32) — tuned before a SafeAreaProvider was
-          // mounted, when the inset resolved to 0 and that padding was clearing
-          // the status bar single-handed. Once the inset became real the two
-          // stacked into a hole under the notch.
-          paddingTop: insets.top + spacing.sm,
+          // It was `spacing.xl` (32), tuned before a SafeAreaProvider was mounted,
+          // when the inset resolved to 0 and this padding was clearing the status
+          // bar single-handed; once the inset became real the two stacked into a
+          // hole under the notch. `md` rather than `lg` because the header is a
+          // name, not a card — it does not need a card's margin above it.
+          //
+          // The inset deliberately stays on the CONTAINER. Moving it in here lets
+          // the list scroll to the physical top, which sounds right and is what
+          // iOS lists do, but this header is a 27pt serif that then rides up
+          // through the time and the Dynamic Island — legible collision, not
+          // depth. Clipping at the safe area is the correct trade here.
+          paddingTop: spacing.md,
           // The tab bar floats over this screen — without the clearance the last
           // card ends up underneath it.
           paddingBottom: tabBarClearance,
