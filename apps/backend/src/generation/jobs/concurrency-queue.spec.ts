@@ -141,3 +141,51 @@ describe('ConcurrencyQueue', () => {
     expect(active).toBe(0);
   });
 });
+
+describe('ConcurrencyQueue — the cap holds under a handover race', () => {
+  it('never exceeds the cap when a run() lands during a handover', async () => {
+    const queue = new ConcurrencyQueue(2);
+    let inFlight = 0;
+    let peak = 0;
+
+    const release: (() => void)[] = [];
+    const task = () =>
+      new Promise<void>((resolve) => {
+        inFlight += 1;
+        peak = Math.max(peak, inFlight);
+        release.push(() => {
+          inFlight -= 1;
+          resolve();
+        });
+      });
+
+    // Fill both slots and queue two more.
+    const runs = [queue.run(task), queue.run(task), queue.run(task), queue.run(task)];
+
+    // Finish one. The waiter's continuation is a MICROTASK, so a run() enqueued
+    // as a microtask ahead of it is exactly the interleaving that used to slip
+    // an extra task past the cap.
+    release[0]?.();
+    void Promise.resolve().then(() => {
+      runs.push(queue.run(task));
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(peak).toBeLessThanOrEqual(2);
+    expect(queue.inFlight).toBeLessThanOrEqual(2);
+
+    // Drain across microtask turns: releasing a task lets a waiter start, which
+    // registers its own release — a single synchronous pass would miss those.
+    for (let turn = 0; turn < 20 && release.length > 0; turn++) {
+      while (release.length > 0) release.shift()?.();
+      await Promise.resolve();
+      await Promise.resolve();
+    }
+
+    await Promise.all(runs);
+
+    expect(queue.inFlight).toBe(0);
+  });
+});

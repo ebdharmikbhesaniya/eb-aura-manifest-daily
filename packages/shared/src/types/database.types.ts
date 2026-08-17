@@ -165,6 +165,7 @@ export type Database = {
           input: Json | null;
           latency_ms: number | null;
           moment_id: string | null;
+          started_at: string | null;
           status: Database['public']['Enums']['job_status'];
           user_id: string;
         };
@@ -179,6 +180,7 @@ export type Database = {
           input?: Json | null;
           latency_ms?: number | null;
           moment_id?: string | null;
+          started_at?: string | null;
           status?: Database['public']['Enums']['job_status'];
           user_id: string;
         };
@@ -193,6 +195,7 @@ export type Database = {
           input?: Json | null;
           latency_ms?: number | null;
           moment_id?: string | null;
+          started_at?: string | null;
           status?: Database['public']['Enums']['job_status'];
           user_id?: string;
         };

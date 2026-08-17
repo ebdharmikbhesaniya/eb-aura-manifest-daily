@@ -14,7 +14,7 @@ import { SUPABASE_CLIENT } from '../supabase/supabase.module';
 import { AudioMixService } from './audio-mix.service';
 import { buildContext } from './__fixtures__/memory-context.fixture';
 import { GenerationService } from './generation.service';
-import { JobsService, QaFailedError, type JobRow, type JobRunner } from './jobs/jobs.service';
+import { JobsService, QaFailedError, type JobRunner, type RunningJob } from './jobs/jobs.service';
 import { PromptService } from './prompt/prompt.service';
 import { QaService } from './qa/qa.service';
 import { StorageService } from './storage.service';
@@ -46,7 +46,13 @@ describe('GenerationService (pipeline)', () => {
   let insertError: { message: string } | null;
   let refund: jest.Mock;
 
-  const job = (overrides: Partial<JobRow> = {}): JobRow => ({
+  /**
+   * A job as the state machine hands it to the runner. The two retry counters
+   * are the terminal-attempt signal — `attempt` alone cannot express "the
+   * provider lane is spent but the QA lane is not", which is the state that
+   * used to refund a credit for a job that then succeeded.
+   */
+  const job = (overrides: Partial<RunningJob> = {}): RunningJob => ({
     id: 'job-1',
     user_id: 'user-1',
     artifact: 'letter',
@@ -54,6 +60,8 @@ describe('GenerationService (pipeline)', () => {
     moment_id: null,
     attempt: 1,
     input: null,
+    qaRetriesLeft: 1,
+    providerRetriesLeft: 2,
     ...overrides,
   });
 
@@ -546,7 +554,7 @@ describe('GenerationService (pipeline)', () => {
     it('refunds a Manifest credit when the pipeline gives up', async () => {
       jest.spyOn(llm, 'generate').mockRejectedValue(new Error('502'));
 
-      await runner(job({ artifact: 'ondemand', attempt: 3 })).catch(() => undefined);
+      await runner(job({ artifact: 'ondemand', providerRetriesLeft: 0 })).catch(() => undefined);
 
       expect(refund).toHaveBeenCalledWith('user-1');
     });
@@ -555,28 +563,44 @@ describe('GenerationService (pipeline)', () => {
       // Refunding early would hand back a credit for a job that then succeeds.
       jest.spyOn(llm, 'generate').mockRejectedValue(new Error('502'));
 
-      await runner(job({ artifact: 'ondemand', attempt: 1 })).catch(() => undefined);
+      await runner(job({ artifact: 'ondemand', providerRetriesLeft: 2 })).catch(() => undefined);
 
       expect(refund).not.toHaveBeenCalled();
     });
 
-    it('refunds after the final QA retry, which is one attempt earlier', async () => {
-      // Force a QA failure deterministically (a body far under the length floor);
-      // a QaFailedError at attempt 2 is the terminal QA attempt for ondemand.
+    it('refunds once the QA lane is spent', async () => {
+      // Force a QA failure deterministically (a body far under the length floor).
       jest.spyOn(llm, 'generate').mockResolvedValue({
         text: JSON.stringify({ title: 'x', body: 'too short to pass the floor' }),
         usage: { inputTokens: 5, outputTokens: 6 },
       });
 
-      await runner(job({ artifact: 'ondemand', attempt: 2 })).catch(() => undefined);
+      await runner(job({ artifact: 'ondemand', qaRetriesLeft: 0 })).catch(() => undefined);
 
       expect(refund).toHaveBeenCalledWith('user-1');
+    });
+
+    it('does NOT refund a QA failure while the QA lane still has a retry', async () => {
+      // The regression this pair exists for. The lanes are counted separately,
+      // so a job that already burned a provider retry can still be on its FIRST
+      // QA failure. Reading the shared `attempt` column here saw 2 and refunded,
+      // and the corrective regeneration then succeeded — a free manifest.
+      jest.spyOn(llm, 'generate').mockResolvedValue({
+        text: JSON.stringify({ title: 'x', body: 'too short to pass the floor' }),
+        usage: { inputTokens: 5, outputTokens: 6 },
+      });
+
+      await runner(
+        job({ artifact: 'ondemand', attempt: 2, qaRetriesLeft: 1, providerRetriesLeft: 1 }),
+      ).catch(() => undefined);
+
+      expect(refund).not.toHaveBeenCalled();
     });
 
     it('never refunds for an artifact that costs no credit', async () => {
       jest.spyOn(llm, 'generate').mockRejectedValue(new Error('502'));
 
-      await runner(job({ artifact: 'daily', attempt: 3 })).catch(() => undefined);
+      await runner(job({ artifact: 'daily', providerRetriesLeft: 0 })).catch(() => undefined);
 
       expect(refund).not.toHaveBeenCalled();
     });

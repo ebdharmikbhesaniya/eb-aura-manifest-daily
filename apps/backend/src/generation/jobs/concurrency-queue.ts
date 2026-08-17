@@ -12,22 +12,45 @@ export class ConcurrencyQueue {
 
   constructor(private readonly concurrency: number) {}
 
-  /** Runs `task` once a slot is free; resolves/rejects with its result. */
+  /**
+   * Runs `task` once a slot is free; resolves/rejects with its result.
+   *
+   * The slot is TAKEN BEFORE any await, and a released waiter inherits the slot
+   * its releaser vacated rather than taking one of its own. The previous shape
+   * — check the cap, await, then increment — left a window between the
+   * `finally` decrement and the waiter's continuation (a microtask) in which
+   * another `run()` could see a free slot and claim it. Both then incremented,
+   * and the cap was exceeded by one for as long as they overlapped. The cap is
+   * a vendor-spend control, so quietly running over it is not cosmetic.
+   */
   async run<T>(task: () => Promise<T>): Promise<T> {
     if (this.active >= this.concurrency) {
       await new Promise<void>((resolve) => this.waiting.push(resolve));
+      // Released holding the releaser's slot — `active` was never decremented
+      // on its behalf, so claiming another here would double-count it.
+    } else {
+      this.active += 1;
     }
-    this.active += 1;
+
     try {
       return await task();
     } finally {
-      this.active -= 1;
-      // Release the next waiter, if any — FIFO keeps a queued job from starving.
-      this.waiting.shift()?.();
+      const next = this.waiting.shift();
+      if (next) {
+        // Hand the slot straight over. FIFO keeps a queued job from starving.
+        next();
+      } else {
+        this.active -= 1;
+      }
     }
   }
 
   get pending(): number {
     return this.waiting.length;
+  }
+
+  /** In-flight tasks. Exposed so the cap itself is assertable in tests. */
+  get inFlight(): number {
+    return this.active;
   }
 }

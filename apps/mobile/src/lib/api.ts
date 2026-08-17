@@ -155,12 +155,20 @@ export const api = {
       schema: manifestAcceptedSchema,
     }),
 
-  /** Today's affirmation, on-open fallback (07 §1). Free and ungated. */
-  requestDailyAffirmation: () =>
+  /**
+   * Today's affirmation, on-open fallback (07 §1). Free and ungated.
+   *
+   * `scheduledFor` is HER local date, like `requestMoment` — the server used to
+   * derive it from its own UTC clock, which is a different day for anyone far
+   * enough east.
+   */
+  requestDailyAffirmation: (scheduledFor: string) =>
     request({
       path: '/v1/generation/affirmation/daily',
       method: 'POST',
-      body: {},
+      body: { scheduledFor },
+      // Keyed to the date, so a double-tap cannot spawn two.
+      idempotencyKey: `affirmation:${scheduledFor}`,
       schema: jobAcceptedSchema,
     }),
 

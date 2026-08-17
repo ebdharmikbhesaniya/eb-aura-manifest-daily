@@ -13,6 +13,8 @@
         "EXPO_PUBLIC_PRIVACY_URL": "https://eb-aura-manifest-daily.onrender.com/privacy",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1026671088815-iq0qt119umtkrsn90pib0lefn1kqlasr.apps.googleusercontent.com",
         "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "goog_DBUAXpBZGVmVPUTIGZSsWVgpMil",
+        "//EXPO_PUBLIC_REVENUECAT_IOS_KEY": "REQUIRED FOR AN iOS STORE BUILD. RevenueCat issues one PUBLIC SDK key per store and the Android key is rejected by the iOS SDK. Copy the appl_… key from RevenueCat → Project → API keys into the line below and delete this note; app.config.ts fails the production build until it is set. Public by design, like the Android key above.",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "",
         "EXPO_PUBLIC_POSTHOG_KEY": "phc_oSwbP9nNvtashNw49ooqvcZz4SodW4UXVUrdnhW7Cq5y",
         "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com"
       },
@@ -61,6 +63,7 @@
   "submit": {
     "production": {
       "ios": {
+        "//ascAppId": "REQUIRED BEFORE `eas submit`. The numeric App Store Connect app id (App Store Connect → your app → App Information → Apple ID). The placeholder below is not a valid id and submit fails on it.",
         "ascAppId": "TODO_APP_STORE_CONNECT",
         "appleTeamId": "Q8Z48Q7K2B"
       }

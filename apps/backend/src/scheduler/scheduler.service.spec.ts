@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 
+import { AccountService } from '../account/account.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { JobsService } from '../generation/jobs/jobs.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -21,6 +22,7 @@ import { SchedulerService } from './scheduler.service';
 describe('SchedulerService', () => {
   let service: SchedulerService;
   let enqueue: jest.Mock;
+  let deleteAccount: jest.Mock;
   let profiles: Record<string, unknown>[];
   let existingMoments: Record<string, unknown>[];
 
@@ -37,6 +39,7 @@ describe('SchedulerService', () => {
 
   beforeEach(async () => {
     enqueue = jest.fn().mockResolvedValue({ jobId: 'job-1', existing: false });
+    deleteAccount = jest.fn().mockResolvedValue(undefined);
     profiles = [profile()];
     existingMoments = [];
     jest.spyOn(Logger.prototype, 'log').mockImplementation();
@@ -62,22 +65,29 @@ describe('SchedulerService', () => {
           provide: SUPABASE_CLIENT,
           useValue: {
             from: (table: string) => {
+              const rows = () => (table === 'profiles' ? profiles : existingMoments);
               const builder: Record<string, unknown> = {
                 select: () => builder,
                 eq: () => builder,
                 in: () => builder,
+                is: () => builder,
+                gte: () => builder,
+                lte: () => builder,
+                lt: () => builder,
                 limit: () => Promise.resolve({ data: existingMoments, error: null }),
                 not: () => builder,
-                then: (resolve: (v: unknown) => unknown) =>
-                  resolve({
-                    data: table === 'profiles' ? profiles : existingMoments,
-                    error: null,
-                  }),
+                order: () => builder,
+                // Every sweep pages with `.range()` — PostgREST truncates at
+                // `max_rows` (1000) with no error, so an unpaged sweep silently
+                // stops working past that many users. One short page ends the loop.
+                range: () => Promise.resolve({ data: rows(), error: null }),
+                then: (resolve: (v: unknown) => unknown) => resolve({ data: rows(), error: null }),
               };
               return builder;
             },
           },
         },
+        { provide: AccountService, useValue: { deleteAccount } },
         {
           provide: ConfigService,
           useValue: {
@@ -187,6 +197,77 @@ describe('SchedulerService', () => {
     });
   });
 
+  /**
+   * PostgREST caps every response at `max_rows` (1000, see supabase/config.toml)
+   * and TRUNCATES SILENTLY — no error, no flag, and the sweep still logs
+   * `processed=N failures=0`. An unpaged sweep therefore stops working for user
+   * 1001 onward in a way nothing surfaces.
+   */
+  describe('pagination (the silent 1000-row ceiling)', () => {
+    /** A supabase double that serves `total` profiles through `.range()`. */
+    const pagedClient = (total: number, pageSize: number) => {
+      const all = Array.from({ length: total }, (_, i) =>
+        profile({ user_id: `user-${String(i).padStart(5, '0')}` }),
+      );
+      const ranges: [number, number][] = [];
+
+      return {
+        ranges,
+        client: {
+          from: (table: string) => {
+            const builder: Record<string, unknown> = {
+              select: () => builder,
+              eq: () => builder,
+              in: () => builder,
+              not: () => builder,
+              order: () => builder,
+              limit: () => Promise.resolve({ data: [], error: null }),
+              range: (from: number, to: number) => {
+                if (table !== 'profiles') return Promise.resolve({ data: [], error: null });
+                ranges.push([from, to]);
+                // The server caps a page at `pageSize` however wide the range is.
+                const size = Math.min(to - from + 1, pageSize);
+                return Promise.resolve({ data: all.slice(from, from + size), error: null });
+              },
+              then: (resolve: (v: unknown) => unknown) => resolve({ data: [], error: null }),
+            };
+            return builder;
+          },
+        },
+      };
+    };
+
+    const build = (client: unknown) =>
+      new SchedulerService(
+        client as never,
+        { enqueue } as never,
+        { send: jest.fn(async () => ({ sent: true })), prefsFor: jest.fn() } as never,
+        { capture: jest.fn() } as never,
+        { deleteAccount } as never,
+        { get: () => 30 } as never,
+      );
+
+    it('reaches every user past the first page', async () => {
+      // 1200 users against a 500-row server cap: an unpaged read would have
+      // stopped at the first page and silently skipped the rest.
+      const { client, ranges } = pagedClient(1200, 500);
+
+      const result = await build(client).pregenerateDaily(NOW);
+
+      expect(result.processed).toBe(1200);
+      expect(ranges.length).toBeGreaterThan(1);
+      expect(ranges[0]).toEqual([0, 499]);
+    });
+
+    it('stops on a short page rather than looping forever', async () => {
+      const { client, ranges } = pagedClient(120, 500);
+
+      await build(client).pregenerateDaily(NOW);
+
+      expect(ranges).toEqual([[0, 499]]);
+    });
+  });
+
   describe('resilience', () => {
     it('keeps sweeping after one user fails', async () => {
       // The whole point of a sweep: user B must still wake up to her moment
@@ -205,17 +286,20 @@ describe('SchedulerService', () => {
     it('reports a profiles read failure rather than throwing out of the cron', async () => {
       const failing = new SchedulerService(
         {
-          from: () => ({
-            select: () => ({
-              not: () => ({
-                not: () => Promise.resolve({ data: null, error: { message: 'db down' } }),
-              }),
-            }),
-          }),
+          from: () => {
+            const builder: Record<string, unknown> = {
+              select: () => builder,
+              not: () => builder,
+              order: () => builder,
+              range: () => Promise.resolve({ data: null, error: { message: 'db down' } }),
+            };
+            return builder;
+          },
         } as never,
         { enqueue } as never,
         { send: jest.fn(), prefsFor: jest.fn() } as never,
         { capture: jest.fn() } as never,
+        { deleteAccount: jest.fn() } as never,
         { get: () => 7 } as never,
       );
 

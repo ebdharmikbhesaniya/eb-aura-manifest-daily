@@ -38,7 +38,19 @@ export function fakeSupabase(fixtures: TableFixtures) {
         resolve({ data: rows, error: null }),
     };
 
-    for (const method of ['select', 'eq', 'not', 'order', 'limit', 'gte', 'lt', 'in']) {
+    for (const method of [
+      'select',
+      'eq',
+      'not',
+      'order',
+      'limit',
+      'gte',
+      'lt',
+      'in',
+      // The explicit-callback cooldown filters on `qa_report` containment, so
+      // the fake has to carry `contains` for that query shape to be assertable.
+      'contains',
+    ]) {
       builder[method] = (...args: unknown[]) => {
         record(method, args);
         return builder;

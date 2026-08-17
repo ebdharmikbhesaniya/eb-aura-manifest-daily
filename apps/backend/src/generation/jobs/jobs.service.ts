@@ -34,12 +34,30 @@ export interface JobRow {
 }
 
 /**
+ * A job as handed to the runner: the row, plus how many retries of each KIND
+ * are still available.
+ *
+ * The two counters are what make "is this the last attempt" answerable. They
+ * cannot be derived from `attempt`, which is a single column incremented on
+ * every pass of either lane — a provider retry followed by a QA failure puts
+ * `attempt` at 2 with the QA lane untouched. The pipeline refunds a Manifest
+ * credit on its terminal failure, and reading `attempt` there refunded on a job
+ * that then went on to succeed, handing out a free manifest.
+ */
+export interface RunningJob extends JobRow {
+  /** Corrective QA regenerations still available after this attempt. */
+  qaRetriesLeft: number;
+  /** Provider backoff retries still available after this attempt. */
+  providerRetriesLeft: number;
+}
+
+/**
  * The work a pipeline does for one job. Returns the created moment/affirmation
  * id (or null for artifacts that don't produce one). Throws `QaFailedError` for
  * a QA failure (drives the corrective retry) or any other error for a provider
  * failure (drives the backoff retry).
  */
-export type JobRunner = (job: JobRow) => Promise<{ momentId: string | null }>;
+export type JobRunner = (job: RunningJob) => Promise<{ momentId: string | null }>;
 
 /** Thrown by the runner when the QA gate rejects output — retried differently. */
 export class QaFailedError extends Error {
@@ -116,7 +134,16 @@ export class JobsService implements OnModuleInit {
 
     if (error || !data) throw new Error(`Failed to create job: ${error?.message}`);
 
-    void this.process(data.id, artifact);
+    // Fire-and-forget: the endpoint answers 202 while this runs (04 §2).
+    // `runWithRetries` handles pipeline failures, but its own bookkeeping —
+    // `loadJob`, `setStatus` — can still reject, and an unhandled rejection
+    // there takes the process down rather than losing one job.
+    void this.process(data.id, artifact).catch((processError: unknown) => {
+      this.logger.error(
+        `Job ${data.id} failed outside its retry lanes: ${errorName(processError)}`,
+      );
+    });
+
     return { jobId: data.id, existing: false };
   }
 
@@ -151,12 +178,20 @@ export class JobsService implements OnModuleInit {
       const job = await this.loadJob(jobId);
       if (!job) return;
 
+      // `started_at` is stamped on every pass, so the stale-job cutoff measures
+      // the CURRENT attempt rather than when the job was first queued.
       await this.setStatus(jobId, job.attempt + 1 > 1 ? 'retrying' : 'running', {
         attempt: job.attempt + 1,
+        startedAt: new Date().toISOString(),
       });
 
       try {
-        const { momentId } = await this.runner({ ...job, attempt: job.attempt + 1 });
+        const { momentId } = await this.runner({
+          ...job,
+          attempt: job.attempt + 1,
+          qaRetriesLeft: MAX_QA_RETRIES - qaRetries,
+          providerRetriesLeft: PROVIDER_RETRY_BACKOFF_MS.length - providerRetries,
+        });
         await this.finish(jobId, 'succeeded', { momentId, latencyMs: Date.now() - start });
         return;
       } catch (error) {
@@ -185,17 +220,29 @@ export class JobsService implements OnModuleInit {
     }
   }
 
+  /**
+   * Re-queues jobs a crashed instance left `running` (04 §4).
+   *
+   * Keyed on `started_at`, not `created_at`. `created_at` is the QUEUE time and
+   * never moves, so a job that sat behind a full concurrency queue and only just
+   * began running already looked older than the cutoff — a boot would re-queue
+   * work that was actively in flight and generate it twice.
+   */
   private async requeueStaleJobs(): Promise<void> {
     const cutoff = new Date(Date.now() - STALE_RUNNING_MS).toISOString();
     const { data } = await this.supabase
       .from('generation_jobs')
       .select('id, artifact')
       .in('status', ['running', 'retrying'])
-      .lt('created_at', cutoff);
+      .lt('started_at', cutoff);
 
     for (const job of data ?? []) {
       this.logger.warn(`Re-queuing stale job ${job.id} left running by a prior instance`);
-      void this.process(job.id, job.artifact);
+      void this.process(job.id, job.artifact).catch((error: unknown) => {
+        this.logger.error(
+          `Re-queued job ${job.id} failed outside its retry lanes: ${errorName(error)}`,
+        );
+      });
     }
   }
 
@@ -211,11 +258,15 @@ export class JobsService implements OnModuleInit {
   private async setStatus(
     jobId: string,
     status: JobStatus,
-    extra: { attempt?: number } = {},
+    extra: { attempt?: number; startedAt?: string } = {},
   ): Promise<void> {
     await this.supabase
       .from('generation_jobs')
-      .update({ status, ...(extra.attempt !== undefined ? { attempt: extra.attempt } : {}) })
+      .update({
+        status,
+        ...(extra.attempt !== undefined ? { attempt: extra.attempt } : {}),
+        ...(extra.startedAt !== undefined ? { started_at: extra.startedAt } : {}),
+      })
       .eq('id', jobId);
   }
 
@@ -239,4 +290,9 @@ export class JobsService implements OnModuleInit {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms).unref());
+}
+
+/** Error shape for a log line — never the message, which can echo content. */
+function errorName(error: unknown): string {
+  return error instanceof Error ? error.name : 'unknown';
 }

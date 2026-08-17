@@ -80,6 +80,48 @@ export default function AffirmationsRoute() {
   const guidedJob = useGenerationJob(guidedJobId);
   const [guidedError, setGuidedError] = useState<string | null>(null);
 
+  /**
+   * The on-open fallback for today's affirmation (07 §1), mirroring Home's.
+   *
+   * `api.requestDailyAffirmation` existed with nothing calling it, so the
+   * primary path — the `pregenerate-daily` cron — was the ONLY way a daily
+   * affirmation ever appeared. A missed sweep left this screen showing
+   * yesterday's card indefinitely, with nothing in the app able to recover it.
+   *
+   * Keyed to her local date on both sides, so repeat opens and a racing cron
+   * collapse to one job.
+   */
+  const [dailyJobId, setDailyJobId] = useState<string | undefined>();
+  const dailyJob = useGenerationJob(dailyJobId);
+  const dailyTriggered = useRef(false);
+
+  const todayDate = localDate();
+  const hasTodays =
+    today.data?.created_at !== undefined &&
+    localDate(new Date(today.data.created_at)) === todayDate;
+
+  useEffect(() => {
+    if (!userId || !today.isSuccess || hasTodays) return;
+    if (dailyTriggered.current) return;
+    dailyTriggered.current = true;
+
+    void (async () => {
+      try {
+        const { jobId } = await api.requestDailyAffirmation(todayDate);
+        setDailyJobId(jobId);
+      } catch {
+        // Nothing to say here: yesterday's card is still on screen, which is
+        // the designed fallback (product 09 §9.3a — this surface has no empty
+        // state). An error banner would be noise over content that is fine.
+      }
+    })();
+  }, [userId, today.isSuccess, hasTodays, todayDate]);
+
+  const dailyStatus = dailyJob.data?.status;
+  useEffect(() => {
+    if (dailyStatus === 'succeeded') void today.refetch();
+  }, [dailyStatus, today]);
+
   // `affirmations.technique` is a free text column the generator fills; anything
   // unrecognised falls back to identity rather than rendering no chip at all.
   const stored = today.data?.technique;

@@ -11,6 +11,32 @@ import { SUPABASE_CLIENT, type ServiceRoleClient } from '../supabase/supabase.mo
 const AUDIO_BUCKET = 'audio';
 
 /**
+ * Objects fetched per `list` call.
+ *
+ * `list()` DEFAULTS TO 100 and pages silently — there is no error and no flag on
+ * a truncated result. A daily user writes two objects per moment (voice +
+ * ambient mix), so she crosses the default in about seven weeks, after which an
+ * unpaged wipe would leave every later recording in the bucket with no owner row
+ * left to identify it. The limit is stated explicitly here so the pagination
+ * below can never be "optimised" back into a single call.
+ */
+const LIST_PAGE_SIZE = 100;
+
+/** Objects removed per `remove` call — the API takes a bounded array of paths. */
+const REMOVE_BATCH_SIZE = 100;
+
+/**
+ * Hard stop on the delete-then-relist loop.
+ *
+ * The loop relists at offset 0 and relies on the previous page actually being
+ * gone. If a remove ever reported success without deleting, that assumption
+ * turns into an infinite loop inside a request. 200 pages is far past any real
+ * account (20,000 objects ≈ 27 years of daily moments), so hitting it means the
+ * assumption broke — which is a failure worth surfacing, not spinning on.
+ */
+const MAX_LIST_PAGES = 200;
+
+/**
  * Full account deletion (03 §5, 14 §6). "Delete means delete" is a brand promise
  * (product 18 §4), not a best effort.
  *
@@ -102,34 +128,61 @@ export class AccountService {
    * A failure here is fatal to the request on purpose: silently deleting the auth
    * user while her audio survives would leave unreachable recordings of her life
    * and quietly break the promise.
+   *
+   * Listing PAGES rather than making one call — see `LIST_PAGE_SIZE`. The loop
+   * deletes each page before requesting the next, so the offset never has to
+   * advance: removing a page shifts the remainder down into offset 0. That also
+   * makes the whole wipe restartable — a retry after a partial failure simply
+   * resumes from whatever is left.
    */
   private async deleteAudioObjects(userId: string, userRef: string): Promise<void> {
-    const { data: files, error: listError } = await this.supabase.storage
-      .from(AUDIO_BUCKET)
-      .list(userId);
+    let removed = 0;
 
-    if (listError) {
-      // The bucket does not exist until Phase 5 — that is not a deletion failure,
-      // it just means there is no audio to remove yet.
-      if (isBucketMissing(listError.message)) {
-        this.logger.debug(`No audio bucket yet; skipping storage wipe for ${userRef}`);
-        return;
+    for (let page = 0; ; page++) {
+      if (page >= MAX_LIST_PAGES) {
+        this.logger.error(`Storage wipe exceeded ${MAX_LIST_PAGES} pages for ${userRef}`);
+        throw ApiException.internal('Account deletion failed');
       }
-      this.logger.error(`Storage list failed for ${userRef}: ${listError.message}`);
-      throw ApiException.internal('Account deletion failed');
+
+      const { data: files, error: listError } = await this.supabase.storage
+        .from(AUDIO_BUCKET)
+        .list(userId, { limit: LIST_PAGE_SIZE, offset: 0 });
+
+      if (listError) {
+        // The bucket does not exist until Phase 5 — that is not a deletion failure,
+        // it just means there is no audio to remove yet.
+        if (isBucketMissing(listError.message)) {
+          this.logger.debug(`No audio bucket yet; skipping storage wipe for ${userRef}`);
+          return;
+        }
+        this.logger.error(`Storage list failed for ${userRef}: ${listError.message}`);
+        throw ApiException.internal('Account deletion failed');
+      }
+
+      if (!files || files.length === 0) break;
+
+      const paths = files.map((file) => `${userId}/${file.name}`);
+      await this.removeBatched(paths, userRef);
+      removed += paths.length;
+
+      // A short page is the last page — nothing is left behind it.
+      if (files.length < LIST_PAGE_SIZE) break;
     }
 
-    if (!files || files.length === 0) return;
+    if (removed > 0) this.logger.log(`Removed ${removed} audio object(s) for ${userRef}`);
+  }
 
-    const paths = files.map((file) => `${userId}/${file.name}`);
-    const { error: removeError } = await this.supabase.storage.from(AUDIO_BUCKET).remove(paths);
+  /** Removes paths in bounded batches; any failure aborts the deletion. */
+  private async removeBatched(paths: string[], userRef: string): Promise<void> {
+    for (let i = 0; i < paths.length; i += REMOVE_BATCH_SIZE) {
+      const batch = paths.slice(i, i + REMOVE_BATCH_SIZE);
+      const { error } = await this.supabase.storage.from(AUDIO_BUCKET).remove(batch);
 
-    if (removeError) {
-      this.logger.error(`Storage wipe failed for ${userRef}: ${removeError.message}`);
-      throw ApiException.internal('Account deletion failed');
+      if (error) {
+        this.logger.error(`Storage wipe failed for ${userRef}: ${error.message}`);
+        throw ApiException.internal('Account deletion failed');
+      }
     }
-
-    this.logger.log(`Removed ${paths.length} audio object(s) for ${userRef}`);
   }
 }
 

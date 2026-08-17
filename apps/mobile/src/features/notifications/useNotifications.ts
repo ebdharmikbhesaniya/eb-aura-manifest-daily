@@ -144,6 +144,19 @@ export async function registerToken(userId: string): Promise<boolean> {
  * `ignored_arrival_count` only ever climbs, and a user who is simply busy for
  * three mornings gets quietly dropped to three-a-week with no way back. Any
  * open resets the counter and unsoftens.
+ *
+ * TWO writes, and the second is the one that was missing. Resetting the counter
+ * alone is not enough: `soften-notifications` recounts `notification_sends`
+ * rows that are older than 36 hours and still have `opened_at IS NULL`. Nothing
+ * ever wrote that column, so those rows stayed unopened forever and the nightly
+ * sweep re-incremented from them every single night — meaning EVERY user
+ * softened within about three days, permanently, no matter how faithfully she
+ * opened her notifications. The reset below would be undone by the next 4am run.
+ *
+ * Marks every outstanding send rather than one, which matches the policy the
+ * counter already implements (`recordOpened` zeroes it wholesale rather than
+ * decrementing): coming back restores the normal rhythm immediately instead of
+ * making her earn it back one morning at a time.
  */
 export async function reportNotificationOpened(userId: string): Promise<void> {
   analytics.capture('moment_arrival_notification_opened');
@@ -154,6 +167,14 @@ export async function reportNotificationOpened(userId: string): Promise<void> {
       { user_id: userId, ignored_arrival_count: 0, softened: false },
       { onConflict: 'user_id' },
     );
+
+  // `opened_at` is the only column of `notification_sends` the client may write
+  // (see the column grant in the notifications migration).
+  await supabase
+    .from('notification_sends')
+    .update({ opened_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .is('opened_at', null);
 }
 
 export interface NotificationPrefs {

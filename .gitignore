@@ -60,3 +60,11 @@ GoogleService-Info.plist
 client_secret*.json
 # Signing / deployment certificates
 *.der
+
+# Stray credential notes. `textingAccount.tet` held a Play Store reviewer login
+# in plaintext and was tracked — the patterns above all missed it because of the
+# extension. Match by INTENT as well as by file type.
+*reviewer*account*
+*credentials*.txt
+*password*.txt
+*.tet

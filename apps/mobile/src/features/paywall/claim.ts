@@ -30,10 +30,26 @@ export async function appleAuthAvailable(): Promise<boolean> {
 }
 
 /**
- * Links an Apple identity to the current anonymous user.
+ * Links an Apple identity to the account currently signed in.
  *
  * `linkIdentity` rather than `signInWithIdToken`: the latter would authenticate
- * as a DIFFERENT user and strand the anonymous one, taking her data with it.
+ * as a DIFFERENT user and strand the current one, taking her data with it. Her
+ * Supabase id must not change — memory, letter and RevenueCat entitlement are
+ * all keyed to it (03 §4).
+ *
+ * It must be the OIDC overload of `linkIdentity` — the one taking `{ provider,
+ * token }` — not the OAuth overload. This used to collect a real Apple
+ * credential, throw `identityToken` away, and call `linkIdentity({ provider:
+ * 'apple', options: { skipBrowserRedirect: true } })`: a browser flow that
+ * returns a URL for the caller to open. Nothing opened it, so no identity was
+ * ever attached, `error` came back null, and this reported `claimed` and fired
+ * the analytics event. She was told her account was secured when it was not,
+ * and `account_claimed` was overcounting. An `as never` cast was what let the
+ * shape mismatch past the type checker — there is none here, and the overload
+ * now typechecks on its own.
+ *
+ * Requires manual linking to be enabled on the Supabase project; without it the
+ * call returns an error and this reports `failed`, which is the honest answer.
  */
 export async function claimWithApple(): Promise<ClaimResult> {
   try {
@@ -45,10 +61,17 @@ export async function claimWithApple(): Promise<ClaimResult> {
 
     const { error } = await supabase.auth.linkIdentity({
       provider: 'apple',
-      options: { skipBrowserRedirect: true },
-    } as never);
+      token: credential.identityToken,
+    });
 
-    if (error) return { status: 'failed' };
+    if (error) {
+      // In dev this is the only place the real cause is legible — the UI shows
+      // in-voice copy and never an error code (product 14).
+      if (__DEV__) {
+        console.warn(`[claim] Apple link rejected by Supabase: ${error.message}`);
+      }
+      return { status: 'failed' };
+    }
 
     analytics.capture('account_claimed', { method: 'apple' satisfies ClaimMethod });
     return { status: 'claimed' };

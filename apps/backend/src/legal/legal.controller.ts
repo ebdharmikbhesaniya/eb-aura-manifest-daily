@@ -1,5 +1,7 @@
 import { Controller, Get, Header, VERSION_NEUTRAL } from '@nestjs/common';
 
+import { SkipThrottle } from '@nestjs/throttler';
+
 import { Public } from '../auth/public.decorator';
 import { DELETION, PRIVACY, TERMS } from './legal.content';
 import { renderLegalPage } from './legal.template';
@@ -9,6 +11,9 @@ import { renderLegalPage } from './legal.template';
  * `/terms` rather than under `/v1`; `@Public()` opts them out of the global
  * SupabaseAuthGuard so a browser with no session can read them (07 §4 style).
  */
+// Static HTML on a shared edge IP. These are the URLs a store reviewer opens,
+// and a 429 there reads as a broken app.
+@SkipThrottle()
 @Controller({ version: VERSION_NEUTRAL })
 export class LegalController {
   @Public()

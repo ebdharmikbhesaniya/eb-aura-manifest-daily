@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 
 import type { Env } from '../config/env.schema';
+import { AccountService } from '../account/account.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { JobsService } from '../generation/jobs/jobs.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -12,9 +13,60 @@ import {
   isWinbackDue,
   maySendArrival,
   recordIgnored,
+  WINBACK_DELAY_DAYS,
 } from '../notifications/policy';
 import { SUPABASE_CLIENT, type ServiceRoleClient } from '../supabase/supabase.module';
 import { isActiveEnough, isDueForPregeneration, localDateString } from './pregen-window';
+
+/**
+ * Rows per page for every sweep below.
+ *
+ * PostgREST caps a response at `max_rows` (1000, see `supabase/config.toml`) and
+ * TRUNCATES SILENTLY — no error, no flag, and the sweep still logs a healthy
+ * `processed=N failures=0`. An unpaged sweep therefore stops working for user
+ * 1001 onward in a way nothing surfaces: she never gets a pre-generated moment,
+ * an arrival note, a milestone letter or a trial reminder. Every query in this
+ * file goes through `fetchAllPages` for that reason.
+ */
+const PAGE_SIZE = 500;
+
+/**
+ * A page-count ceiling per sweep, so a paging bug can never spin a cron forever.
+ * 500k rows is far beyond anything V1 will see; reaching it is a bug worth
+ * logging rather than looping on.
+ */
+const MAX_PAGES = 1000;
+
+/** The `{ data, error }` shape every PostgREST query resolves to. */
+type PagedResult<T> = { data: T[] | null; error: { message: string } | null };
+
+/**
+ * Reads an entire table through `.range()`, page by page.
+ *
+ * The caller MUST apply a stable `.order()` — `range` without a total order can
+ * repeat or skip rows between pages, which on these sweeps would mean a double
+ * generation or a user quietly missed.
+ */
+async function fetchAllPages<T>(
+  query: (from: number, to: number) => PromiseLike<PagedResult<T>>,
+): Promise<{ rows: T[]; error: string | null }> {
+  const rows: T[] = [];
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const from = page * PAGE_SIZE;
+    const { data, error } = await query(from, from + PAGE_SIZE - 1);
+
+    if (error) return { rows, error: error.message };
+    if (!data || data.length === 0) return { rows, error: null };
+
+    rows.push(...data);
+
+    // A short page is the last page.
+    if (data.length < PAGE_SIZE) return { rows, error: null };
+  }
+
+  return { rows, error: `exceeded ${MAX_PAGES} pages` };
+}
 
 /**
  * The scheduler (04 §5). Crons run in-process because the instance count is one;
@@ -34,6 +86,7 @@ export class SchedulerService {
     private readonly jobs: JobsService,
     private readonly notifications: NotificationsService,
     private readonly analytics: AnalyticsService,
+    private readonly account: AccountService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -54,21 +107,25 @@ export class SchedulerService {
     const skipAfterDays = this.config.get('PREGEN_INACTIVE_SKIP_DAYS', { infer: true });
     const leadMinutes = this.config.get('PREGEN_BUFFER_MINUTES', { infer: true });
 
-    const { data: candidates, error } = await this.supabase
-      .from('profiles')
-      .select('user_id, timezone, arrival_time, last_active_at')
-      .not('arrival_time', 'is', null)
-      .not('onboarding_completed_at', 'is', null);
+    const { rows: candidates, error } = await fetchAllPages((from, to) =>
+      this.supabase
+        .from('profiles')
+        .select('user_id, timezone, arrival_time, last_active_at')
+        .not('arrival_time', 'is', null)
+        .not('onboarding_completed_at', 'is', null)
+        .order('user_id', { ascending: true })
+        .range(from, to),
+    );
 
     if (error) {
-      this.logger.error(`pregenerate-daily could not read profiles: ${error.message}`);
+      this.logger.error(`pregenerate-daily could not read profiles: ${error}`);
       return { processed: 0, failures: 1 };
     }
 
     let processed = 0;
     let failures = 0;
 
-    for (const candidate of candidates ?? []) {
+    for (const candidate of candidates) {
       const timezone = candidate.timezone ?? 'UTC';
 
       const due = isDueForPregeneration(
@@ -130,14 +187,20 @@ export class SchedulerService {
    */
   @Cron('*/15 * * * *')
   async sendArrivals(now: Date = new Date()): Promise<{ sent: number }> {
-    const { data: profiles } = await this.supabase
-      .from('profiles')
-      .select('user_id, timezone, arrival_time, name')
-      .not('arrival_time', 'is', null);
+    const { rows: profiles, error } = await fetchAllPages((from, to) =>
+      this.supabase
+        .from('profiles')
+        .select('user_id, timezone, arrival_time, name')
+        .not('arrival_time', 'is', null)
+        .order('user_id', { ascending: true })
+        .range(from, to),
+    );
+
+    if (error) this.logger.error(`send-arrivals read was incomplete: ${error}`);
 
     let sent = 0;
 
-    for (const profile of profiles ?? []) {
+    for (const profile of profiles) {
       const timezone = profile.timezone ?? 'UTC';
 
       // The note lands AT her arrival time, so the window is the arrival itself
@@ -191,24 +254,33 @@ export class SchedulerService {
    */
   @Cron('0 * * * *')
   async milestoneLetters(now: Date = new Date()): Promise<{ enqueued: number }> {
-    const { data: profiles } = await this.supabase
-      .from('profiles')
-      .select('user_id, created_at')
-      .not('onboarding_completed_at', 'is', null);
+    const { rows: profiles, error } = await fetchAllPages((from, to) =>
+      this.supabase
+        .from('profiles')
+        .select('user_id, created_at, name')
+        .not('onboarding_completed_at', 'is', null)
+        .order('user_id', { ascending: true })
+        .range(from, to),
+    );
+
+    if (error) this.logger.error(`milestone-letters read was incomplete: ${error}`);
 
     let enqueued = 0;
 
-    for (const profile of profiles ?? []) {
+    for (const profile of profiles) {
       const day = isMilestoneDue(profile.created_at, now);
       if (day === null) continue;
 
       try {
         // The idempotency key carries the day, so the hourly sweep enqueues one
         // milestone per user per milestone day however often it runs.
+        // The day rides on the job input so the pipeline can stamp
+        // `moments.milestone_day` — which is what the lookup below filters on.
         await this.jobs.enqueue(
           profile.user_id,
           'milestone',
           `milestone:${profile.user_id}:d${day}`,
+          { milestoneDay: day },
         );
         enqueued += 1;
 
@@ -216,29 +288,32 @@ export class SchedulerService {
         // point of the feature missed. The push only goes out once the letter
         // is actually `ready` (11 §7), which is why this is a separate lookup
         // rather than a send fired alongside the enqueue.
+        //
+        // Scoped to THIS milestone day via `milestone_day`. It used to take the
+        // most recent ready milestone of any day, which is never the one just
+        // enqueued — that job cannot be ready yet — so a D30 sweep would push
+        // her at the D7 letter AND consume the `d30` dedupe key doing it,
+        // making the correct push unsendable by any later run. The letter for
+        // this day becomes ready during a subsequent hourly sweep, and that is
+        // the run whose send lands.
         const { data: letter } = await this.supabase
           .from('moments')
           .select('id, title')
           .eq('user_id', profile.user_id)
           .eq('type', 'milestone')
+          .eq('milestone_day', day)
           .eq('status', 'ready')
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
 
         if (letter) {
-          const { data: named } = await this.supabase
-            .from('profiles')
-            .select('name')
-            .eq('user_id', profile.user_id)
-            .maybeSingle();
-
           await this.notifications.send({
             userId: profile.user_id,
             kind: 'milestone',
             dedupeKey: `d${day}`,
             momentId: letter.id,
-            input: { name: named?.name ?? null, momentId: letter.id, milestoneDay: day },
+            input: { name: profile.name, momentId: letter.id, milestoneDay: day },
           });
         }
       } catch {
@@ -266,15 +341,21 @@ export class SchedulerService {
     const cutoff = new Date(now.getTime() - 36 * 3_600_000).toISOString();
 
     // Arrival sends old enough that an open would already have happened.
-    const { data: sends } = await this.supabase
-      .from('notification_sends')
-      .select('user_id, opened_at')
-      .eq('kind', 'moment_arrival')
-      .lt('sent_at', cutoff)
-      .is('opened_at', null);
+    const { rows: sends, error } = await fetchAllPages((from, to) =>
+      this.supabase
+        .from('notification_sends')
+        .select('user_id, opened_at')
+        .eq('kind', 'moment_arrival')
+        .lt('sent_at', cutoff)
+        .is('opened_at', null)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
+
+    if (error) this.logger.error(`soften-notifications read was incomplete: ${error}`);
 
     const ignoredBy = new Map<string, number>();
-    for (const send of sends ?? []) {
+    for (const send of sends) {
       ignoredBy.set(send.user_id, (ignoredBy.get(send.user_id) ?? 0) + 1);
     }
 
@@ -319,15 +400,21 @@ export class SchedulerService {
    */
   @Cron('0 6 * * *')
   async trialReminders(now: Date = new Date()): Promise<{ sent: number }> {
-    const { data: trials } = await this.supabase
-      .from('subscription_state')
-      .select('user_id, expires_at, period_type')
-      .eq('period_type', 'trial')
-      .eq('entitlement', 'premium');
+    const { rows: trials, error } = await fetchAllPages((from, to) =>
+      this.supabase
+        .from('subscription_state')
+        .select('user_id, expires_at, period_type')
+        .eq('period_type', 'trial')
+        .eq('entitlement', 'premium')
+        .order('user_id', { ascending: true })
+        .range(from, to),
+    );
+
+    if (error) this.logger.error(`trial-reminder read was incomplete: ${error}`);
 
     let sent = 0;
 
-    for (const trial of trials ?? []) {
+    for (const trial of trials) {
       if (!trial.expires_at) continue;
 
       const daysLeft = Math.floor(
@@ -366,14 +453,28 @@ export class SchedulerService {
    */
   @Cron('0 5 * * *')
   async winbackNotes(now: Date = new Date()): Promise<{ sent: number }> {
-    const { data: lapsed } = await this.supabase
-      .from('subscription_state')
-      .select('user_id, lapsed_at')
-      .not('lapsed_at', 'is', null);
+    // Bounded to the lapses that could possibly be due today. `isWinbackDue`
+    // fires on exactly day 3, so anything older can never qualify again — and
+    // without this bound the sweep re-reads every lapse the product has ever
+    // recorded, a set that only grows.
+    const windowStart = new Date(now.getTime() - (WINBACK_DELAY_DAYS + 2) * 86_400_000);
+    const windowEnd = new Date(now.getTime() - (WINBACK_DELAY_DAYS - 1) * 86_400_000);
+
+    const { rows: lapsed, error } = await fetchAllPages((from, to) =>
+      this.supabase
+        .from('subscription_state')
+        .select('user_id, lapsed_at')
+        .gte('lapsed_at', windowStart.toISOString())
+        .lte('lapsed_at', windowEnd.toISOString())
+        .order('user_id', { ascending: true })
+        .range(from, to),
+    );
+
+    if (error) this.logger.error(`winback-note read was incomplete: ${error}`);
 
     let sent = 0;
 
-    for (const row of lapsed ?? []) {
+    for (const row of lapsed) {
       if (!isWinbackDue(row.lapsed_at, now, false)) continue;
 
       const { data: moment } = await this.supabase
@@ -417,22 +518,35 @@ export class SchedulerService {
    * credential to recover with (03 §2.1), so a dormant one is not a user we can
    * ever reach again — keeping her data forever would be hoarding, and product
    * 18's "delete means delete" cuts both ways.
+   *
+   * Goes through `AccountService.deleteAccount`, NOT `auth.admin.deleteUser`.
+   * Postgres cascades rows; it cannot reach into Storage. Calling the admin API
+   * directly (which is what this did) deleted the user and left her audio in the
+   * bucket with no owner row left to identify it — the exact failure
+   * `AccountService`'s header warns about — and skipped the RevenueCat subscriber
+   * delete as well. There is one deletion path, and this is a caller of it.
    */
   @Cron('0 3 * * 0')
   async anonSweep(now: Date = new Date()): Promise<{ deleted: number }> {
     const cutoff = new Date(now.getTime() - 90 * 86_400_000).toISOString();
 
-    const { data: dormant } = await this.supabase
-      .from('profiles')
-      .select('user_id')
-      .eq('is_anonymous', true)
-      .lt('last_active_at', cutoff);
+    const { rows: dormant, error } = await fetchAllPages((from, to) =>
+      this.supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('is_anonymous', true)
+        .lt('last_active_at', cutoff)
+        .order('user_id', { ascending: true })
+        .range(from, to),
+    );
+
+    if (error) this.logger.error(`anon-sweep read was incomplete: ${error}`);
 
     let deleted = 0;
 
-    for (const profile of dormant ?? []) {
+    for (const profile of dormant) {
       try {
-        await this.supabase.auth.admin.deleteUser(profile.user_id);
+        await this.account.deleteAccount(profile.user_id);
         deleted += 1;
       } catch {
         // One failure must not abort the sweep.

@@ -92,8 +92,24 @@ export const jobStatusResponseSchema = z
   .passthrough();
 export type JobStatusResponse = z.infer<typeof jobStatusResponseSchema>;
 
-/** `POST /v1/generation/affirmation/daily` (07 §1) — on-open fallback, body empty. */
-export const affirmationDailyRequestSchema = z.object({}).strict();
+/**
+ * `POST /v1/generation/affirmation/daily` (07 §1) — on-open fallback.
+ *
+ * `scheduledFor` is HER local date, decided on device, exactly like
+ * `momentRequestSchema` and `gratitude_entries.entry_date`. The server used to
+ * derive it from its own UTC clock, which puts a user in UTC+13 on the previous
+ * day's key for up to thirteen hours — long enough for the fallback to return
+ * yesterday's job, or to generate a second affirmation for one local day.
+ *
+ * Optional so an older client that sends `{}` still works; the server falls back
+ * to UTC for those, which is the behaviour they already had.
+ */
+export const affirmationDailyRequestSchema = z
+  .object({
+    scheduledFor: z.string().date().optional(),
+  })
+  .strict();
+export type AffirmationDailyRequest = z.infer<typeof affirmationDailyRequestSchema>;
 
 /**
  * Guided studio input (product 09 §9.3): just what it is for. The "how she wants

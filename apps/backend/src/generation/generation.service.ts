@@ -23,7 +23,7 @@ import {
 import { ARTIFACT_SPEC } from './artifact-spec';
 import { AudioMixService } from './audio-mix.service';
 import { CreditsService } from './credits.service';
-import { JobsService, QaFailedError, type JobRow } from './jobs/jobs.service';
+import { JobsService, QaFailedError, type RunningJob } from './jobs/jobs.service';
 import { PromptService, type GuidedPromptInput, type RefineInput } from './prompt/prompt.service';
 import { QaService } from './qa/qa.service';
 import { StorageService } from './storage.service';
@@ -66,7 +66,7 @@ export class GenerationService implements OnModuleInit {
    * other error (→ provider backoff retry); the JobsService state machine catches
    * both. Returns the created moment id.
    */
-  private async runPipeline(job: JobRow): Promise<{ momentId: string | null }> {
+  private async runPipeline(job: RunningJob): Promise<{ momentId: string | null }> {
     const started = Date.now();
     if (job.artifact === 'letter')
       this.analytics.capture(job.user_id, 'letter_generation_started', {});
@@ -101,7 +101,7 @@ export class GenerationService implements OnModuleInit {
         return { momentId: null };
       }
 
-      const artifact = await this.generateWithQa(
+      const { artifact, promptVersion } = await this.generateWithQa(
         job.user_id,
         job.artifact,
         context,
@@ -116,7 +116,19 @@ export class GenerationService implements OnModuleInit {
         this.analytics.capture(job.user_id, 'callback_delivered', { type: directive.kind });
       }
 
-      const momentId = await this.persist(job, context, artifact, supportive, input);
+      // Recorded on the row so the 30-day explicit-callback cooldown can ask
+      // "did a moment carry one" rather than "does a moment exist" — the latter
+      // is true for every active user and suppressed the directive forever.
+      const explicitCallback = context.directives.some((d) => d.kind === 'explicit_callback');
+
+      const momentId = await this.persist(
+        job,
+        artifact,
+        promptVersion,
+        supportive,
+        explicitCallback,
+        input,
+      );
 
       // Refining teaches the memory what she prefers (product 09 §9.1) — the
       // point of the feature is not this one rewrite, it is that the next moment
@@ -208,7 +220,7 @@ export class GenerationService implements OnModuleInit {
     context: MemoryContext,
     refineInput?: RefineInput,
     desire?: string,
-  ): Promise<GeneratedArtifact> {
+  ): Promise<{ artifact: GeneratedArtifact; promptVersion: string }> {
     // A Manifest desire is HER request in her own words, so it joins the context
     // as an exact phrase rather than as an instruction — the prompt already
     // tells the model to reuse those literally (08 §3).
@@ -234,7 +246,11 @@ export class GenerationService implements OnModuleInit {
     }
     if (!result.passed) throw new QaFailedError(result.flaggedRules);
 
-    return parsed;
+    // The version of the prompt that ACTUALLY produced this output. `persist`
+    // used to call `prompts.build(...)` a second time purely to read it, paying
+    // for a full system+user prompt assembly per generation to recover a string
+    // this function already had.
+    return { artifact: parsed, promptVersion: built.promptVersion };
   }
 
   /**
@@ -262,7 +278,7 @@ export class GenerationService implements OnModuleInit {
    * throws the same `QaFailedError`/`MalformedOutputError` the state machine reads.
    */
   private async runGuided(
-    job: JobRow,
+    job: RunningJob,
     context: MemoryContext,
     guided: GuidedPromptInput | undefined,
   ): Promise<void> {
@@ -360,11 +376,12 @@ export class GenerationService implements OnModuleInit {
 
   /** Persists the moment row, then synthesizes + uploads audio for spoken artifacts. */
   private async persist(
-    job: JobRow,
-    context: MemoryContext,
+    job: RunningJob,
     artifact: GeneratedArtifact,
+    promptVersion: string,
     supportive: boolean,
-    input: ParsedJobInput = { refine: undefined, desire: undefined, guided: undefined },
+    explicitCallback: boolean,
+    input: ParsedJobInput = EMPTY_JOB_INPUT,
   ): Promise<string> {
     const spec = ARTIFACT_SPEC[job.artifact];
 
@@ -380,9 +397,18 @@ export class GenerationService implements OnModuleInit {
         // what lets Home show a refined moment in place of its original.
         ...(input.refine?.momentId ? { refine_of: input.refine.momentId } : {}),
         ...(input.desire ? { desire_text: input.desire } : {}),
+        // Which milestone this letter marks. The scheduler's push looks the
+        // letter up by this column, so an unstamped milestone can never be
+        // announced — and the lookup would fall back to whichever milestone
+        // happened to be newest, which is how a D30 push pointed at the D7
+        // letter and consumed the `d30` dedupe key doing it.
+        ...(input.milestoneDay === undefined ? {} : { milestone_day: input.milestoneDay }),
         qa_report: {
-          prompt_version: this.prompts.build(job.artifact, context).promptVersion,
+          prompt_version: promptVersion,
           supportive,
+          // Only written when true, so the cooldown's `contains` filter stays a
+          // cheap containment test rather than an equality on every row.
+          ...(explicitCallback ? { explicit_callback: true } : {}),
         },
       })
       .select('id')
@@ -461,15 +487,21 @@ export class GenerationService implements OnModuleInit {
    * The state machine retries provider errors twice and QA failures once, so a
    * refund on the first failure would hand back a credit for a job that then
    * succeeds. Only the terminal attempt owes one.
+   *
+   * Reads the PER-LANE counters the state machine hands over, not `attempt`.
+   * `attempt` is one column bumped by both lanes, so a provider retry followed
+   * by a QA failure showed `attempt = 2` while the QA lane still had its
+   * corrective regeneration in hand — the credit went back and the retry then
+   * succeeded, which is a manifest for free.
    */
-  private isFinalAttempt(error: unknown, job: JobRow): boolean {
-    return error instanceof QaFailedError ? job.attempt >= 2 : job.attempt >= 3;
+  private isFinalAttempt(error: unknown, job: RunningJob): boolean {
+    return error instanceof QaFailedError ? job.qaRetriesLeft <= 0 : job.providerRetriesLeft <= 0;
   }
 
   private classify(error: unknown): GenerationFailureReason {
     if (error instanceof QaFailedError) return 'qa_failed';
     if (error instanceof MalformedOutputError) return 'malformed_output';
-    if (error instanceof Error && /tim* out|abort/i.test(error.message)) return 'provider_timeout';
+    if (error instanceof Error && isTimeout(error)) return 'provider_timeout';
     return 'provider_error';
   }
 }
@@ -486,7 +518,16 @@ export interface ParsedJobInput {
   refine: (RefineInput & { momentId: string }) | undefined;
   desire: string | undefined;
   guided: GuidedPromptInput | undefined;
+  /** Which milestone a `milestone` letter marks; stamped onto `moments.milestone_day`. */
+  milestoneDay: number | undefined;
 }
+
+const EMPTY_JOB_INPUT: ParsedJobInput = {
+  refine: undefined,
+  desire: undefined,
+  guided: undefined,
+  milestoneDay: undefined,
+};
 
 /** One parsed candidate from a guided pass, before it becomes an `affirmations` row. */
 interface GuidedCandidate {
@@ -498,10 +539,13 @@ interface GuidedCandidate {
 const REFINE_DIRECTIONS = new Set(['more_realistic', 'softer', 'more_ambitious', 'note']);
 
 function parseJobInput(raw: unknown): ParsedJobInput {
-  if (!raw || typeof raw !== 'object')
-    return { refine: undefined, desire: undefined, guided: undefined };
+  if (!raw || typeof raw !== 'object') return EMPTY_JOB_INPUT;
 
   const value = raw as Record<string, unknown>;
+  const milestoneDay =
+    typeof value.milestoneDay === 'number' && Number.isInteger(value.milestoneDay)
+      ? value.milestoneDay
+      : undefined;
   const desire =
     typeof value.desire === 'string' && value.desire.trim() !== '' ? value.desire : undefined;
 
@@ -529,7 +573,7 @@ function parseJobInput(raw: unknown): ParsedJobInput {
         }
       : undefined;
 
-  return { refine, desire, guided };
+  return { refine, desire, guided, milestoneDay };
 }
 
 class MalformedOutputError extends Error {
@@ -537,6 +581,24 @@ class MalformedOutputError extends Error {
     super('LLM returned unparseable output');
     this.name = 'MalformedOutputError';
   }
+}
+
+/**
+ * Does this error name a timeout?
+ *
+ * The pattern used to be `/tim* out|abort/i`, where `tim*` is "ti" followed by
+ * zero-or-more "m" — so it matched the literal string "ti out" and nothing a
+ * provider actually emits. "Request timed out", "timeout of 15000ms exceeded"
+ * and "ElevenLabs timed out after 30000ms" all fell through to
+ * `provider_error`, which made `provider_timeout` dead in the analytics anyone
+ * would use to decide whether to raise a timeout budget.
+ *
+ * `AbortError` is matched by NAME as well as message, since that is what a
+ * fetch abort actually surfaces as.
+ */
+function isTimeout(error: Error): boolean {
+  if (error.name === 'AbortError' || error.name === 'TimeoutError') return true;
+  return /timed?\s*out|timeout|abort/i.test(error.message);
 }
 
 /** Direction → the durable fact it implies about her voice. */

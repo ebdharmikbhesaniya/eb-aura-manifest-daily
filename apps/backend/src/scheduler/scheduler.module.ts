@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 
+import { AccountModule } from '../account/account.module';
 import { GenerationModule } from '../generation/generation.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SchedulerService } from './scheduler.service';
@@ -11,7 +12,7 @@ import { SchedulerService } from './scheduler.service';
  * every sweep (documented upgrade path, 04 §7).
  */
 @Module({
-  imports: [ScheduleModule.forRoot(), GenerationModule, NotificationsModule],
+  imports: [ScheduleModule.forRoot(), GenerationModule, NotificationsModule, AccountModule],
   providers: [SchedulerService],
   exports: [SchedulerService],
 })

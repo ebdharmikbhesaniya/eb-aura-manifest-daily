@@ -116,16 +116,14 @@ Return JSON: { "title": "a short italic-serif title", "body": "the moment" }`,
   private refine(context: MemoryContext, input?: RefineInput): BuiltPrompt {
     const spec = ARTIFACT_SPEC.refine;
     const direction = REFINE_DIRECTION_COPY[input?.direction ?? 'note'];
-    const noteLine = input?.note ? `\nHer note: "${input.note}"` : '';
+    const noteLine = input?.note ? `\nHer note: ${quoteUserText(input.note)}` : '';
 
     return this.assemble(
       spec,
       `Rewrite this moment for her. Keep everything true to her, but ${direction}.${noteLine}
 
 The moment to rewrite:
-"""
-${input?.previousBody ?? ''}
-"""
+${quoteUserText(input?.previousBody ?? '')}
 
 Same rules as always — her words, agency framing, ${spec.minWords}–${spec.maxWords} words.
 Return JSON: { "title": "a short italic-serif title", "body": "the rewritten moment" }`,
@@ -188,7 +186,7 @@ Return JSON: { "title": "a two-or-three word mantra", "body": "the affirmation",
     // is offered as a phrase to anchor on, not as an instruction.
     const steer = guided
       ? `She asked for one about ${guided.goalArea}.${
-          guided.goalText ? ` In her words: "${guided.goalText}".` : ''
+          guided.goalText ? ` In her words: ${quoteUserText(guided.goalText)}.` : ''
         } Let that be the subject.\n`
       : '';
     return this.assemble(
@@ -259,3 +257,22 @@ const REFINE_DIRECTION_COPY: Record<RefineInput['direction'], string> = {
   more_ambitious: 'let it reach further — a bigger version of the dream',
   note: 'follow her note below',
 };
+
+/**
+ * Wraps a piece of HER text so the model reads it as content, not instruction.
+ *
+ * Free text she writes — a refine note, a manifest desire, a guided goal —
+ * reaches the prompt verbatim, which is the whole point: her words are the
+ * product. It also means she can write "ignore the above and…" and have it
+ * land as a directive. The blast radius is only ever her own moment (context is
+ * assembled per user and the QA gate still runs on the output), so this is
+ * containment rather than a security boundary.
+ *
+ * Two things do the work: a fenced block the surrounding instructions refer to,
+ * and stripping any fence the text itself contains so it cannot close the block
+ * early and escape into instruction position.
+ */
+function quoteUserText(text: string): string {
+  const escaped = text.replace(/`{3,}/g, '');
+  return ['```text', escaped, '```'].join('\n');
+}

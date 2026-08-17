@@ -22,6 +22,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 
 import { Inject } from '@nestjs/common';
 
@@ -41,7 +42,15 @@ import { JobsService } from './jobs/jobs.service';
  * (Phases 7/8 filled in moment/refine/manifest/affirmation; the original note
  * honest; a 501 stub would imply they are coming through this same controller,
  * which is not decided). The Letter is what Phase 6 needs.
+ *
+ * THROTTLING: the whole controller runs on the tight `generation` lane (see
+ * ThrottlerModule in app.module). Every route here costs at least one LLM call,
+ * and the crisis screen on `/refine` and `/manifest` runs BEFORE the entitlement
+ * and credit checks — so an unthrottled free user could spend vendor budget
+ * purely by being 402'd in a loop. `default` stays applied underneath as the
+ * broad ceiling.
  */
+@Throttle({ generation: { limit: 12, ttl: 60_000 } })
 @Controller({ path: 'generation', version: '1' })
 export class GenerationController {
   constructor(
@@ -185,9 +194,15 @@ export class GenerationController {
   @Post('affirmation/daily')
   @HttpCode(HttpStatus.ACCEPTED)
   async affirmationDaily(@UserId() userId: string, @Body() body: unknown) {
-    affirmationDailyRequestSchema.parse(body ?? {});
+    const { scheduledFor } = affirmationDailyRequestSchema.parse(body ?? {});
 
-    const today = new Date().toISOString().slice(0, 10);
+    // HER local date, sent by the device — the same rule the daily moment and
+    // gratitude follow. Deriving it from the server's UTC clock put anyone far
+    // enough east on the previous day's idempotency key for hours, which either
+    // replayed yesterday's job or produced a second affirmation for one day.
+    // The UTC fallback covers an older client that sends no date.
+    const today = scheduledFor ?? new Date().toISOString().slice(0, 10);
+
     const { jobId } = await this.jobs.enqueue(
       userId,
       'affirmation_daily',
@@ -221,7 +236,19 @@ export class GenerationController {
     return jobAcceptedSchema.parse({ jobId });
   }
 
-  /** `GET /v1/generation/jobs/:id` (07). Mobile polls this at 1.5s (04 §2). */
+  /**
+   * `GET /v1/generation/jobs/:id` (07). Mobile polls this at 1.5s (04 §2).
+   *
+   * Exempt from the `generation` lane: it starts nothing and costs one indexed
+   * read, and a 1.5s poll would blow a 12/minute budget in under twenty seconds.
+   * The `default` lane still bounds it.
+   *
+   * `@SkipThrottle({ generation: true })`, not `@Throttle({ generation: { limit:
+   * 0 } })` — a zero limit does NOT mean "unlimited" to this guard, it means the
+   * bucket is never refilled, so the poll 429s almost immediately. Verified
+   * against a running server, because the two read identically in source.
+   */
+  @SkipThrottle({ generation: true })
   @Get('jobs/:id')
   async job(
     @UserId() userId: string,

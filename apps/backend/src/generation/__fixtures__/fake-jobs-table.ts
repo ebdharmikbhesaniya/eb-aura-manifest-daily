@@ -15,6 +15,8 @@ export interface JobRecord {
   attempt: number;
   idempotency_key: string | null;
   created_at: string;
+  /** When the current attempt began. NULL while queued — see the migration. */
+  started_at: string | null;
   finished_at: string | null;
   latency_ms: number | null;
   error: string | null;
@@ -36,6 +38,7 @@ export function fakeJobsTable(seed: Partial<JobRecord>[] = []) {
     attempt: partial.attempt ?? 0,
     idempotency_key: partial.idempotency_key ?? null,
     created_at: partial.created_at ?? new Date().toISOString(),
+    started_at: partial.started_at ?? null,
     finished_at: partial.finished_at ?? null,
     latency_ms: partial.latency_ms ?? null,
     error: partial.error ?? null,

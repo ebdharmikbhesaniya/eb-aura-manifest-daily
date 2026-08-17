@@ -6,6 +6,20 @@ import { buildNotification, type NotificationKind, type TemplateInput } from './
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
+/** Expo rejects a batch larger than this, so sends are chunked. */
+const EXPO_BATCH_SIZE = 100;
+
+/**
+ * Was this insert rejected because the row already existed?
+ *
+ * Only a unique violation means "already sent". Treating every error that way
+ * — which is what a bare `if (claimError)` did — makes a database outage
+ * indistinguishable from a successful de-duplication.
+ */
+function isUniqueViolation(error: { code?: string; message?: string }): boolean {
+  return error.code === '23505' || /duplicate key|already exists/i.test(error.message ?? '');
+}
+
 export interface SendRequest {
   userId: string;
   kind: NotificationKind;
@@ -45,19 +59,12 @@ export class NotificationsService {
     // No content, no notification (11 §7).
     if (!content) return { sent: false, reason: 'no_content' };
 
-    // Claim the send FIRST. Inserting before delivering means a crash mid-send
-    // costs one missed note rather than a duplicate one — and a duplicate is
-    // the worse failure on a surface that arrives uninvited.
-    const { error: claimError } = await this.supabase.from('notification_sends').insert({
-      user_id: request.userId,
-      kind: request.kind,
-      dedupe_key: request.dedupeKey,
-      ...(request.momentId ? { moment_id: request.momentId } : {}),
-    });
-
-    // A unique violation means it already went out; that is success, not failure.
-    if (claimError) return { sent: false, reason: 'already_sent' };
-
+    // Tokens are read BEFORE the claim. The claim used to come first, so a user
+    // with no registered device consumed her dedupe key and returned
+    // `no_tokens`. For an arrival that is harmless — tomorrow has a new date key
+    // — but `milestone`, `winback` and `trial_reminder` are keyed once per
+    // lifetime, so someone who had not yet granted notification permission
+    // never received them, even after granting it.
     const { data: tokens } = await this.supabase
       .from('notification_tokens')
       .select('expo_push_token')
@@ -65,6 +72,27 @@ export class NotificationsService {
       .eq('active', true);
 
     if (!tokens?.length) return { sent: false, reason: 'no_tokens' };
+
+    // Claim the send BEFORE delivering. A crash mid-send then costs one missed
+    // note rather than a duplicate one — and a duplicate is the worse failure on
+    // a surface that arrives uninvited.
+    const { error: claimError } = await this.supabase.from('notification_sends').insert({
+      user_id: request.userId,
+      kind: request.kind,
+      dedupe_key: request.dedupeKey,
+      ...(request.momentId ? { moment_id: request.momentId } : {}),
+    });
+
+    if (claimError) {
+      // A unique violation means it already went out; that is success, not
+      // failure. Anything else is a real database problem, and reporting it as
+      // `already_sent` would let an outage read as a quiet no-op — the send is
+      // simply skipped and the next run retries it.
+      if (isUniqueViolation(claimError)) return { sent: false, reason: 'already_sent' };
+
+      this.logger.error(`Could not claim ${request.kind} send: ${claimError.message}`);
+      return { sent: false, reason: 'claim_failed' };
+    }
 
     // Multi-device: every active token gets it (11 §6).
     const messages = tokens.map((token) => ({
@@ -82,19 +110,27 @@ export class NotificationsService {
     }));
 
     try {
-      const response = await fetch(EXPO_PUSH_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(messages),
-      });
+      // Chunked: Expo rejects an oversized batch outright, which would drop the
+      // note for every device of a user who has accumulated a lot of them.
+      // Receipts come back positionally, so each chunk is reconciled with the
+      // slice of tokens that produced it.
+      const allTokens = tokens.map((t) => t.expo_push_token);
 
-      const result = (await response.json()) as {
-        data?: { status: string; details?: { error?: string } }[];
-      };
-      await this.retireDeadTokens(
-        tokens.map((t) => t.expo_push_token),
-        result.data ?? [],
-      );
+      for (let i = 0; i < messages.length; i += EXPO_BATCH_SIZE) {
+        const batch = messages.slice(i, i + EXPO_BATCH_SIZE);
+
+        const response = await fetch(EXPO_PUSH_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(batch),
+        });
+
+        const result = (await response.json()) as {
+          data?: { status: string; details?: { error?: string } }[];
+        };
+
+        await this.retireDeadTokens(allTokens.slice(i, i + EXPO_BATCH_SIZE), result.data ?? []);
+      }
     } catch (error) {
       this.logger.error(`Push send failed (${error instanceof Error ? error.name : 'unknown'})`);
       return { sent: false, reason: 'transport_error' };

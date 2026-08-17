@@ -33,17 +33,31 @@ export class AffirmationsController {
   ): Promise<Record<string, never>> {
     const { data: chosen } = await this.supabase
       .from('affirmations')
-      .select('id, user_id, text, kind, created_at')
+      .select('id, user_id, text, kind, created_at, status')
       .eq('id', affirmationId)
       .maybeSingle();
 
     // Scoped explicitly — the service-role client bypasses RLS (03 §3).
     if (!chosen || chosen.user_id !== userId) throw new NotFoundException();
 
-    await this.supabase
+    // Claim the transition. `.eq('status', 'candidate')` makes this the
+    // idempotency guard: the first call matches a row, a double-tap or a client
+    // retry matches none. Without it every replay inserted another
+    // `memory_items` row, biasing the sampler toward a preference she expressed
+    // once — the write below is the part that is genuinely not repeatable.
+    const { data: claimed, error } = await this.supabase
       .from('affirmations')
       .update({ status: 'kept', saved_at: new Date().toISOString() })
-      .eq('id', affirmationId);
+      .eq('id', affirmationId)
+      .eq('user_id', userId)
+      .eq('status', 'candidate')
+      .select('id');
+
+    if (error) throw new Error(`Keep failed: ${error.message}`);
+
+    // Already kept. The desired state holds, so this is success — returning an
+    // error would make a retried request look like a failure to the client.
+    if ((claimed?.length ?? 0) === 0) return {};
 
     // The siblings from the same guided pass are retired together. They were
     // generated as one set, so leaving them as live candidates would make her

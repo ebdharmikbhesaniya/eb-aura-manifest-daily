@@ -224,7 +224,7 @@ describe('JobsService', () => {
   describe('crash recovery on boot (04 §4)', () => {
     it('re-queues a job left running by a dead instance', async () => {
       const stale = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      build([{ id: 'job-stale', status: 'running', created_at: stale }]);
+      build([{ id: 'job-stale', status: 'running', started_at: stale }]);
       service.registerRunner(async () => ({ momentId: 'moment-recovered' }));
 
       await service.onModuleInit();
@@ -238,7 +238,7 @@ describe('JobsService', () => {
 
     it('re-queues a job left retrying too', async () => {
       const stale = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      build([{ id: 'job-stale', status: 'retrying', created_at: stale }]);
+      build([{ id: 'job-stale', status: 'retrying', started_at: stale }]);
       service.registerRunner(async () => ({ momentId: 'moment-recovered' }));
 
       await service.onModuleInit();
@@ -249,7 +249,7 @@ describe('JobsService', () => {
 
     it('leaves a job that is still within the stale window alone', async () => {
       const fresh = new Date(Date.now() - 30 * 1000).toISOString();
-      build([{ id: 'job-fresh', status: 'running', created_at: fresh }]);
+      build([{ id: 'job-fresh', status: 'running', started_at: fresh }]);
       const runner = jest.fn().mockResolvedValue({ momentId: 'x' });
       service.registerRunner(runner);
 
@@ -260,9 +260,33 @@ describe('JobsService', () => {
       expect(table.get('job-fresh')?.status).toBe('running');
     });
 
+    it('leaves a long-QUEUED job that only just started running', async () => {
+      // The regression. Staleness is about how long an ATTEMPT has been in
+      // flight, and `created_at` is the queue time — it never moves. A job that
+      // waited an hour behind a full concurrency queue and began running ten
+      // seconds ago looked an hour stale, so a boot re-queued work that was
+      // actively running and generated it twice.
+      build([
+        {
+          id: 'job-queued-long',
+          status: 'running',
+          created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+          started_at: new Date(Date.now() - 10 * 1000).toISOString(),
+        },
+      ]);
+      const runner = jest.fn().mockResolvedValue({ momentId: 'x' });
+      service.registerRunner(runner);
+
+      await service.onModuleInit();
+      await jest.advanceTimersByTimeAsync(1_000);
+
+      expect(runner).not.toHaveBeenCalled();
+      expect(table.get('job-queued-long')?.status).toBe('running');
+    });
+
     it('leaves finished jobs alone', async () => {
       const stale = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      build([{ id: 'job-done', status: 'succeeded', created_at: stale }]);
+      build([{ id: 'job-done', status: 'succeeded', started_at: stale }]);
       const runner = jest.fn().mockResolvedValue({ momentId: 'x' });
       service.registerRunner(runner);
 

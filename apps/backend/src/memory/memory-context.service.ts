@@ -125,7 +125,17 @@ export class MemoryContextService {
       recentTitles: (titlesRes.data ?? [])
         .map((t) => t.title)
         .filter((t): t is string => t !== null),
-      directives: await this.cadenceDirectives(userId, artifact, evolving, now, includeSensitive),
+      // `profile` is passed down rather than re-selected: `cadenceDirectives`
+      // used to run its own `profiles` query for `created_at` and `struggle`,
+      // both of which the `select('*')` above already returned.
+      directives: await this.cadenceDirectives(
+        userId,
+        artifact,
+        evolving,
+        now,
+        includeSensitive,
+        profile ?? null,
+      ),
       startedWeekday: startedAt ? (WEEKDAYS[startedAt.getDay()] ?? null) : null,
       startedMonth: startedAt ? (MONTHS[startedAt.getMonth()] ?? null) : null,
     };
@@ -166,6 +176,7 @@ export class MemoryContextService {
     evolvingCandidates: { content: string; last_used_at: string | null; category: string }[],
     now: Date,
     includeSensitive: boolean,
+    profile: { created_at?: string | null; struggle?: string | null } | null,
   ): Promise<CadenceDirective[]> {
     if (
       artifact === 'letter' ||
@@ -200,24 +211,27 @@ export class MemoryContextService {
     // exactly the "never notifications" surface 09 §2 forbids.
     if (!includeSensitive) return directives;
 
-    const { data: profile } = await this.supabase
-      .from('profiles')
-      .select('created_at, struggle')
-      .eq('user_id', userId)
-      .single();
-
     if (
       profile?.created_at &&
       daysBetween(new Date(profile.created_at), now) >= EXPLICIT_CALLBACK_MIN_AGE_DAYS
     ) {
+      // The cooldown is on moments that ACTUALLY CARRIED a callback, marked in
+      // `qa_report.explicit_callback` when the moment is persisted.
+      //
+      // This used to ask whether ANY moment existed in the last 30 days, which
+      // for anyone still opening the app is always true — so the directive was
+      // permanently suppressed, and permanently suppressed for exactly the
+      // cohort it exists for, since it also requires an account 21 days old.
+      const since = new Date(
+        now.getTime() - EXPLICIT_CALLBACK_COOLDOWN_DAYS * 86_400_000,
+      ).toISOString();
+
       const { data: recentCallback } = await this.supabase
         .from('moments')
         .select('id')
         .eq('user_id', userId)
-        .gte(
-          'created_at',
-          new Date(now.getTime() - EXPLICIT_CALLBACK_COOLDOWN_DAYS * 86_400_000).toISOString(),
-        )
+        .gte('created_at', since)
+        .contains('qa_report', { explicit_callback: true })
         .limit(1);
 
       if ((recentCallback?.length ?? 0) === 0 && profile.struggle) {
