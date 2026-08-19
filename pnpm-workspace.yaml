@@ -4,3 +4,8 @@ packages:
 
 # Note: `onlyBuiltDependencies` lives in the root package.json under "pnpm" —
 # pnpm 10.4 does not read it from this file.
+# `patchedDependencies` lives there too, for the same reason: pnpm 10.4.1 warns
+# that the "pnpm" field is deprecated, but moving either key to this file makes
+# it silently STOP applying (verified: a clean install left expo-notifications
+# unpatched). Believe the behaviour, not the warning, until pnpm actually moves.
+
