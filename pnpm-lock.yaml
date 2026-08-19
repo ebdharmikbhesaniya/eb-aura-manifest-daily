@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  expo-notifications@57.0.6:
+    hash: fa7261be2521989b93e5cda3f26db2a1e56838b4b7dbc87325c78260dd30f886
+    path: patches/expo-notifications@57.0.6.patch
+
 importers:
 
   .:
@@ -203,7 +208,7 @@ importers:
         version: 57.0.3(expo@57.0.7)(react-native@0.86.0(@babel/core@7.29.7)(@react-native/jest-preset@0.86.0(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)
       expo-notifications:
         specifier: ~57.0.6
-        version: 57.0.6(expo@57.0.7)(react-native@0.86.0(@babel/core@7.29.7)(@react-native/jest-preset@0.86.0(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
+        version: 57.0.6(patch_hash=fa7261be2521989b93e5cda3f26db2a1e56838b4b7dbc87325c78260dd30f886)(expo@57.0.7)(react-native@0.86.0(@babel/core@7.29.7)(@react-native/jest-preset@0.86.0(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
       expo-router:
         specifier: ~57.0.7
         version: 57.0.7(6298bc9b5c1a957f76bf5c6585bbc8e5)
@@ -8742,9 +8747,7 @@ snapshots:
       metro-runtime: 0.84.4
     transitivePeerDependencies:
       - '@babel/core'
-      - bufferutil
       - supports-color
-      - utf-8-validate
 
   '@react-native/normalize-colors@0.86.0': {}
 
@@ -10404,7 +10407,7 @@ snapshots:
     dependencies:
       react-native: 0.86.0(@babel/core@7.29.7)(@react-native/jest-preset@0.86.0(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.3)
 
-  expo-notifications@57.0.6(expo@57.0.7)(react-native@0.86.0(@babel/core@7.29.7)(@react-native/jest-preset@0.86.0(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)(typescript@5.9.3):
+  expo-notifications@57.0.6(patch_hash=fa7261be2521989b93e5cda3f26db2a1e56838b4b7dbc87325c78260dd30f886)(expo@57.0.7)(react-native@0.86.0(@babel/core@7.29.7)(@react-native/jest-preset@0.86.0(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)(typescript@5.9.3):
     dependencies:
       '@expo/image-utils': 0.11.3(typescript@5.9.3)
       abort-controller: 3.0.0

@@ -38,7 +38,10 @@
       "supabase",
       "@shopify/react-native-skia",
       "ffmpeg-static"
-    ]
+    ],
+    "patchedDependencies": {
+      "expo-notifications@57.0.6": "patches/expo-notifications@57.0.6.patch"
+    }
   },
   "lint-staged": {
     "//": "Root-level files only. Each workspace has its own .lintstagedrc.json so eslint runs with that workspace's config — lint-staged picks the nearest config per staged file.",

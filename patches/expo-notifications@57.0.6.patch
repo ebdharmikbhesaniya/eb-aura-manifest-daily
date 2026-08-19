@@ -1,0 +1,113 @@
+--- a/ios/ExpoNotifications/Notifications/NotificationCenterManager.swift
++++ b/ios/ExpoNotifications/Notifications/NotificationCenterManager.swift
+@@ -46,6 +46,28 @@
+   var pendingResponses: [UNNotificationResponse] = []
+   let userNotificationCenter: UNUserNotificationCenter = UNUserNotificationCenter.current()
+ 
++  /**
++   Guards `delegates` and `pendingResponses`.
++
++   Both are mutable state on a SINGLETON that is written from more than one
++   thread: under the New Architecture, Expo registers native modules
++   concurrently, so `PushTokenModule` and `NotificationsModule` can each reach
++   `addDelegate` at the same time. Swift arrays are not thread-safe, and two
++   concurrent `append`s corrupt the buffer — the app then dies in
++   `_ArrayBuffer._consumeAndCreateNew` with EXC_BAD_ACCESS on a garbage pointer,
++   before any JS runs.
++
++   RECURSIVE because delegate callbacks re-enter this class: `addDelegate`
++   invokes `didReceive` on the new delegate while holding the lock, and a
++   delegate is free to call back into `removeDelegate`. A plain NSLock would
++   deadlock on that path.
++
++   Every iteration below walks a SNAPSHOT taken under the lock rather than the
++   live array, so a delegate that adds or removes delegates while being called
++   cannot mutate the collection out from under the loop.
++   */
++  private let lock = NSRecursiveLock()
++
+   private override init() {
+     super.init()
+     if UNUserNotificationCenter.current().delegate != nil {
+@@ -62,6 +84,8 @@
+   }
+ 
+   public func addDelegate(_ delegate: NotificationDelegate) {
++    lock.lock()
++    defer { lock.unlock() }
+     delegates.append(delegate)
+     var handled = false
+     for pendingResponse in pendingResponses {
+@@ -73,21 +97,30 @@
+   }
+ 
+   public func removeDelegate(_ delegate: AnyObject) {
++    lock.lock()
++    defer { lock.unlock() }
+     if let index = delegates.firstIndex(where: { $0 === delegate }) {
+       delegates.remove(at: index)
+     }
+   }
+ 
++  /** A point-in-time copy, so callbacks can mutate `delegates` mid-iteration. */
++  private var delegatesSnapshot: [NotificationDelegate] {
++    lock.lock()
++    defer { lock.unlock() }
++    return delegates
++  }
++
+   // MARK: - Called by PushTokenAppDelegateSubscriber
+ 
+   public func didFailRegistration(_ error: any Error) {
+-    for delegate in delegates {
++    for delegate in delegatesSnapshot {
+       delegate.didFailRegistration(error)
+     }
+   }
+ 
+   public func didRegister(_ deviceToken: String) {
+-    for delegate in delegates {
++    for delegate in delegatesSnapshot {
+       delegate.didRegister(deviceToken)
+     }
+   }
+@@ -100,7 +133,7 @@
+     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+   ) {
+     var handled = false
+-    for delegate in delegates {
++    for delegate in delegatesSnapshot {
+       handled = delegate.willPresent(notification, completionHandler: completionHandler) || handled
+     }
+     if !handled {
+@@ -114,17 +147,19 @@
+     withCompletionHandler completionHandler: @escaping () -> Void
+   ) {
+     var handled = false
+-    for delegate in delegates {
++    for delegate in delegatesSnapshot {
+       handled = delegate.didReceive(response, completionHandler: completionHandler) || handled
+     }
+     if !handled {
++      lock.lock()
+       pendingResponses.append(response)
++      lock.unlock()
+     }
+     completionHandler()
+   }
+ 
+   public func userNotificationCenter(_ center: UNUserNotificationCenter, openSettingsFor notification: UNNotification?) {
+-    for delegate in delegates {
++    for delegate in delegatesSnapshot {
+       delegate.openSettings(notification)
+     }
+   }
+@@ -132,7 +167,7 @@
+   // MARK: - Called from NotificationsAppDelegateSubscriber
+   public func didReceive(_ userInfo: [AnyHashable: Any], completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+     var handled = false
+-    for delegate in delegates {
++    for delegate in delegatesSnapshot {
+       handled = delegate.didReceive(userInfo, completionHandler: completionHandler) || handled
+     }
+     if !handled {
