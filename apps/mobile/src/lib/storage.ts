@@ -57,6 +57,8 @@ export const STORAGE_KEYS = {
   gratitudeContractSeen: 'gratitude.contractSeen',
   /** Today's 369 counter. Resets daily; never carries a failure forward. */
   practice369: 'affirmations.practice369',
+  /** The daily count on Home — current, longest, and the held-day budget (21). */
+  streak: 'streak.state',
   /** Which of the day's three ritual beats are done (product 09). */
   ritualProgress: 'ritual.progress',
   /** Whether the notification permission has been asked, and hint pacing (11 §2). */

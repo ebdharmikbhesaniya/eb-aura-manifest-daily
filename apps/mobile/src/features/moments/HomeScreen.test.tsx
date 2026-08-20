@@ -4,6 +4,8 @@ import { momentsCopy } from '@/copy/moments';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { MotionProvider } from '@/theme/motion';
 
+import { emptyStreak } from '@/features/streak/streak';
+
 import { HomeScreen } from './HomeScreen';
 import type { HomeMomentState } from './momentState';
 import type { PlayableMoment } from './useMoments';
@@ -47,6 +49,10 @@ describe('HomeScreen', () => {
             onRetry={jest.fn()}
             onFavorite={jest.fn()}
             onManifest={jest.fn()}
+            // 0/0 renders nothing, so every existing Home assertion is
+            // unchanged by the count's arrival.
+            streak={emptyStreak('2026-08-20')}
+            lastOutcome={null}
             {...props}
           />
         </MotionProvider>

@@ -33,6 +33,7 @@ import { LockedFeatureSheet } from '@/features/paywall/LockedFeatureSheet';
 import { canUse } from '@/features/paywall/gating';
 import { useEntitlement } from '@/features/paywall/useEntitlement';
 import { usePlayerStore } from '@/features/player/playerStore';
+import { useStreakStore } from '@/features/streak/streakStore';
 import { isTerminalJobStatus, useGenerationJob } from '@/features/letter/useGenerationJob';
 import { useProfile } from '@/hooks/useProfile';
 import { LIMITS } from '@aura/shared';
@@ -67,6 +68,11 @@ export default function HomeRoute() {
   // Collections count what she owns (kept / on-demand), played or not — the
   // "Recently played" list above is the only surface that needs `played_at`.
   const collections = useCollectionMoments(userId ?? undefined, COLLECTION_SCAN_LIMIT);
+
+  // Selected individually so Home re-renders on a count change but not on the
+  // store's other fields.
+  const streak = useStreakStore((s) => s.state);
+  const lastOutcome = useStreakStore((s) => s.lastOutcome);
 
   const open = usePlayerStore((s) => s.open);
   const manifestRef = useRef<BottomSheetModal>(null);
@@ -294,6 +300,8 @@ export default function HomeRoute() {
       <HomeScreen
         name={profile?.name ?? null}
         state={state}
+        streak={streak}
+        lastOutcome={lastOutcome}
         forming={forming.data ?? []}
         recent={(recent.data ?? []).slice(0, RECENT_ROWS).map((m) => ({
           id: m.id,

@@ -6,6 +6,8 @@ import { Pressable, Text, View } from 'react-native';
 import { Sheet, SerifDisplay } from '@/components';
 import { affirmationsCopy } from '@/copy/affirmations';
 import { analytics } from '@/lib/analytics';
+import { NO_SIGNALS } from '@/features/streak/day';
+import { useStreakStore } from '@/features/streak/streakStore';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
 
@@ -50,6 +52,7 @@ export const TechniqueSheet = forwardRef<BottomSheetModal, TechniqueSheetProps>(
 
       if (isPracticeComplete(next)) {
         analytics.capture('technique_practice_completed', { technique });
+        useStreakStore.getState().record({ ...NO_SIGNALS, practiceCompleted: true });
       }
     };
 

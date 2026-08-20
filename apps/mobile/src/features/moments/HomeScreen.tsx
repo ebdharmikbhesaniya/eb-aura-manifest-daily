@@ -14,6 +14,10 @@ import { momentsCopy } from '@/copy/moments';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
 
+import { localDay } from '@/features/streak/day';
+import { StreakCard } from '@/features/streak/StreakCard';
+import { weekFrom, type StreakOutcome, type StreakState } from '@/features/streak/streak';
+
 import { greetingFor, type HomeMomentState } from './momentState';
 import { TodayMomentCard } from './TodayMomentCard';
 
@@ -40,6 +44,14 @@ export interface HomeScreenProps {
   notificationHint?: string | null;
   /** The legible "why" under today's moment — e.g. "Shaped around family & love." */
   personalization?: string | null;
+  /**
+   * The daily count (21). Passed in rather than read from the store here so
+   * HomeScreen stays a presentational component — the same reason `state` and
+   * `recent` are props.
+   */
+  streak: StreakState;
+  lastOutcome: StreakOutcome['kind'] | null;
+  onOpenStreak?: () => void;
   /** The one-time first-Home welcome/orientation card (2026-08-10). */
   showFirstRun?: boolean;
   onDismissFirstRun?: () => void;
@@ -89,6 +101,9 @@ export function HomeScreen({
   onCollection,
   notificationHint = null,
   personalization = null,
+  streak,
+  lastOutcome,
+  onOpenStreak,
   showFirstRun = false,
   onDismissFirstRun,
   testID,
@@ -118,6 +133,19 @@ export function HomeScreen({
         </View>
         <Orb state="idle" size={HEADER_ORB_SIZE} testID="home-orb" />
       </View>
+
+      {/*
+        The count sits directly under the greeting and above today's moment
+        (21 §4.2) — the only slot on Home she reliably sees. It renders nothing
+        until she has counted a day, so a fresh install is unchanged.
+      */}
+      <StreakCard
+        state={streak}
+        week={weekFrom(streak, localDay(new Date()))}
+        lastOutcome={lastOutcome}
+        {...(onOpenStreak !== undefined && { onPress: onOpenStreak })}
+        testID="home-streak"
+      />
 
       {showFirstRun && (
         <View testID="home-first-run-welcome">

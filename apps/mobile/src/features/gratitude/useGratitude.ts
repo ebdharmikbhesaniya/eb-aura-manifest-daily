@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { recordBeat } from '@/features/affirmations/practice';
+import { NO_SIGNALS } from '@/features/streak/day';
+import { useStreakStore } from '@/features/streak/streakStore';
 import { analytics } from '@/lib/analytics';
 import { kv, STORAGE_KEYS } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
@@ -123,6 +125,10 @@ export function useGratitude(userId: string | undefined) {
 
       // Local write, soft tick, dot fills — all before the network is touched.
       persist(next);
+      // The day counts the moment it is written locally, not when it syncs —
+      // she showed up on a train with no signal just the same. `record` is
+      // idempotent, so the other two call sites can fire on the same day freely.
+      useStreakStore.getState().record({ ...NO_SIGNALS, gratitudeWritten: true });
       void haptic('gratitudeSaved');
       analytics.capture('gratitude_entry_saved', {
         char_count_bucket: charCountBucket(entry),
