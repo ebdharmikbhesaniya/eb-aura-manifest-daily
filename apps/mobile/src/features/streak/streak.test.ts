@@ -1,4 +1,11 @@
-import { countDay, emptyStreak, heldDaysRemaining, milestoneReached, weekFrom } from './streak';
+import {
+  countDay,
+  emptyStreak,
+  heldDaysRemaining,
+  milestoneReached,
+  seedFromHistory,
+  weekFrom,
+} from './streak';
 import type { StreakState } from './streak';
 
 /** A state as if she had counted `current` days ending on `last`. */
@@ -145,6 +152,57 @@ describe('weekFrom', () => {
     const second = countDay(first.state, '2026-08-20');
 
     expect(second.state.countedDays).toEqual(['2026-08-20', '2026-08-19']);
+  });
+});
+
+describe('seedFromHistory', () => {
+  /**
+   * The gap this closes: existing users had a week of filled dots and a count
+   * of zero, because record() only ever fired on NEW entries.
+   */
+  it('counts a run that reaches today', () => {
+    const seeded = seedFromHistory(['2026-08-18', '2026-08-19', '2026-08-20'], '2026-08-20');
+
+    expect(seeded.current).toBe(3);
+    expect(seeded.longest).toBe(3);
+    expect(seeded.lastCountedDay).toBe('2026-08-20');
+  });
+
+  /** Today is still open — a run ending yesterday has not been lost yet. */
+  it('keeps a run alive when the last day was yesterday', () => {
+    const seeded = seedFromHistory(['2026-08-17', '2026-08-18', '2026-08-19'], '2026-08-20');
+
+    expect(seeded.current).toBe(3);
+  });
+
+  it('does not revive a run that already ended', () => {
+    const seeded = seedFromHistory(['2026-08-10', '2026-08-11'], '2026-08-20');
+
+    expect(seeded.current).toBe(0);
+    expect(seeded.longest).toBe(2);
+  });
+
+  it('takes the longest run, not the last one', () => {
+    const seeded = seedFromHistory(
+      ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04', '2026-08-19', '2026-08-20'],
+      '2026-08-20',
+    );
+
+    expect(seeded.longest).toBe(4);
+    expect(seeded.current).toBe(2);
+  });
+
+  it('tolerates unsorted input and duplicates', () => {
+    const seeded = seedFromHistory(
+      ['2026-08-20', '2026-08-18', '2026-08-20', '2026-08-19'],
+      '2026-08-20',
+    );
+
+    expect(seeded.current).toBe(3);
+  });
+
+  it('returns an empty state when there is no history', () => {
+    expect(seedFromHistory([], '2026-08-20').lastCountedDay).toBeNull();
   });
 });
 

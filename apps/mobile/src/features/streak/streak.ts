@@ -180,3 +180,48 @@ export function milestoneReached(outcome: StreakOutcome): 7 | 30 | 100 | null {
   const n = outcome.state.current;
   return n === 7 || n === 30 || n === 100 ? n : null;
 }
+
+/**
+ * Build a state from days she has already lived (21 §1, "endowed progress").
+ *
+ * Without this, everyone who has been using the app sees nothing on Home until
+ * they write one more entry — their real history invisible, the count starting
+ * at zero underneath a week of filled dots. A counter that visibly ignores what
+ * she has already done is worse than no counter: it reads as the app not
+ * noticing.
+ *
+ * Runs once, only when nothing has been counted yet, so it can never overwrite
+ * a live count. `days` may arrive in any order and may contain duplicates.
+ */
+export function seedFromHistory(days: string[], today: string): StreakState {
+  const unique = Array.from(new Set(days)).sort().reverse();
+  const base = emptyStreak(today);
+  if (unique.length === 0) return base;
+
+  // The current run only survives if it reaches today or yesterday; anything
+  // older is a run that has already ended.
+  const gapToNow = daysBetween(unique[0]!, today);
+  const runIsLive = gapToNow !== null && gapToNow >= 0 && gapToNow <= 1;
+
+  let current = 0;
+  let longest = 0;
+  let run = 0;
+  let previous: string | null = null;
+
+  // Walk oldest → newest so consecutive days accumulate.
+  for (const day of [...unique].reverse()) {
+    const gap = previous === null ? null : daysBetween(previous, day);
+    run = gap === 1 ? run + 1 : 1;
+    longest = Math.max(longest, run);
+    previous = day;
+  }
+  if (runIsLive) current = run;
+
+  return {
+    ...base,
+    current,
+    longest,
+    lastCountedDay: unique[0]!,
+    countedDays: unique.slice(0, HISTORY_DAYS),
+  };
+}

@@ -89,3 +89,32 @@ describe('streakStore', () => {
     expect(kv.get(STORAGE_KEYS.streak)).toBeUndefined();
   });
 });
+
+describe('streakStore.seed', () => {
+  beforeEach(() => {
+    kv.delete(STORAGE_KEYS.streak);
+    useStreakStore.getState().reset();
+  });
+
+  it('backfills from days she has already lived', () => {
+    useStreakStore.getState().seed(['2026-08-18', '2026-08-19', '2026-08-20'], day('2026-08-20'));
+
+    expect(useStreakStore.getState().state.current).toBe(3);
+  });
+
+  /** Safe to call on every Home mount — this is the guarantee that makes it so. */
+  it('refuses to overwrite a count that already exists', () => {
+    const store = useStreakStore.getState();
+    store.record(did, day('2026-08-20'));
+
+    store.seed(['2026-08-01', '2026-08-02', '2026-08-03'], day('2026-08-20'));
+
+    expect(useStreakStore.getState().state.current).toBe(1);
+  });
+
+  it('does nothing when there is no history to seed from', () => {
+    useStreakStore.getState().seed([], day('2026-08-20'));
+
+    expect(useStreakStore.getState().state.current).toBe(0);
+  });
+});

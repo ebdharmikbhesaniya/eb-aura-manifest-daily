@@ -33,6 +33,7 @@ import { LockedFeatureSheet } from '@/features/paywall/LockedFeatureSheet';
 import { canUse } from '@/features/paywall/gating';
 import { useEntitlement } from '@/features/paywall/useEntitlement';
 import { usePlayerStore } from '@/features/player/playerStore';
+import { readEntries } from '@/features/gratitude/gratitudeStore';
 import { useStreakStore } from '@/features/streak/streakStore';
 import { isTerminalJobStatus, useGenerationJob } from '@/features/letter/useGenerationJob';
 import { useProfile } from '@/hooks/useProfile';
@@ -73,6 +74,19 @@ export default function HomeRoute() {
   // store's other fields.
   const streak = useStreakStore((s) => s.state);
   const lastOutcome = useStreakStore((s) => s.lastOutcome);
+  const seedStreak = useStreakStore((s) => s.seed);
+
+  /**
+   * Seed the count from days she has already lived, once.
+   *
+   * Home is where the count is shown, so it is where the backfill belongs —
+   * seeding only inside the Gratitude tab would leave anyone who never opens
+   * that tab looking at a zero underneath a week of filled dots. `seed` refuses
+   * to run once anything has been counted, so this is safe on every mount.
+   */
+  useEffect(() => {
+    seedStreak(Object.keys(readEntries()));
+  }, [seedStreak]);
 
   const open = usePlayerStore((s) => s.open);
   const manifestRef = useRef<BottomSheetModal>(null);

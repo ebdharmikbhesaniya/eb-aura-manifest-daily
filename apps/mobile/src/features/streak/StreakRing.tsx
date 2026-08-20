@@ -54,19 +54,33 @@ function Segment({
 
   const fillStyle = useAnimatedStyle(() => ({ opacity: fill.value }));
 
-  const thickness = Math.max(3, Math.round(size * 0.045));
-  const length = Math.round(size * 0.14);
-  const radius = size / 2 - length / 2;
+  // Sized so the seven segments nearly close the circle. At 0.14 they left a
+  // 22px gap on a 34px slot, which read as a loading spinner rather than a
+  // ring — sparse dashes say "working", not "progress".
+  const thickness = Math.max(4, Math.round(size * 0.055));
+  const length = Math.round(size * 0.26);
+  // The bar's THICKNESS is its radial dimension, so the ring's outer edge sits
+  // at size/2 when the centre is half a thickness inside it.
+  const radius = size / 2 - thickness / 2;
   // Start at the top and run clockwise, so the week reads the way it is written.
   const angle = (index * 360) / DAYS_IN_WEEK;
 
+  /**
+   * The bar lies HORIZONTAL and is then rotated into place.
+   *
+   * This is the difference between a ring and a starburst. `translateY` runs in
+   * the rotated frame, so it pushes the bar out perpendicular to its own
+   * length — a horizontal bar becomes a tangent to the circle. A vertical one
+   * becomes a radial spoke pointing away from the centre, which is what this
+   * drew first and it read unmistakably as a loading spinner.
+   */
   const common = {
     position: 'absolute' as const,
-    width: thickness,
-    height: length,
+    width: length,
+    height: thickness,
     borderRadius: thickness / 2,
-    left: size / 2 - thickness / 2,
-    top: size / 2 - length / 2,
+    left: size / 2 - length / 2,
+    top: size / 2 - thickness / 2,
     transform: [{ rotate: `${angle}deg` }, { translateY: -radius }],
   };
 

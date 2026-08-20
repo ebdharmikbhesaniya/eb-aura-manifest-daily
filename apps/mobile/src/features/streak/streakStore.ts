@@ -7,6 +7,7 @@ import {
   countDay,
   emptyStreak,
   milestoneReached,
+  seedFromHistory,
   type StreakOutcome,
   type StreakState,
 } from './streak';
@@ -35,6 +36,11 @@ interface StreakStore {
    */
   record: (signals: DaySignals, now?: Date) => StreakOutcome | null;
   clearMilestone: () => void;
+  /**
+   * Seed from days she has already lived. Idempotent and refuses to run once
+   * anything has been counted, so it can never overwrite a live count.
+   */
+  seed: (days: string[], now?: Date) => void;
   /** Account deletion and sign-out. Delete must mean delete (14 §6). */
   reset: () => void;
 }
@@ -85,6 +91,17 @@ export const useStreakStore = create<StreakStore>((set, get) => ({
   },
 
   clearMilestone: () => set({ pendingMilestone: null }),
+
+  seed: (days, now = new Date()) => {
+    const existing = get().state;
+    if (existing.lastCountedDay !== null || existing.countedDays.length > 0) return;
+
+    const seeded = seedFromHistory(days, localDay(now));
+    if (seeded.lastCountedDay === null) return;
+
+    persist(seeded);
+    set({ state: seeded });
+  },
 
   reset: () => {
     const fresh = emptyStreak(localDay(new Date()));
