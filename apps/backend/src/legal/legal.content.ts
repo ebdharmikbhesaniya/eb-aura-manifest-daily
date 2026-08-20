@@ -13,7 +13,12 @@ export interface LegalSection {
 
 export interface LegalDocument {
   title: string;
-  effectiveDate: string;
+  /**
+   * Omitted by pages that are not policies. Support is instructions and a
+   * contact address, not something that "takes effect" on a date — printing one
+   * there invites the reader to wonder which version they are looking at.
+   */
+  effectiveDate?: string;
   /** Lead paragraphs, before the first section. */
   intro: string[];
   sections: LegalSection[];
@@ -217,6 +222,63 @@ export const DELETION: LegalDocument = {
     {
       heading: 'Contact',
       body: [`Questions about account deletion: ${CONTACT} (${COMPANY}).`],
+    },
+  ],
+};
+
+/**
+ * The support page (App Store Connect requires a Support URL, and a reviewer
+ * opens it).
+ *
+ * Not a legal document, but it wears the same shape for the same reason
+ * `DELETION` does: one template, one host, one thing to keep alive. It carries
+ * no effective date — see `LegalDocument.effectiveDate`.
+ *
+ * The contact address MUST stay in step with `SUPPORT_EMAIL` in the mobile app
+ * (features/settings/support.config.ts). A page that gives one address while
+ * Settings mails another is how a support request goes missing.
+ */
+export const SUPPORT: LegalDocument = {
+  title: 'Support',
+  intro: [
+    `Something not working, or a question about your account? Write to us and a person will answer.`,
+  ],
+  sections: [
+    {
+      heading: 'Contact us',
+      body: [
+        `Email ${CONTACT} and we will reply within two business days.`,
+        'Please include the email address you signed in with — it is how we find your account — and tell us what you tapped and what happened. A screenshot helps.',
+      ],
+    },
+    {
+      heading: 'Managing your subscription',
+      body: [
+        'Aura Premium is billed by Apple, not by us. To change or cancel it, open Settings on your iPhone, tap your name, then tap Subscriptions and choose Aura: Manifest Daily.',
+        'Cancelling stops the next renewal. You keep everything you have paid for until the end of the period you are already in.',
+      ],
+    },
+    {
+      heading: 'Restoring a purchase',
+      body: [
+        'If you reinstalled the app or moved to a new phone, open the subscription screen in the app and tap "Restore purchase". Your subscription is tied to your Apple ID, so nothing is lost.',
+      ],
+    },
+    {
+      heading: 'Deleting your account',
+      body: [
+        'Open the app, go to your Profile, tap the gear to open Settings, then tap "Delete account". If you can no longer open the app, see the account deletion page or email us.',
+      ],
+    },
+    {
+      heading: 'Your privacy',
+      body: [
+        'Everything the app remembers about you can be read, edited and removed inside the app, under "What Aura Knows". Our Privacy Policy explains what we collect and why.',
+      ],
+    },
+    {
+      heading: 'Who we are',
+      body: [`${APP} is made by ${COMPANY}. ${CONTACT}`],
     },
   ],
 };

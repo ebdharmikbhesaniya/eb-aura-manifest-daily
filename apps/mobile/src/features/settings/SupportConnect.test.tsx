@@ -5,7 +5,24 @@ import { Linking } from 'react-native';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
 import { SupportConnect } from './SupportConnect';
-import { SOCIAL_LINKS, SUPPORT_EMAIL } from './support.config';
+import { SUPPORT_EMAIL } from './support.config';
+
+/**
+ * The config is stubbed rather than read live.
+ *
+ * This suite used to press `SOCIAL_LINKS[0]` from the real file, which made it
+ * a test of whatever happened to be configured that week — it broke the moment
+ * the placeholder handles were blanked, even though nothing about the component
+ * had changed. Stubbing pins the two behaviours that ARE the contract: a link
+ * with a url opens, and a link without one is not rendered at all.
+ */
+jest.mock('./support.config', () => ({
+  SUPPORT_EMAIL: 'support@example.test',
+  SOCIAL_LINKS: [
+    { id: 'instagram', label: 'Instagram', url: 'https://example.test/instagram' },
+    { id: 'x', label: 'X (Twitter)', url: '' },
+  ],
+}));
 
 function wrapper({ children }: { children: ReactNode }) {
   return <ThemeProvider>{children}</ThemeProvider>;
@@ -36,13 +53,22 @@ describe('SupportConnect', () => {
     expect(url).toContain(encodeURIComponent('her@example.com'));
   });
 
-  it('opens each configured social link in the browser', async () => {
+  it('opens a configured social link in the browser', async () => {
     const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as never);
     await render(<SupportConnect />, { wrapper });
 
-    const first = SOCIAL_LINKS[0]!;
-    fireEvent.press(screen.getByTestId(`support-social-${first.id}`));
+    fireEvent.press(screen.getByTestId('support-social-instagram'));
 
-    expect(openURL).toHaveBeenCalledWith(first.url);
+    expect(openURL).toHaveBeenCalledWith('https://example.test/instagram');
+  });
+
+  /**
+   * A row that goes nowhere is worse than no row, and a store reviewer taps it.
+   * All three handles ship blank until the accounts exist.
+   */
+  it('renders no row for a social link with no url', async () => {
+    await render(<SupportConnect />, { wrapper });
+
+    expect(screen.queryByTestId('support-social-x')).toBeNull();
   });
 });

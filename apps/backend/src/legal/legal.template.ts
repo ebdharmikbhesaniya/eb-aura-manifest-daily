@@ -38,6 +38,11 @@ export function renderLegalPage(doc: LegalDocument): string {
     )
     .join('');
 
+  // Only policies carry one; see `LegalDocument.effectiveDate`.
+  const meta = doc.effectiveDate
+    ? `<p class="meta">Effective ${escapeHtml(doc.effectiveDate)}</p>`
+    : '';
+
   return (
     `<!doctype html><html lang="en"><head>` +
     `<meta charset="utf-8"/>` +
@@ -45,7 +50,7 @@ export function renderLegalPage(doc: LegalDocument): string {
     `<title>${escapeHtml(doc.title)} · Aura: Manifest Daily</title>` +
     `<style>${STYLE}</style></head><body><main>` +
     `<h1>${escapeHtml(doc.title)}</h1>` +
-    `<p class="meta">Effective ${escapeHtml(doc.effectiveDate)}</p>` +
+    meta +
     intro +
     sections +
     `<footer>Aura: Manifest Daily</footer>` +

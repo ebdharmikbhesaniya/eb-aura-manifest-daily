@@ -22,6 +22,21 @@ describe('renderLegalPage', () => {
     expect(html).toContain('We collect your email.');
   });
 
+  /**
+   * Support is instructions, not a policy. Printing "Effective <date>" there
+   * would invite the reader to wonder which version they are looking at.
+   */
+  it('omits the effective-date line entirely when the document has no date', () => {
+    const { effectiveDate: _omitted, ...undated } = doc;
+    const html = renderLegalPage(undated);
+
+    expect(html).not.toContain('class="meta"');
+    expect(html).not.toContain('Effective');
+    // The rest of the page still renders.
+    expect(html).toContain('<h1>Privacy Policy</h1>');
+    expect(html).toContain('An intro paragraph.');
+  });
+
   it('escapes HTML in content so it cannot break the markup', () => {
     const html = renderLegalPage({
       ...doc,
