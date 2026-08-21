@@ -15,7 +15,12 @@ function wrapper({ children }: { children: ReactNode }) {
   );
 }
 
-const week = [true, true, true, false, false, false, false];
+import type { DayMark } from './streak';
+
+/** Oldest first: a run of counted days, one kept, the rest not yet lived. */
+const month: DayMark[] = Array.from({ length: 30 }, (_, i) =>
+  i < 20 ? 'none' : i === 24 ? 'held' : 'counted',
+);
 
 function state(current: number, longest = current): StreakState {
   return {
@@ -25,6 +30,7 @@ function state(current: number, longest = current): StreakState {
     heldDaysUsed: 0,
     heldMonth: '2026-08',
     countedDays: ['2026-08-20'],
+    heldDays: [],
   };
 }
 
@@ -32,7 +38,7 @@ describe('StreakCard', () => {
   /** A zero on the first morning is discouragement, not information. */
   it('renders nothing before she has counted a single day', async () => {
     const view = await render(
-      <StreakCard state={state(0, 0)} week={week} lastOutcome={null} testID="streak" />,
+      <StreakCard state={state(0, 0)} month={month} lastOutcome={null} testID="streak" />,
       { wrapper },
     );
 
@@ -40,9 +46,12 @@ describe('StreakCard', () => {
   });
 
   it('shows the count and the label', async () => {
-    await render(<StreakCard state={state(12)} week={week} lastOutcome={null} testID="streak" />, {
-      wrapper,
-    });
+    await render(
+      <StreakCard state={state(12)} month={month} lastOutcome={null} testID="streak" />,
+      {
+        wrapper,
+      },
+    );
 
     expect(screen.getByText('12')).toBeTruthy();
     expect(screen.getByText('days becoming')).toBeTruthy();
@@ -50,7 +59,7 @@ describe('StreakCard', () => {
 
   it('stays quiet about the longest run while it equals the current one', async () => {
     await render(
-      <StreakCard state={state(12, 12)} week={week} lastOutcome={null} testID="streak" />,
+      <StreakCard state={state(12, 12)} month={month} lastOutcome={null} testID="streak" />,
       { wrapper },
     );
 
@@ -59,7 +68,7 @@ describe('StreakCard', () => {
 
   it('shows the longest run once it is genuinely ahead', async () => {
     await render(
-      <StreakCard state={state(3, 34)} week={week} lastOutcome={null} testID="streak" />,
+      <StreakCard state={state(3, 34)} month={month} lastOutcome={null} testID="streak" />,
       { wrapper },
     );
 
@@ -69,7 +78,7 @@ describe('StreakCard', () => {
   /** The line that makes a loss state survivable — her work is not erased. */
   it('says the past still happened after a reset', async () => {
     await render(
-      <StreakCard state={state(1, 34)} week={week} lastOutcome="reset" testID="streak" />,
+      <StreakCard state={state(1, 34)} month={month} lastOutcome="reset" testID="streak" />,
       { wrapper },
     );
 
@@ -78,7 +87,7 @@ describe('StreakCard', () => {
 
   it('names no failure when grace covered a day', async () => {
     await render(
-      <StreakCard state={state(10, 10)} week={week} lastOutcome="held" testID="streak" />,
+      <StreakCard state={state(10, 10)} month={month} lastOutcome="held" testID="streak" />,
       { wrapper },
     );
 
@@ -88,7 +97,7 @@ describe('StreakCard', () => {
   /** "1 days becoming" is the kind of thing that ships and then embarrasses. */
   it('uses the singular label on day one', async () => {
     await render(
-      <StreakCard state={state(1, 1)} week={week} lastOutcome="extended" testID="streak" />,
+      <StreakCard state={state(1, 1)} month={month} lastOutcome="extended" testID="streak" />,
       { wrapper },
     );
 
@@ -98,7 +107,7 @@ describe('StreakCard', () => {
 
   it('greets day one as an invitation', async () => {
     await render(
-      <StreakCard state={state(1, 1)} week={week} lastOutcome="extended" testID="streak" />,
+      <StreakCard state={state(1, 1)} month={month} lastOutcome="extended" testID="streak" />,
       { wrapper },
     );
 
@@ -110,7 +119,7 @@ describe('StreakCard', () => {
     await render(
       <StreakCard
         state={state(12)}
-        week={week}
+        month={month}
         lastOutcome={null}
         onPress={onPress}
         testID="streak"

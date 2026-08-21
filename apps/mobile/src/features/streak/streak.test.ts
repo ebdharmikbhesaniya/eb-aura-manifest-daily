@@ -3,6 +3,7 @@ import {
   emptyStreak,
   heldDaysRemaining,
   milestoneReached,
+  monthFrom,
   seedFromHistory,
   weekFrom,
 } from './streak';
@@ -17,6 +18,7 @@ function at(current: number, last: string, heldDaysUsed = 0): StreakState {
     heldDaysUsed,
     heldMonth: last.slice(0, 7),
     countedDays: [last],
+    heldDays: [],
   };
 }
 
@@ -53,6 +55,13 @@ describe('countDay', () => {
     expect(out.kind).toBe('held');
     expect(out.state.current).toBe(10);
     expect(out.state.heldDaysUsed).toBe(1);
+  });
+
+  /** The bar draws a kept day pale rather than empty, so it needs the date. */
+  it('names the day grace covered, not just how many', () => {
+    const out = countDay(at(9, '2026-08-18'), '2026-08-20');
+
+    expect(out.state.heldDays).toEqual(['2026-08-19']);
   });
 
   it('resets when a day is missed and the grace budget is gone', () => {
@@ -152,6 +161,25 @@ describe('weekFrom', () => {
     const second = countDay(first.state, '2026-08-20');
 
     expect(second.state.countedDays).toEqual(['2026-08-20', '2026-08-19']);
+  });
+});
+
+describe('monthFrom', () => {
+  it('marks counted, kept and empty days apart, oldest first', () => {
+    const state = {
+      ...at(3, '2026-08-20'),
+      countedDays: ['2026-08-20', '2026-08-19'],
+      heldDays: ['2026-08-18'],
+    };
+
+    const month = monthFrom(state, '2026-08-20', 5);
+
+    //        16      17      18      19         20
+    expect(month).toEqual(['none', 'none', 'held', 'counted', 'counted']);
+  });
+
+  it('is all empty before she has counted anything', () => {
+    expect(monthFrom(emptyStreak('2026-08-20'), '2026-08-20', 3)).toEqual(['none', 'none', 'none']);
   });
 });
 

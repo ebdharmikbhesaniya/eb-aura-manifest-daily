@@ -33,6 +33,10 @@ export const streakCopy = {
   /** The reset line. `{n}` is her longest run, which survives (19 §3 rule 7). */
   reset: 'Back to day one. Your {n} days still happened.',
 
+  /** The month bar's two ends. Plain orientation, not a scoreboard. */
+  monthStart: '30 days ago',
+  monthEnd: 'Today',
+
   /** The history sheet — where past runs stay visible. */
   historyTitle: 'Every day you showed up',
   historyHeld: 'Kept for you',

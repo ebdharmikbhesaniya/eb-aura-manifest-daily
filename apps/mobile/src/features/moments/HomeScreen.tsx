@@ -16,7 +16,7 @@ import { clampedFontScale, scaledType } from '@/theme/typography';
 
 import { localDay } from '@/features/streak/day';
 import { StreakCard } from '@/features/streak/StreakCard';
-import { weekFrom, type StreakOutcome, type StreakState } from '@/features/streak/streak';
+import { monthFrom, type StreakOutcome, type StreakState } from '@/features/streak/streak';
 
 import { greetingFor, type HomeMomentState } from './momentState';
 import { TodayMomentCard } from './TodayMomentCard';
@@ -141,7 +141,7 @@ export function HomeScreen({
       */}
       <StreakCard
         state={streak}
-        week={weekFrom(streak, localDay(new Date()))}
+        month={monthFrom(streak, localDay(new Date()))}
         lastOutcome={lastOutcome}
         {...(onOpenStreak !== undefined && { onPress: onOpenStreak })}
         testID="home-streak"

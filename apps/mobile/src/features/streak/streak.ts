@@ -34,6 +34,15 @@ export interface StreakState {
    * MMKV; a year of history has no reader.
    */
   countedDays: string[];
+  /**
+   * Days grace covered, newest first, bounded like `countedDays`.
+   *
+   * A count alone (`heldDaysUsed`) cannot draw them, and the month bar needs
+   * to: a kept day renders pale ember rather than empty, which is the whole
+   * anti-shame signal — the difference between "I kept your place" and a gap
+   * that looks like failure.
+   */
+  heldDays: string[];
 }
 
 /** Enough for the ring, the month view in the history sheet, and no more. */
@@ -68,6 +77,7 @@ export function emptyStreak(today: string): StreakState {
     heldDaysUsed: 0,
     heldMonth: monthOf(today),
     countedDays: [],
+    heldDays: [],
   };
 }
 
@@ -151,6 +161,15 @@ export function countDay(input: StreakState, today: string): StreakOutcome {
   const remaining = HELD_DAYS_PER_MONTH - state.heldDaysUsed;
 
   if (gap <= MAX_GAP_FOR_GRACE && missed <= remaining) {
+    // The days between the last counted one and today are the ones grace just
+    // covered; name them so the bar can show them as kept rather than absent.
+    const covered: string[] = [];
+    for (let back = 1; back <= missed; back++) {
+      const day = new Date(`${today}T12:00:00Z`);
+      day.setUTCDate(day.getUTCDate() - back);
+      covered.push(day.toISOString().slice(0, 10));
+    }
+
     const next = withLongest(
       withCountedDay(
         {
@@ -158,6 +177,7 @@ export function countDay(input: StreakState, today: string): StreakOutcome {
           current: state.current + 1,
           lastCountedDay: today,
           heldDaysUsed: state.heldDaysUsed + missed,
+          heldDays: [...covered, ...state.heldDays].slice(0, HISTORY_DAYS),
         },
         today,
       ),
@@ -179,6 +199,29 @@ export function milestoneReached(outcome: StreakOutcome): 7 | 30 | 100 | null {
   if (outcome.kind !== 'extended' && outcome.kind !== 'held') return null;
   const n = outcome.state.current;
   return n === 7 || n === 30 || n === 100 ? n : null;
+}
+
+export type DayMark = 'counted' | 'held' | 'none';
+
+/**
+ * The last `days` days, oldest first, for the month bar.
+ *
+ * Separate from `weekFrom` because they answer different questions: the week
+ * asked which of seven, this asks what her month looked like — and it has to
+ * distinguish a day grace kept from a day nothing happened.
+ */
+export function monthFrom(state: StreakState, today: string, days = 30): DayMark[] {
+  const counted = new Set(state.countedDays);
+  const held = new Set(state.heldDays);
+
+  return Array.from({ length: days }, (_, i) => {
+    const date = new Date(`${today}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() - (days - 1 - i));
+    const iso = date.toISOString().slice(0, 10);
+    if (counted.has(iso)) return 'counted';
+    if (held.has(iso)) return 'held';
+    return 'none';
+  });
 }
 
 /**
