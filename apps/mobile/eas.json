@@ -13,7 +13,8 @@
         "EXPO_PUBLIC_PRIVACY_URL": "https://eb-aura-manifest-daily.onrender.com/privacy",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1026671088815-iq0qt119umtkrsn90pib0lefn1kqlasr.apps.googleusercontent.com",
         "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY": "goog_DBUAXpBZGVmVPUTIGZSsWVgpMil",
-        "//EXPO_PUBLIC_REVENUECAT_IOS_KEY": "REQUIRED FOR AN iOS STORE BUILD. RevenueCat issues one PUBLIC SDK key per store and the Android key is rejected by the iOS SDK. Add a sibling line `\"EXPO_PUBLIC_REVENUECAT_IOS_KEY\": \"appl_…\"` here with the key from RevenueCat → Project → API keys; app.config.ts fails an iOS production build until it is set. Leave it OUT (not empty) until then — EAS rejects an empty env value. Public by design, like the Android key above.",
+        "//EXPO_PUBLIC_REVENUECAT_IOS_KEY": "RevenueCat issues one PUBLIC SDK key per store and rejects the other platform's key, so the iOS App Store key lives on its own line below. Public by design, like the Android key above.",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_afiTZMkLDxxzTjIfqQjZaRGOKcW",
         "EXPO_PUBLIC_POSTHOG_KEY": "phc_oSwbP9nNvtashNw49ooqvcZz4SodW4UXVUrdnhW7Cq5y",
         "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com"
       },
