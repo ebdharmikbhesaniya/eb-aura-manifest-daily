@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
-import { KeyboardAvoidingView, ScrollView } from 'react-native';
+import { ScrollView } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { Screen, ScreenHeader } from '@/components';
 import { settingsCopy } from '@/copy/settings';

@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { Input, PillButton, Screen, TextButton, ScreenHeader } from '@/components';
 import { signOutAndWipeDevice } from '@/lib/accountReset';

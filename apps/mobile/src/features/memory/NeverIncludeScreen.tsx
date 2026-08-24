@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Text, View } from 'react-native';
+import { FlatList, Text, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { Input, Screen, ScreenHeader, TextButton } from '@/components';
 import { memoryCopy } from '@/copy/memory';

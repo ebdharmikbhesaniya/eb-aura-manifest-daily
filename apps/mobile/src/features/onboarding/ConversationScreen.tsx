@@ -1,7 +1,8 @@
 import type { OnboardingScreenId } from '@aura/shared';
 import { useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { PillButton, Screen, SerifDisplay, TextButton } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';

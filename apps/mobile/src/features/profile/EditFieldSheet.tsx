@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Pressable, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
+import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Input, PillButton, TextButton } from '@/components';
@@ -68,8 +69,13 @@ export function EditFieldSheet({
         bottom and the field below autofocuses, so without this the keyboard
         opens straight over the thing she was asked to edit — the same
         edge-to-edge failure the gate and the conversation had.
+
+        A RN Modal is a SEPARATE native window, so the root KeyboardProvider does
+        not reach into it — keyboard-controller needs its own provider nested
+        here or its KeyboardAvoidingView measures nothing.
       */}
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+      <KeyboardProvider>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <Pressable
           accessibilityLabel={profileCopy.edit.cancel}
           onPress={onClose}
@@ -114,7 +120,8 @@ export function EditFieldSheet({
             )}
           </Pressable>
         </Pressable>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </KeyboardProvider>
     </Modal>
   );
 }

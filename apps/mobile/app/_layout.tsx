@@ -17,6 +17,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
@@ -72,7 +73,13 @@ export default function RootLayout() {
     // input flow lives (product 12 §bottom sheets), so it belongs at the top.
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider>
+        {/* Drives keyboard-aware layout app-wide. Under Android edge-to-edge the
+        window no longer resizes for the IME, so RN's own KeyboardAvoidingView
+        cannot measure the keyboard and the Continue button hid beneath it; the
+        KeyboardAvoidingView from react-native-keyboard-controller reads the IME
+        frame from this provider instead and rides above it on both platforms. */}
+        <KeyboardProvider>
+          <ThemeProvider>
           <AppErrorBoundary>
             <MotionProvider>
               <QueryClientProvider client={queryClient}>
@@ -112,7 +119,8 @@ export default function RootLayout() {
               </QueryClientProvider>
             </MotionProvider>
           </AppErrorBoundary>
-        </ThemeProvider>
+          </ThemeProvider>
+        </KeyboardProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

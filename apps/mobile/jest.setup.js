@@ -29,6 +29,14 @@ jest.mock(
   () => require('react-native-safe-area-context/jest/mock').default,
 );
 
+// keyboard-controller is native (it reads the IME frame to survive Android
+// edge-to-edge). Its official jest mock renders KeyboardProvider and
+// KeyboardAvoidingView as plain pass-throughs, so every screen that switched to
+// them mounts without the native module.
+jest.mock('react-native-keyboard-controller', () =>
+  require('react-native-keyboard-controller/jest'),
+);
+
 // Its native view manager doesn't exist under jest; a plain View preserves
 // children and layout, which is all the tests reason about.
 jest.mock('expo-linear-gradient', () => {
