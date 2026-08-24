@@ -98,6 +98,17 @@ export function useBoot(): void {
         // tested at Phase 7 but nothing ever called it, so the cache grew
         // without bound. Boot is the right moment: it is off the critical path
         // and runs exactly once per launch.
+        // The one that hides in plain sight: an unenforceable wall sends every
+        // user to Home, so "onboarding finished and no subscription screen
+        // appeared" looks like a routing bug rather than missing config.
+        if (__DEV__ && !purchasesConfigured) {
+          console.warn(
+            '[boot] Purchases NOT configured — the paywall is unenforceable, so ' +
+              'resolveBootRoute will skip it and land on Home. Everyone reads as ' +
+              'free. Set the RevenueCat key and rebuild.',
+          );
+        }
+
         step = 'sweepAudioCache';
         sweepAudioCache();
 

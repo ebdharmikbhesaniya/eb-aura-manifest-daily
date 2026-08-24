@@ -39,7 +39,22 @@ export async function configurePurchases(userId: string): Promise<void> {
     ios: env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
     android: env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
   });
-  if (!apiKey) return;
+  if (!apiKey) {
+    // Silent until now, and that silence cost real debugging time: with no key
+    // the SDK never configures, `isConfigured()` stays false, and the boot gate
+    // routes straight past the paywall to Home. The subscription screen simply
+    // never appears, and nothing anywhere says why.
+    if (__DEV__) {
+      console.warn(
+        '[purchases] No RevenueCat key for this platform — set ' +
+          'EXPO_PUBLIC_REVENUECAT_IOS_KEY (or _ANDROID_KEY) and REBUILD. ' +
+          'EXPO_PUBLIC_* vars are inlined at build time, so a Metro reload is ' +
+          'not enough. Until then the paywall is unenforceable and boot goes ' +
+          'to Home (see routeGate).',
+      );
+    }
+    return;
+  }
 
   if (!configured) {
     Purchases.configure({ apiKey, appUserID: userId });
@@ -155,11 +170,28 @@ function byPlanOrder(a: OfferedPlan, b: OfferedPlan): number {
 export async function loadPlans(): Promise<OfferedPlan[]> {
   // No RevenueCat project in this build: state the offer from the fallback
   // table rather than rendering an empty cover.
-  if (!configured) return fallbackPlans();
+  if (!configured) {
+    if (__DEV__) {
+      console.warn(
+        '[purchases] loadPlans: SDK not configured, showing DISPLAY-ONLY ' +
+          'fallback prices. Nothing here can be purchased. See the configure warning above.',
+      );
+    }
+    return fallbackPlans();
+  }
 
   const offerings = await Purchases.getOfferings();
   const current = offerings.current;
-  if (!current) return fallbackPlans();
+  if (!current) {
+    if (__DEV__) {
+      console.warn(
+        '[purchases] loadPlans: RevenueCat has no CURRENT offering. Create an ' +
+          'Offering in the RevenueCat dashboard and mark it current, then add a ' +
+          'package per product. Falling back to display-only prices.',
+      );
+    }
+    return fallbackPlans();
+  }
 
   const plans: OfferedPlan[] = [];
 
@@ -186,7 +218,18 @@ export async function loadPlans(): Promise<OfferedPlan[]> {
   }
 
   // An offering that named none of our products is no offering at all.
-  if (plans.length === 0) return fallbackPlans();
+  if (plans.length === 0) {
+    if (__DEV__) {
+      console.warn(
+        '[purchases] loadPlans: the current offering contains none of our ' +
+          `product ids. Expected one of ${Object.values(PRODUCT_IDS).join(', ')}; ` +
+          `the offering has ${
+            current.availablePackages.map((p) => p.product.identifier).join(', ') || '(no packages)'
+          }. Ids must match character for character.`,
+      );
+    }
+    return fallbackPlans();
+  }
 
   // Annual first: it is the hero and is pre-selected (12 §1).
   return plans.sort(byPlanOrder);
