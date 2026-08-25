@@ -103,7 +103,21 @@ async function parse<TSchema extends z.ZodTypeAny>(
       : new ApiRequestError('internal', res.status, `Unparseable error body (${res.status})`);
   }
 
-  return schema.parse(json);
+  // A body-less success is still a success. `res.json()` THROWS on an empty
+  // body, so the catch above turns 204 into `null` — and a schema as ordinary
+  // as `z.object({})` then rejects it, making the endpoint look like it failed
+  // when the server did exactly what was asked.
+  //
+  // Account deletion is the case that caught this: the server returned 204, the
+  // client threw a ZodError, and the local sign-out and wipe chained behind it
+  // never ran — leaving the device signed in, with all her data, against a user
+  // that no longer existed. Every endpoint answering 204 has the same shape, so
+  // this is fixed here rather than by loosening one caller's schema.
+  // Keyed on the STATUS, not on `json === null`: a malformed body on a 200 also
+  // lands here as null, and that is a real failure which must still be loud.
+  const noContent = res.status === 204 || res.status === 205;
+
+  return schema.parse(noContent ? {} : json);
 }
 
 export const api = {

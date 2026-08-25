@@ -26,6 +26,7 @@ export default function DeleteAccountRoute() {
   const { colors, spacing, typography } = useTheme();
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const confirmed = typed.trim().toLowerCase() === CONFIRM_WORD;
 
@@ -77,10 +78,26 @@ export default function DeleteAccountRoute() {
               // honest next screen — routing straight to onboarding would start
               // her writing again with no account to own any of it.
               .then(() => router.replace('/'))
+              // Without this the chain had no catch at all: a rejection left
+              // the wipe and the redirect unrun, the failure unreported, and
+              // her sitting on this screen with no idea whether the account was
+              // gone. Nothing local is wiped on failure — if the delete did not
+              // happen, her data is the one thing that must survive.
+              .catch(() => setFailed(true))
               .finally(() => setBusy(false));
           }}
           testID="delete-confirm"
         />
+
+        {failed && (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[typography.bodySmall, { color: colors.text.secondary }]}
+            testID="delete-error"
+          >
+            That didn’t go through. Nothing has been deleted — try again in a moment.
+          </Text>
+        )}
 
         <View style={{ alignItems: 'center' }}>
           <TextButton
