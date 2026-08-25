@@ -3,6 +3,7 @@ import { queryClient } from '@/lib/queryClient';
 import { kv } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { useAppState } from '@/stores/appState';
+import { useStreakStore } from '@/features/streak/streakStore';
 import { useOnboardingDraft } from '@/stores/onboardingDraft';
 
 /**
@@ -59,6 +60,13 @@ export function wipeDeviceState(): void {
   // it straight back to MMKV on the next mutation, so clearing the key is not
   // enough on its own.
   useOnboardingDraft.getState().reset();
+
+  // Same reason, same failure: the count lives in Zustand as well as MMKV, so
+  // `clearAll` above only takes half of it. Without this the next person to
+  // sign in on this device opens Home to the PREVIOUS account's run — a number
+  // built from someone else's mornings, which is precisely the one-person's-
+  // words-on-another-person's-screen case this whole function exists to stop.
+  useStreakStore.getState().reset();
 
   // Server data she is no longer entitled to read. Without this the next
   // account renders the previous one's moments for a frame.

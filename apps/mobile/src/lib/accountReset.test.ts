@@ -2,6 +2,7 @@ import { queryClient } from '@/lib/queryClient';
 import { kv, STORAGE_KEYS } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { useAppState } from '@/stores/appState';
+import { useStreakStore } from '@/features/streak/streakStore';
 import { useOnboardingDraft } from '@/stores/onboardingDraft';
 
 import { signOutAndWipeDevice, wipeDeviceState } from './accountReset';
@@ -55,6 +56,26 @@ describe('signOutAndWipeDevice (03 §5)', () => {
     // copy and writes it straight back on the next mutation.
     expect(useOnboardingDraft.getState().currentScreen).toBe('s01-welcome');
     expect(useOnboardingDraft.getState().answers).toEqual({});
+  });
+
+  /**
+   * Observed on device: a brand-new account opened Home showing "5 days
+   * becoming", a run built entirely from the PREVIOUS account's mornings.
+   * `kv.clearAll()` took the stored half; zustand kept the rest.
+   */
+  it('resets the daily count zustand holds in memory', async () => {
+    useStreakStore
+      .getState()
+      .record(
+        { momentCompleted: false, gratitudeWritten: true, practiceCompleted: false },
+        new Date('2026-08-20T12:00:00'),
+      );
+    expect(useStreakStore.getState().state.current).toBe(1);
+
+    await signOutAndWipeDevice();
+
+    expect(useStreakStore.getState().state.current).toBe(0);
+    expect(useStreakStore.getState().state.lastCountedDay).toBeNull();
   });
 
   it('re-arms the boot gate so a fresh anonymous session is minted', async () => {
