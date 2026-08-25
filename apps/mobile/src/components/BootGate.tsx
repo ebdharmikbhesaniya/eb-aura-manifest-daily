@@ -83,7 +83,6 @@ export function BootGate({ children }: { children: ReactNode }) {
         hasLetter: Boolean(letterQuery.data),
         letterSeen: hasSeenLetter(),
         premium,
-        paywallEnforceable: purchasesConfigured,
       }),
     );
   }, [

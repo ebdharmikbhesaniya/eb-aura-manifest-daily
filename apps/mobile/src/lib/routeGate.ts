@@ -20,12 +20,6 @@ export interface BootState {
   letterSeen: boolean;
   /** Does RevenueCat report an active premium entitlement (a trial counts)? */
   premium: boolean;
-  /**
-   * Is the wall enforceable — i.e. can a purchasable offering exist on this build
-   * (`isConfigured()`)? When false (no RC key), the gate must not lock anyone
-   * out: a monetization outage degrades to Home, never a broken launch (12 §2).
-   */
-  paywallEnforceable: boolean;
 }
 
 /**
@@ -49,12 +43,23 @@ export interface BootState {
  * the ask — that ordering is the product's central monetization decision
  * (product 08 §why pre-paywall), not an implementation detail.
  *
- * The paywall is now a HARD gate (2026-08-10, founder decision): entry requires
- * an active subscription, decided by LIVE entitlement rather than a
- * dismissed-once flag, so a force-quit/relaunch cannot bypass it. Only an
- * unenforceable wall (no offering — never brick the launch) or an actual
- * `premium` reaches Home. The letter still plays first; the wow is spent before
- * the ask.
+ * The paywall is a HARD gate (2026-08-10, founder decision): entry requires an
+ * active subscription, decided by LIVE entitlement rather than a dismissed-once
+ * flag, so a force-quit/relaunch cannot bypass it. The letter still plays first;
+ * the wow is spent before the ask.
+ *
+ * This gate used to ALSO require `paywallEnforceable` — whether RevenueCat held
+ * a key — and that check was both redundant and actively wrong. Redundant
+ * because the paywall route already refuses to strand anyone: when no
+ * purchasable offering resolves it takes its own escape hatch to Home, so a
+ * keyless build or an RC outage still degrades gracefully (12 §2). Wrong
+ * because it answered the question with worse information: a KEY existing is
+ * not an OFFERING existing, and the paywall knows the latter while this
+ * function can only guess at the former.
+ *
+ * The visible cost was that a build without the key sent everyone straight to
+ * Home — the wall unreachable, and untestable, on exactly the builds where you
+ * most need to see it. One place decides now, and it is the one that knows.
  */
 export function resolveBootRoute(state: BootState): BootRoute {
   if (!state.claimed) return '/(auth)/sign-in';
@@ -62,6 +67,6 @@ export function resolveBootRoute(state: BootState): BootRoute {
   // path, so the bare group is `/` — this route's own front door.
   if (!state.profile.onboarding_completed_at) return '/(onboarding)/resume';
   if (state.hasLetter && !state.letterSeen) return '/letter';
-  if (state.paywallEnforceable && !state.premium) return '/paywall';
+  if (!state.premium) return '/paywall';
   return '/(tabs)/home';
 }

@@ -11,7 +11,6 @@ const state = (overrides: Partial<BootState> = {}): BootState => ({
   // the gate they were written for; the hard-paywall block below drives the
   // entitlement axis explicitly.
   premium: true,
-  paywallEnforceable: true,
   ...overrides,
 });
 
@@ -83,38 +82,37 @@ describe('resolveBootRoute', () => {
     const heardTheLetter = { hasLetter: true, letterSeen: true };
 
     it('walls a non-premium user once she has heard the letter', () => {
-      expect(
-        resolveBootRoute(state({ ...heardTheLetter, premium: false, paywallEnforceable: true })),
-      ).toBe('/paywall');
+      expect(resolveBootRoute(state({ ...heardTheLetter, premium: false }))).toBe('/paywall');
     });
 
     it('lets a premium user (a trial counts) straight to Home', () => {
-      expect(
-        resolveBootRoute(state({ ...heardTheLetter, premium: true, paywallEnforceable: true })),
-      ).toBe('/(tabs)/home');
+      expect(resolveBootRoute(state({ ...heardTheLetter, premium: true }))).toBe('/(tabs)/home');
     });
 
     it('walls even when no letter exists — the gate is entitlement, not a letter', () => {
       // A failed first generation must not become a free way in.
-      expect(
-        resolveBootRoute(state({ hasLetter: false, premium: false, paywallEnforceable: true })),
-      ).toBe('/paywall');
+      expect(resolveBootRoute(state({ hasLetter: false, premium: false }))).toBe('/paywall');
     });
 
-    it('never walls when the offering is not enforceable (no RC key) — never bricked', () => {
-      expect(
-        resolveBootRoute(state({ ...heardTheLetter, premium: false, paywallEnforceable: false })),
-      ).toBe('/(tabs)/home');
+    /**
+     * This used to assert the opposite — that a build without a RevenueCat key
+     * skipped the wall. It made the paywall unreachable on exactly the builds
+     * where it most needs testing, and it duplicated a decision the paywall
+     * route already makes with better information: it knows whether an OFFERING
+     * resolved, not merely whether a key exists, and takes its own escape hatch
+     * to Home when there is nothing purchasable. Not-bricked is still
+     * guaranteed; it is just guaranteed in one place now.
+     */
+    it('walls regardless of whether this build can enforce it', () => {
+      expect(resolveBootRoute(state({ ...heardTheLetter, premium: false }))).toBe('/paywall');
     });
 
     it('never shows the paywall BEFORE the letter — the wow is spent first', () => {
       // Product 08's central monetization decision: the letter converts, so it
       // must land before the ask. This ordering is the decision, in code.
-      expect(
-        resolveBootRoute(
-          state({ hasLetter: true, letterSeen: false, premium: false, paywallEnforceable: true }),
-        ),
-      ).toBe('/letter');
+      expect(resolveBootRoute(state({ hasLetter: true, letterSeen: false, premium: false }))).toBe(
+        '/letter',
+      );
     });
 
     it('never shows the paywall during onboarding (checklist #4)', () => {
@@ -124,7 +122,6 @@ describe('resolveBootRoute', () => {
           state({
             profile: { onboarding_completed_at: null },
             premium: false,
-            paywallEnforceable: true,
           }),
         ),
       ).toBe('/(onboarding)/resume');
