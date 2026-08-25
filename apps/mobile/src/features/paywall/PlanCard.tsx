@@ -54,16 +54,19 @@ export function PlanCard({ plan, selected, onSelect, testID }: PlanCardProps) {
         plan.monthlyEquivalent,
       )
     : null;
-  const subLine = [equivalent, plan.hasTrial ? paywallCopy.plans.trialNote : null]
-    .filter(Boolean)
-    .join(' · ');
+  // Filled from the plan's real `trialDays` (store intro offer) — never a fixed
+  // number, so the card cannot claim a trial length the store did not configure.
+  const trialNote = plan.trialDays
+    ? paywallCopy.plans.trialNote.replace('{days}', String(plan.trialDays))
+    : null;
+  const subLine = [equivalent, trialNote].filter(Boolean).join(' · ');
 
   return (
     <Pressable
       testID={testID}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
-      accessibilityLabel={`${spoken}${plan.hasTrial ? `. ${paywallCopy.plans.trialNote}` : ''}`}
+      accessibilityLabel={`${spoken}${trialNote ? `. ${trialNote}` : ''}`}
       onPress={onSelect}
       style={{
         borderRadius: radii.card,

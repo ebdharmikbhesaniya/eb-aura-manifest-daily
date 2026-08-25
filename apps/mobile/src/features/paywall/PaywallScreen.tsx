@@ -104,7 +104,9 @@ export function PaywallScreen({
       ).replace('{monthly}', hero.monthlyEquivalent)
     : null;
   const spoken = `${priceLine(hero.id, hero.price, hero.monthlyEquivalent)}${
-    hero.hasTrial ? `. ${paywallCopy.plans.trialNote}` : ''
+    hero.trialDays
+      ? `. ${paywallCopy.plans.trialNote.replace('{days}', String(hero.trialDays))}`
+      : ''
   }`;
 
   const heroCard = (

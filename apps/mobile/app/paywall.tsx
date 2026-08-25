@@ -63,6 +63,17 @@ export default function PaywallRoute() {
   // "no offering" would skip the paywall for everyone.
   const [plansResolved, setPlansResolved] = useState(false);
 
+  // A REAL offering means at least one plan is actually purchasable. The fallback
+  // table is display-only (`pkg: null`, `purchasable: false`), so `plans` is never
+  // empty even with no store behind it — which is why the hard gate keys off
+  // "nothing purchasable", not "no plans". Showing display-only prices on the hard
+  // wall would offer figures with nothing to charge and no way past the gate.
+  const purchasable = plans.some((plan) => plan.purchasable);
+  // The hard gate shows the cover ONLY for a real, purchasable offering; with none
+  // it degrades to Home (the escape effect below). The soft, Settings-opened cover
+  // may still show the indicative fallback prices with its honest "can't buy" note.
+  const showCover = plans.length > 0 && (purchasable || !hard);
+
   useEffect(() => {
     void loadPlans().then((offered) => {
       setPlans(offered);
@@ -125,19 +136,24 @@ export default function PaywallRoute() {
   }, [hard]);
 
   /**
-   * No offering — offline, a build with no RevenueCat key, or an RC outage.
+   * No PURCHASABLE offering — offline, no RevenueCat key, an RC outage, or the
+   * store products not configured yet (App Store / Play). In every one of these
+   * `loadPlans` still returns the display-only fallback table, so the tell is
+   * "nothing purchasable", NOT "no plans" — the earlier `plans.length === 0` test
+   * could never fire, which left the hard gate showing un-buyable fallback prices
+   * with no exit.
    *
-   * In HARD mode the wall cannot be enforced, so she must not be stranded behind
-   * an empty cover whose only exit lives inside `PaywallScreen` (never mounted on
-   * the empty branch). The escape hatch lets her through to Home instead.
+   * In HARD mode the wall cannot be enforced, so she must not be stranded: mark it
+   * seen and let her through to Home. A monetization outage degrades to Home, never
+   * a broken launch (12 §2).
    *
    * SOFT mode means the opposite: she tapped "See what's included" ON PURPOSE, so
    * replacing the route to Home would be a tap that looked like it did nothing.
-   * That path gets an honest line and a way back (the branch below) instead.
+   * That path keeps the indicative cover and its honest "can't purchase" note.
    */
   useEffect(() => {
-    if (plansResolved && plans.length === 0 && hard) leaveToHome();
-  }, [plansResolved, plans.length, hard, leaveToHome]);
+    if (plansResolved && hard && !purchasable) leaveToHome();
+  }, [plansResolved, hard, purchasable, leaveToHome]);
 
   const onPurchase = useCallback(
     async (plan: OfferedPlan) => {
@@ -196,7 +212,7 @@ export default function PaywallRoute() {
 
   return (
     <LetterMotionProvider>
-      {plans.length > 0 ? (
+      {showCover ? (
         <View style={{ flex: 1 }}>
           <PaywallScreen
             testID="paywall"
@@ -229,10 +245,10 @@ export default function PaywallRoute() {
           />
         </View>
       ) : (
-        // Holding view: either the offering lookup is still in flight, or it
-        // came back empty and the effect above is on its way to the free tier.
-        // Showing an empty paywall would be worse than not showing one — she
-        // can subscribe from Settings later.
+        // Holding view: the offering lookup is still in flight, or (hard mode) it
+        // resolved with nothing purchasable and the effect above is on its way to
+        // Home. Showing an empty — or fake-priced — paywall would be worse than
+        // showing none; she can subscribe from Settings once the store is live.
         <Screen testID="paywall-unavailable" edgeToEdge>
           {plansResolved && askedForPlans ? (
             <View

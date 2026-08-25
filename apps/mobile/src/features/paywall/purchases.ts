@@ -1,10 +1,4 @@
-import {
-  FALLBACK_PRICING,
-  PLAN_ORDER,
-  PREMIUM_ENTITLEMENT_ID,
-  PRODUCT_IDS,
-  type PlanId,
-} from '@aura/shared';
+import { PLAN_ORDER, PREMIUM_ENTITLEMENT_ID, PRODUCT_IDS, type PlanId } from '@aura/shared';
 import { Platform } from 'react-native';
 import Purchases, { type CustomerInfo, type PurchasesPackage } from 'react-native-purchases';
 
@@ -84,7 +78,7 @@ export function isInTrial(info: CustomerInfo | null | undefined): boolean {
 
 export interface OfferedPlan {
   id: PlanId;
-  /** Absent on a fallback plan — there is no store package behind one. */
+  /** The store package this plan is bought against. Never null for a real plan. */
   pkg: PurchasesPackage | null;
   /** Localized, straight from the store — never constructed by us. */
   price: string;
@@ -99,35 +93,11 @@ export interface OfferedPlan {
    */
   trialDays: number | null;
   /**
-   * False when the figures came from `FALLBACK_PRICING` rather than the store.
-   * The paywall renders these so she can read the offer, but nothing may be
-   * charged against them — there is no package to charge.
+   * True for a real store package. Kept as an explicit guard so a plan with no
+   * package can never be treated as buyable — the paywall shows the cover only
+   * for a purchasable offering and otherwise degrades to Home (see the route).
    */
   purchasable: boolean;
-}
-
-/**
- * The offer as we can state it with no store behind us (12 §1 fallback).
- *
- * Display only. Sorted like the real thing so the cover looks the same either
- * way: annual is the hero and is pre-selected.
- */
-export function fallbackPlans(): OfferedPlan[] {
-  return (Object.keys(PRODUCT_IDS) as PlanId[])
-    .map((id) => {
-      const { amount, currency, hasTrial } = FALLBACK_PRICING[id];
-      return {
-        id,
-        pkg: null,
-        price: new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(amount),
-        monthlyEquivalent: monthlyEquivalent(id, amount, currency),
-        hasTrial,
-        // Display-only: assume the configured 7-day trial when the table marks one.
-        trialDays: hasTrial ? 7 : null,
-        purchasable: false,
-      };
-    })
-    .sort(byPlanOrder);
 }
 
 /**
@@ -168,16 +138,17 @@ function byPlanOrder(a: OfferedPlan, b: OfferedPlan): number {
  * (product 15 §user sentiment).
  */
 export async function loadPlans(): Promise<OfferedPlan[]> {
-  // No RevenueCat project in this build: state the offer from the fallback
-  // table rather than rendering an empty cover.
+  // No RevenueCat project in this build: return no plans rather than inventing
+  // prices. The hard gate then degrades to Home; the Settings cover says the
+  // plans are unavailable. Prices come from the store or not at all (12 §1).
   if (!configured) {
     if (__DEV__) {
       console.warn(
-        '[purchases] loadPlans: SDK not configured, showing DISPLAY-ONLY ' +
-          'fallback prices. Nothing here can be purchased. See the configure warning above.',
+        '[purchases] loadPlans: SDK not configured — returning NO plans. Set the ' +
+          'RevenueCat key and REBUILD. See the configure warning above.',
       );
     }
-    return fallbackPlans();
+    return [];
   }
 
   const offerings = await Purchases.getOfferings();
@@ -185,12 +156,12 @@ export async function loadPlans(): Promise<OfferedPlan[]> {
   if (!current) {
     if (__DEV__) {
       console.warn(
-        '[purchases] loadPlans: RevenueCat has no CURRENT offering. Create an ' +
-          'Offering in the RevenueCat dashboard and mark it current, then add a ' +
-          'package per product. Falling back to display-only prices.',
+        '[purchases] loadPlans: RevenueCat has no CURRENT offering — returning NO ' +
+          'plans. Create an Offering in the RevenueCat dashboard, mark it current, ' +
+          'and add a package per product.',
       );
     }
-    return fallbackPlans();
+    return [];
   }
 
   const plans: OfferedPlan[] = [];
@@ -199,7 +170,7 @@ export async function loadPlans(): Promise<OfferedPlan[]> {
     // Google Play reports a subscription's product as `<productId>:<basePlanId>`
     // (e.g. `aura_premium_annual:annual`); Apple reports the bare `productId`.
     // Match both so the offering resolves on either store (without this, Android
-    // never matched and every plan silently fell back to the display-only table).
+    // never matched and every plan silently resolved to nothing).
     const pkg = current.availablePackages.find(
       (p) => p.product.identifier === productId || p.product.identifier.startsWith(`${productId}:`),
     );
@@ -228,7 +199,7 @@ export async function loadPlans(): Promise<OfferedPlan[]> {
           }. Ids must match character for character.`,
       );
     }
-    return fallbackPlans();
+    return [];
   }
 
   // Annual first: it is the hero and is pre-selected (12 §1).
@@ -251,7 +222,8 @@ export type PurchaseOutcome =
  * render an error state for it.
  */
 export async function purchasePlan(plan: OfferedPlan): Promise<PurchaseOutcome> {
-  // A fallback plan carries figures, not a package. Nothing to charge.
+  // Defensive: a plan with no store package cannot be charged. Real plans always
+  // carry one, so this should never fire — it just refuses rather than throwing.
   if (!plan.pkg) return { status: 'unavailable' };
 
   try {

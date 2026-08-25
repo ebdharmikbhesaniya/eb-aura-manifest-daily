@@ -78,14 +78,14 @@ describe('configurePurchases', () => {
 type PurchasesModule = typeof PurchasesModuleShape;
 
 /**
- * The fallback offer (12 §1).
+ * No store, no prices (12 §1).
  *
- * A build with no RevenueCat project used to render the paywall with nothing on
- * it — no plans, so no CTA, so no offer to read. These stand-ins exist so the
- * cover can still state the offer, and the thing that MUST hold is that they
- * are never charged against: they carry no store package.
+ * There is no hardcoded price table any more: a build with no RevenueCat offering
+ * shows NO plans rather than inventing figures that could disagree with what the
+ * store charges. The route turns "no plans" into Home (hard gate) or a "plans
+ * unavailable" note (Settings) — never a fake-priced cover.
  */
-describe('fallback plans', () => {
+describe('no store offering', () => {
   const load = () => {
     let mod!: PurchasesModule;
     jest.isolateModules(() => {
@@ -95,36 +95,24 @@ describe('fallback plans', () => {
     return mod;
   };
 
-  it('states the offer even with no store behind it', () => {
-    const plans = load().fallbackPlans();
-
-    expect(plans).toHaveLength(3);
-    expect(plans.every((p) => p.price.length > 0)).toBe(true);
+  it('returns no plans when RevenueCat is unconfigured, rather than inventing prices', async () => {
+    await expect(load().loadPlans()).resolves.toEqual([]);
   });
 
-  it('leads with annual, then monthly, then weekly (12 §1 cover order)', () => {
-    expect(
-      load()
-        .fallbackPlans()
-        .map((p) => p.id),
-    ).toEqual(['annual', 'monthly', 'weekly']);
-  });
-
-  it('marks every one unpurchasable, with no package to charge', () => {
-    const plans = load().fallbackPlans();
-
-    expect(plans.every((p) => p.purchasable === false)).toBe(true);
-    expect(plans.every((p) => p.pkg === null)).toBe(true);
-  });
-
-  it('refuses to buy one rather than reporting a failure', async () => {
+  it('refuses to buy a plan with no package rather than reporting a failure', async () => {
     const mod = load();
-    const [annual] = mod.fallbackPlans();
+    // A hand-made package-less plan — the defensive guard, since loadPlans never
+    // produces one now.
+    const packageless = {
+      id: 'annual',
+      pkg: null,
+      price: '',
+      monthlyEquivalent: null,
+      hasTrial: false,
+      trialDays: null,
+      purchasable: false,
+    } as PurchasesModuleShape.OfferedPlan;
 
-    await expect(mod.purchasePlan(annual!)).resolves.toEqual({ status: 'unavailable' });
-  });
-
-  it('falls back rather than returning nothing when RevenueCat is unconfigured', async () => {
-    await expect(load().loadPlans()).resolves.toHaveLength(3);
+    await expect(mod.purchasePlan(packageless)).resolves.toEqual({ status: 'unavailable' });
   });
 });

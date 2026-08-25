@@ -67,7 +67,9 @@ export const paywallCopy = {
     annualEquivalent: 'about {monthly} a month, billed once',
     weeklyEquivalent: 'about {monthly} a month',
     /** Restated on the card as well as on Apple's sheet — checklist #3. */
-    trialNote: 'Includes a 7-day free trial.',
+    // `{days}` is filled from the store's real intro offer at the call site, so
+    // this can never state a trial length the store did not actually configure.
+    trialNote: 'Includes a {days}-day free trial.',
     renewalNote: 'Renews automatically. Cancel anytime in two taps.',
     cta: 'Continue',
     /** Trial-first CTA — shown when the selected plan carries a free trial. */
@@ -81,7 +83,7 @@ export const paywallCopy = {
    */
   dismissed: 'The letter is yours either way.',
 
-  /** Continue tapped on a plan the store cannot sell — see FALLBACK_PRICING. */
+  /** Defensive: Continue tapped on a plan with no store package behind it. */
   purchaseUnavailableNote: 'Purchases aren’t set up on this build yet.',
 
   footer: {
