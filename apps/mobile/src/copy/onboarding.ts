@@ -23,10 +23,14 @@ export const onboardingCopy = {
   },
 
   s02MeetAura: {
-    lines: [
-      'Hi. I’m Aura.',
-      'To write your future, I need to know a little about your present.',
-      'Everything you share stays between us — and you can see and edit everything I remember, anytime.',
+    // Redesign 2b: an orb, a greeting, and a short "what to expect" card in place
+    // of the animated chat bubbles.
+    greeting: 'Hi. I’m Aura.',
+    body: 'To write your future I need a little about your present. Everything you share stays between us, and you can see and edit all of it, anytime.',
+    expectations: [
+      { title: 'Seven questions', body: 'Most are a tap. Two are yours to write.' },
+      { title: 'About four minutes', body: 'Then a letter, written for you.' },
+      { title: 'Yours to edit', body: 'Nothing is locked in — revise any answer later.' },
     ],
     primary: 'I’m ready',
   },
@@ -151,6 +155,8 @@ export const onboardingCopy = {
    * from the draft (falls back to a nameless "Ready?").
    */
   s13Commit: {
+    // Redesign 2j: a small eyebrow over the orb.
+    eyebrow: 'One moment',
     question: 'Ready, {name}?',
     questionNoName: 'Ready?',
     helper:
@@ -200,6 +206,10 @@ export const onboardingCopy = {
       'Without a reminder, the words written for you sit quietly in the app — and most mornings the day gets loud before you remember to open it. One gentle arrival at the time you chose is all it takes.',
     // Reassurance so the ask never tips into pressure.
     note: 'Still just one arrival a day. No nudges, no scorecards — off anytime.',
+    // Redesign 2m: a preview of the actual reminder she'd receive.
+    previewLabel: 'Tomorrow, 7:30',
+    previewApp: 'Aura',
+    previewBody: 'Your moment is ready. Two minutes, in your own voice.',
     primary: 'Turn on notifications',
     // If the OS won't prompt again (already declined), we send her to Settings.
     openSettings: 'Open Settings',

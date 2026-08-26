@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -14,10 +15,10 @@ import { analytics } from '@/lib/analytics';
 import { useAppState } from '@/stores/appState';
 import { haptic } from '@/theme/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
+import { fonts } from '@/theme/typography';
 
 import { completeOnboarding } from '../commit';
 import { ConversationScreen } from '../ConversationScreen';
-import { NotificationHero } from '../NotificationHero';
 
 /**
  * S12b — the notification second chance (founder decision, 2026-08-10).
@@ -37,7 +38,7 @@ import { NotificationHero } from '../NotificationHero';
  */
 export function S12NotificationsMore() {
   const router = useRouter();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, radii, typography } = useTheme();
   const userId = useAppState((s) => s.userId);
   const [busy, setBusy] = useState(false);
   // Drives the primary label: a fresh "Maybe later" can still be prompted; an
@@ -130,8 +131,62 @@ export function S12NotificationsMore() {
       skipTitle={c.skip}
       onSkip={onSkip}
     >
-      <View style={{ gap: spacing.xl, paddingTop: spacing.sm }}>
-        <NotificationHero icon="heart-outline" />
+      <View style={{ gap: spacing.lg, paddingTop: spacing.sm }}>
+        {/* A preview of the actual reminder she'd receive (Redesign 2m). */}
+        <View
+          style={{
+            backgroundColor: colors.surface.card,
+            borderRadius: radii.card,
+            borderWidth: 1,
+            borderColor: colors.surface.border,
+            padding: spacing.md,
+            gap: spacing.sm,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: fonts.sansSemiBold,
+              fontSize: 10.5,
+              letterSpacing: 1.1,
+              textTransform: 'uppercase',
+              color: colors.text.label,
+            }}
+          >
+            {c.previewLabel}
+          </Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: spacing.sm,
+              alignItems: 'flex-start',
+              backgroundColor: colors.surface.divider,
+              borderRadius: radii.field,
+              padding: spacing.sm + 2,
+            }}
+          >
+            <LinearGradient
+              colors={[colors.orb.core, colors.orb.halo]}
+              start={{ x: 0.2, y: 0.1 }}
+              end={{ x: 0.9, y: 1 }}
+              style={{ width: 34, height: 34, borderRadius: 9 }}
+            />
+            <View style={{ flex: 1, gap: 2 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text
+                  style={{ fontFamily: fonts.sansSemiBold, fontSize: 12.5, color: colors.text.primary }}
+                >
+                  {c.previewApp}
+                </Text>
+                <Text style={{ fontFamily: fonts.sansMedium, fontSize: 11, color: colors.text.label }}>
+                  now
+                </Text>
+              </View>
+              <Text style={{ fontFamily: fonts.sans, fontSize: 12.5, color: colors.text.body }}>
+                {c.previewBody}
+              </Text>
+            </View>
+          </View>
+        </View>
         <Card variant="solid" style={{ backgroundColor: colors.accent.parchment }}>
           <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>{c.note}</Text>
         </Card>
