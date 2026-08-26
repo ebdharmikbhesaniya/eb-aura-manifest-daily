@@ -52,17 +52,6 @@ export type MemorySource =
  * end of onboarding rather than on the first Home after the paywall.
  */
 export type OnboardingScreenId =
-  // Funnel front-matter + quizzes (merged from the Aura design, 2026-08-26).
-  | 'a01-splash'
-  | 'a02-value'
-  | 'a03-social-proof'
-  | 'a04-goals'
-  | 'a05-feeling'
-  | 'a06-obstacle'
-  | 'a08-ritual-time'
-  | 'a10-commitment'
-  | 'a11-affirmation'
-  | 'a12-reminder'
   | 's01-welcome'
   | 's02-meet-aura'
   | 's03-name'

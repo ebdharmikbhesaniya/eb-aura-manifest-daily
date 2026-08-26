@@ -71,11 +71,7 @@ describe('onboarding commit path', () => {
     });
 
     it('buckets free text and never sends its content', async () => {
-      await submitAnswer(
-        'user-1',
-        's04-self-description',
-        'a very long private disclosure about my life',
-      );
+      await submitAnswer('user-1', 's10-struggle', 'a very long private disclosure about my life');
 
       const payload = capture.mock.calls[0][1];
       expect(payload.char_count_bucket).toBe('medium');
@@ -83,7 +79,7 @@ describe('onboarding commit path', () => {
     });
 
     it('records a skip with skipped=true and no profile write', async () => {
-      await submitAnswer('user-1', 's04-self-description', null, true);
+      await submitAnswer('user-1', 's10-struggle', null, true);
 
       expect(capture).toHaveBeenCalledWith(
         'onboarding_answer_submitted',
@@ -96,14 +92,14 @@ describe('onboarding commit path', () => {
     it('drains answers that failed to sync', async () => {
       stubSupabase(new Set(['onboarding_answers']));
       await submitAnswer('user-1', 's03-name', 'Maya');
-      await submitAnswer('user-1', 'a06-obstacle', 'I lose motivation');
+      await submitAnswer('user-1', 's10-struggle', 'heavy days lately');
 
       stubSupabase();
       const synced = await flushPending('user-1');
 
       expect(synced).toBe(true);
       expect(useOnboardingDraft.getState().answers['s03-name']?.committedAt).not.toBeNull();
-      expect(useOnboardingDraft.getState().answers['a06-obstacle']?.committedAt).not.toBeNull();
+      expect(useOnboardingDraft.getState().answers['s10-struggle']?.committedAt).not.toBeNull();
     });
 
     it('reports false while still offline', async () => {
@@ -127,7 +123,7 @@ describe('onboarding commit path', () => {
       useOnboardingDraft.getState().start(0);
       await submitAnswer('user-1', 's03-name', 'Maya');
       await submitAnswer('user-1', 's04-self-description', 'restless in a good way');
-      await submitAnswer('user-1', 'a06-obstacle', null, true);
+      await submitAnswer('user-1', 's10-struggle', null, true);
 
       await completeOnboarding('user-1', 120_000);
 

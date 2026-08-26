@@ -54,7 +54,7 @@ describe('signOutAndWipeDevice (03 §5)', () => {
 
     // Clearing the MMKV key alone would not do this — zustand keeps its own
     // copy and writes it straight back on the next mutation.
-    expect(useOnboardingDraft.getState().currentScreen).toBe('a01-splash');
+    expect(useOnboardingDraft.getState().currentScreen).toBe('s01-welcome');
     expect(useOnboardingDraft.getState().answers).toEqual({});
   });
 

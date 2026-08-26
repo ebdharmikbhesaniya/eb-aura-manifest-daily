@@ -12,10 +12,9 @@ import { onboardingCopy } from '@/copy/onboarding';
 import { markPermissionAsked } from '@/features/notifications/permissionGate';
 import { requestPermissionAndRegister } from '@/features/notifications/useNotifications';
 
-import { A08RitualTime } from './screens/A08RitualTime';
-import { A10Commitment } from './screens/A10Commitment';
-import { A11Affirmation } from './screens/A11Affirmation';
-import { A12Reminder } from './screens/A12Reminder';
+import { S11ArrivalTime } from './screens/S11ArrivalTime';
+import { S13Commit } from './screens/S13Commit';
+import { S12WhyNotifications } from './screens/S12WhyNotifications';
 import { S12Notifications } from './screens/S12Notifications';
 import { S12NotificationsMore } from './screens/S12NotificationsMore';
 
@@ -78,50 +77,41 @@ describe('finishing the conversation', () => {
     jest.clearAllMocks();
   });
 
-  describe('A08 ritual time — advances into the commitment beat, does not finish', () => {
+  describe('S11 arrival time — advances into the permission step, does not finish', () => {
     const advance = async () => {
-      const view = await render(<A08RitualTime />, { wrapper });
-      // Continue is disabled until she picks a time.
-      await fireEvent.press(view.getByText(onboardingCopy.a08RitualTime.choices.morning.label));
-      await fireEvent.press(view.getByText(onboardingCopy.a08RitualTime.primary));
+      const view = await render(<S11ArrivalTime />, { wrapper });
+      // Continue is disabled until she picks an arrival time.
+      await fireEvent.press(view.getByText(onboardingCopy.s11ArrivalTime.morning));
+      await fireEvent.press(view.getByText(onboardingCopy.s11ArrivalTime.primary));
       return view;
     };
 
     it('pushes on to the commitment beat rather than completing here', async () => {
       await advance();
 
-      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/(onboarding)/a10-commitment'));
+      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/(onboarding)/s13-commit'));
       expect(completeOnboarding).not.toHaveBeenCalled();
     });
   });
 
-  describe('A10 commitment — the readiness beat', () => {
-    it('advances to the first affirmation on "Yes, I’m ready", without finishing', async () => {
-      const view = await render(<A10Commitment />, { wrapper });
+  describe('S13 commit — the readiness beat', () => {
+    it('advances to the notification education on "I’m ready", without finishing', async () => {
+      const view = await render(<S13Commit />, { wrapper });
 
-      await fireEvent.press(view.getByText(onboardingCopy.a10Commitment.primary));
+      await fireEvent.press(view.getByText(onboardingCopy.s13Commit.primary));
 
-      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/(onboarding)/a11-affirmation'));
+      await waitFor(() =>
+        expect(mockPush).toHaveBeenCalledWith('/(onboarding)/s12-why-notifications'),
+      );
       expect(completeOnboarding).not.toHaveBeenCalled();
     });
   });
 
-  describe('A11 first affirmation — a value beat before the ask', () => {
-    it('advances to the reminder pre-prompt on "This resonates"', async () => {
-      const view = await render(<A11Affirmation />, { wrapper });
+  describe('S12-why notifications — the education beat', () => {
+    it('advances to the ask on Continue, without finishing onboarding', async () => {
+      const view = await render(<S12WhyNotifications />, { wrapper });
 
-      await fireEvent.press(view.getByText(onboardingCopy.a11Affirmation.primary));
-
-      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/(onboarding)/a12-reminder'));
-      expect(completeOnboarding).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('A12 reminder pre-prompt — the education beat', () => {
-    it('advances to the OS ask on Continue, without finishing onboarding', async () => {
-      const view = await render(<A12Reminder />, { wrapper });
-
-      await fireEvent.press(view.getByText(onboardingCopy.a12Reminder.primary));
+      await fireEvent.press(view.getByText(onboardingCopy.s12WhyNotifications.primary));
 
       await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/(onboarding)/s12-notifications'));
       expect(completeOnboarding).not.toHaveBeenCalled();
