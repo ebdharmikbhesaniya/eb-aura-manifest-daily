@@ -28,7 +28,9 @@ import { ANSWER_TYPE, QUESTION_SCREENS } from './flow';
 /** S11 presets. "Morning" is a promise about tone, not a timestamp — 8am local. */
 const ARRIVAL_PRESETS: Record<string, string> = {
   morning: '08:00',
+  lunch: '12:30',
   evening: '20:00',
+  'before-bed': '22:00',
 };
 
 /**
@@ -170,6 +172,10 @@ function profileFieldFor(screen: OnboardingScreenId, value: unknown): Update<'pr
       return { feeling: value as string };
     case 'a06-obstacle':
       return { struggle: value as string };
+    case 'a08-ritual-time': {
+      const raw = String(value);
+      return { arrival_time: ARRIVAL_PRESETS[raw] ?? raw };
+    }
     case 's03-name':
       return { name: value as string };
     case 's04-self-description':

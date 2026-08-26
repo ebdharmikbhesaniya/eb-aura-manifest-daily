@@ -82,6 +82,50 @@ export const onboardingCopy = {
     primary: 'Continue',
   },
 
+  a08RitualTime: {
+    question: 'When will you do your ritual?',
+    helper: 'Same time each day works best.',
+    // Keys map to `arrival_time` via ARRIVAL_PRESETS (commit.ts).
+    choices: {
+      morning: { label: 'Morning', meta: '7–9 AM' },
+      lunch: { label: 'Lunch', meta: '12–2 PM' },
+      evening: { label: 'Evening', meta: '6–8 PM' },
+      'before-bed': { label: 'Before bed', meta: '9–11 PM' },
+    },
+    primary: 'Continue',
+  },
+
+  a10Commitment: {
+    // The A07 identity anchor isn't in this flow, so the sentence stays general.
+    question: 'Ready to commit three minutes a day?',
+    helper: 'That’s all it takes — small, daily, and yours.',
+    primary: 'Yes, I’m ready',
+    secondary: 'Not yet',
+  },
+
+  a11Affirmation: {
+    eyebrow: 'Your first affirmation',
+    // Process-framed on purpose (the app's affirmation voice): learning-to,
+    // choose-to, allowed-to — never an absolute claim.
+    affirmations: [
+      'I am allowed to move at my own pace.',
+      'I choose to take one small step today.',
+      'I’m learning to trust the version of me that keeps going.',
+      'Today I can do one thing that future me will thank me for.',
+    ],
+    primary: 'This resonates',
+    another: 'Show me another',
+  },
+
+  a12Reminder: {
+    previewApp: 'Aura · 8:00 AM',
+    previewBody: 'Good morning. Your three-minute ritual is ready.',
+    question: 'This is how I’ll reach you.',
+    helper:
+      'One gentle arrival at the time you chose — never a stream, never a scorecard. Turn it off in a single tap, anytime.',
+    primary: 'Continue',
+  },
+
   s01Welcome: {
     title: 'Create the life you desire.',
     /**
