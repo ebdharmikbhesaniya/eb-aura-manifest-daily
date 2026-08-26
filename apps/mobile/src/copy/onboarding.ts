@@ -6,6 +6,130 @@
  * used within 10 seconds of learning it (product 07 S3).
  */
 export const onboardingCopy = {
+  // ── Funnel A-screens (restored + combined with the Redesign chrome, 2026-08-26) ──
+  a01Splash: {
+    tagline: 'Your calmest, most intentional self starts here.',
+    brand: 'Aura',
+  },
+
+  a02Value: {
+    panels: [
+      {
+        title: 'Rewire your mornings',
+        body: 'Three minutes of gratitude, affirmation and intention — before the day gets loud.',
+      },
+      {
+        title: 'Manifest with intention',
+        body: 'Affirmations and intentions that actually sound like you.',
+      },
+      {
+        title: 'Feel calm, grateful, unstoppable',
+        body: 'Small, daily, and yours — the mood you build in the morning carries the day.',
+      },
+    ],
+    primary: 'Continue',
+  },
+
+  a03SocialProof: {
+    // PLACEHOLDER numbers and reviews carried over from the design. Per the
+    // design's own rule ("real numbers only, once true"), replace with verified
+    // figures and real App Store / Play reviews before shipping.
+    heading: 'Join half a million building a daily ritual',
+    rating: '4.9 ★ · 128k ratings',
+    reviews: [
+      {
+        quote: 'The first one that didn’t feel like it was shouting at me.',
+        who: 'Priya · 8 months',
+      },
+      { quote: 'Three minutes. I’ve never kept a habit this long.', who: 'Danielle · 1 year' },
+    ],
+    primary: 'Continue',
+  },
+
+  a04Goals: {
+    question: 'What do you most want to bring into your life?',
+    // Reuses the `values` column, capped at two in the DB (02 §1) — so the
+    // design's "as many as you like" becomes "up to two" here.
+    helper: 'Choose up to two.',
+    choices: [
+      { label: 'Confidence', icon: '✦' },
+      { label: 'Love & relationships', icon: '♡' },
+      { label: 'Money & abundance', icon: '◈' },
+      { label: 'Career & purpose', icon: '▲' },
+      { label: 'Calm & less anxiety', icon: '◐' },
+      { label: 'Better habits', icon: '↻' },
+    ],
+    primary: 'Continue',
+  },
+
+  a05Feeling: {
+    question: 'How have you been feeling lately?',
+    helper: 'There’s no wrong answer here.',
+    // Key is stored in `profiles.feeling`; 'anxious'/'stuck' are the gentle-content
+    // router's trigger answers (Wood et al. mitigation).
+    choices: {
+      anxious: 'Anxious or overwhelmed',
+      stuck: 'Stuck, low motivation',
+      hopeful: 'Hopeful but scattered',
+      good: 'Pretty good — I want to grow',
+    },
+    primary: 'Continue',
+  },
+
+  a06Obstacle: {
+    question: 'What usually gets in your way?',
+    helper: 'We’ll design around it.',
+    // Stored as free text in `struggle`, so submit the label (readable for the
+    // memory seed and the Letter), not a slug.
+    choices: ['I forget', 'I lose motivation', 'Self-doubt', 'Too busy'],
+    primary: 'Continue',
+  },
+
+  a08RitualTime: {
+    question: 'When will you do your ritual?',
+    helper: 'Same time each day works best.',
+    // Keys map to `arrival_time` via ARRIVAL_PRESETS (commit.ts).
+    choices: {
+      morning: { label: 'Morning', meta: '7–9 AM' },
+      lunch: { label: 'Lunch', meta: '12–2 PM' },
+      evening: { label: 'Evening', meta: '6–8 PM' },
+      'before-bed': { label: 'Before bed', meta: '9–11 PM' },
+    },
+    primary: 'Continue',
+  },
+
+  a10Commitment: {
+    // The A07 identity anchor isn't in this flow, so the sentence stays general.
+    eyebrow: 'One moment',
+    question: 'Ready to commit three minutes a day?',
+    helper: 'That’s all it takes — small, daily, and yours.',
+    primary: 'I’m ready',
+    secondary: 'Not yet',
+  },
+
+  a11Affirmation: {
+    eyebrow: 'Your first affirmation',
+    // Process-framed on purpose (the app's affirmation voice): learning-to,
+    // choose-to, allowed-to — never an absolute claim.
+    affirmations: [
+      'I am allowed to move at my own pace.',
+      'I choose to take one small step today.',
+      'I’m learning to trust the version of me that keeps going.',
+      'Today I can do one thing that future me will thank me for.',
+    ],
+    primary: 'This resonates',
+    another: 'Show me another',
+  },
+
+  a12Reminder: {
+    previewApp: 'Aura · 8:00 AM',
+    previewBody: 'Good morning. Your three-minute ritual is ready.',
+    question: 'This is how I’ll reach you.',
+    helper:
+      'One gentle arrival at the time you chose — never a stream, never a scorecard. Turn it off in a single tap, anytime.',
+    primary: 'Continue',
+  },
+
   s01Welcome: {
     title: 'Create the life you desire.',
     /**

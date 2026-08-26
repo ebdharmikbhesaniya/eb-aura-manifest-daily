@@ -4,7 +4,7 @@ import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking, Text, View } from 'react-native';
 
-import { Card } from '@/components';
+import { Card, PillButton, Screen, SerifDisplay, TextButton } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
 import { markPermissionAsked } from '@/features/notifications/permissionGate';
 import {
@@ -18,7 +18,6 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { fonts } from '@/theme/typography';
 
 import { completeOnboarding } from '../commit';
-import { ConversationScreen } from '../ConversationScreen';
 
 /**
  * S12b — the notification second chance (founder decision, 2026-08-10).
@@ -60,9 +59,11 @@ export function S12NotificationsMore() {
       markPermissionAsked(true);
       await completeOnboarding(userId);
       router.replace('/(onboarding)/generating');
-    } catch {
+    } catch (err) {
       // Leave her able to retry rather than stranded on a stamped-but-not-routed
-      // state (mirrors S12's un-busy-on-failure).
+      // state (mirrors S12's un-busy-on-failure). Log it — a silent catch here is
+      // what made a failing completion look like a dead button.
+      console.warn('[onboarding] second-chance proceed failed:', err);
       proceeding.current = false;
     }
   }, [router, userId]);
@@ -117,21 +118,21 @@ export function S12NotificationsMore() {
 
   const c = onboardingCopy.s12NotificationsMore;
 
+  // Centred beat (question → preview → note) rather than a top-aligned question
+  // over a small block, so the second-chance ask reads full, not empty. No
+  // progress header and no edit-guard on a permission prompt — same as S12.
   return (
-    <ConversationScreen
-      testID="s12b-notifications"
-      // No progress header (carries no answer) and no edit-guard on a permission
-      // prompt — same as S12.
-      showEditGuard={false}
-      question={c.question}
-      helper={c.helper}
-      primaryTitle={canAskAgain ? c.primary : c.openSettings}
-      onPrimary={() => void onPrimary()}
-      primaryDisabled={busy}
-      skipTitle={c.skip}
-      onSkip={onSkip}
-    >
-      <View style={{ gap: spacing.lg, paddingTop: spacing.sm }}>
+    <Screen testID="s12b-notifications">
+      <View style={{ flex: 1, justifyContent: 'center', gap: spacing.lg }}>
+        <View style={{ gap: spacing.sm }}>
+          <SerifDisplay variant="question" center>
+            {c.question}
+          </SerifDisplay>
+          <Text style={[typography.body, { color: colors.text.secondary, textAlign: 'center' }]}>
+            {c.helper}
+          </Text>
+        </View>
+
         {/* A preview of the actual reminder she'd receive (Redesign 2m). */}
         <View
           style={{
@@ -173,11 +174,17 @@ export function S12NotificationsMore() {
             <View style={{ flex: 1, gap: 2 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <Text
-                  style={{ fontFamily: fonts.sansSemiBold, fontSize: 12.5, color: colors.text.primary }}
+                  style={{
+                    fontFamily: fonts.sansSemiBold,
+                    fontSize: 12.5,
+                    color: colors.text.primary,
+                  }}
                 >
                   {c.previewApp}
                 </Text>
-                <Text style={{ fontFamily: fonts.sansMedium, fontSize: 11, color: colors.text.label }}>
+                <Text
+                  style={{ fontFamily: fonts.sansMedium, fontSize: 11, color: colors.text.label }}
+                >
                   now
                 </Text>
               </View>
@@ -191,6 +198,15 @@ export function S12NotificationsMore() {
           <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>{c.note}</Text>
         </Card>
       </View>
-    </ConversationScreen>
+
+      <View style={{ paddingBottom: spacing.lg, gap: spacing.sm }}>
+        <PillButton
+          title={canAskAgain ? c.primary : c.openSettings}
+          onPress={() => void onPrimary()}
+          disabled={busy}
+        />
+        <TextButton title={c.skip} onPress={onSkip} />
+      </View>
+    </Screen>
   );
 }

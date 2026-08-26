@@ -28,7 +28,9 @@ import { ANSWER_TYPE, QUESTION_SCREENS } from './flow';
 /** S11 presets. "Morning" is a promise about tone, not a timestamp — 8am local. */
 const ARRIVAL_PRESETS: Record<string, string> = {
   morning: '08:00',
+  lunch: '12:30',
   evening: '20:00',
+  'before-bed': '22:00',
 };
 
 /**
@@ -125,8 +127,9 @@ function seedProfileFromDraft(
     self_description: text('s04-self-description'),
     dream_home: text('s07-dream-home'),
     dream_city: text('s08-dream-city'),
-    struggle: text('s10-struggle'),
-    values: (answers['s06-values']?.value as string[] | undefined) ?? null,
+    // Obstacle (a06) now carries what struggle used to; goals (a04) carry values.
+    struggle: text('a06-obstacle'),
+    values: (answers['a04-goals']?.value as string[] | undefined) ?? null,
   };
 }
 
@@ -149,7 +152,22 @@ async function syncAnswer(
   const profilePatch = profileFieldFor(screen, answer.value);
   if (profilePatch) {
     const { error } = await supabase.from('profiles').update(profilePatch).eq('user_id', userId);
-    if (error) throw new Error(error.message);
+    if (error) {
+      // The audit log above already captured her answer on the server; the
+      // profile row is a derived working copy. A patch failure — most often a
+      // column a migration hasn't reached THIS environment yet (e.g. a new
+      // funnel field on staging before `db push`) — must not wedge onboarding
+      // forever behind an un-completable sync. Record it so it's visible, then
+      // let the answer count as synced: it lives in the audit log and can be
+      // backfilled. In production the column exists before the client writes it
+      // (expand-migrate-contract, 16 §2), so this is a safety net, not a
+      // data-loss path.
+      analytics.capture('onboarding_profile_patch_failed', {
+        screen_id: screen,
+        message: error.message,
+      });
+      console.warn(`[onboarding] profile patch for ${screen} skipped: ${error.message}`);
+    }
   }
 
   if (screen === 's09-people') {
@@ -160,6 +178,19 @@ async function syncAnswer(
 /** Screen → profile column (02 §1). Screens without a column return null. */
 function profileFieldFor(screen: OnboardingScreenId, value: unknown): Update<'profiles'> | null {
   switch (screen) {
+    // Merged funnel quizzes (2026-08-26): goals reuse `values`, obstacle reuses
+    // `struggle`, and feeling is the new safety-router column. Splash/value/
+    // social-proof carry no answer and fall through to null below.
+    case 'a04-goals':
+      return { values: value as string[] };
+    case 'a05-feeling':
+      return { feeling: value as string };
+    case 'a06-obstacle':
+      return { struggle: value as string };
+    case 'a08-ritual-time': {
+      const raw = String(value);
+      return { arrival_time: ARRIVAL_PRESETS[raw] ?? raw };
+    }
     case 's03-name':
       return { name: value as string };
     case 's04-self-description':

@@ -9,40 +9,57 @@ import type { OnboardingAnswerType, OnboardingScreenId } from '@aura/shared';
  */
 
 export const SCREEN_ORDER: readonly OnboardingScreenId[] = [
-  's01-welcome',
-  's02-meet-aura',
+  // Funnel front-matter, merged from the Aura design (2026-08-26): a splash, a
+  // value beat and social proof replace the old s01-welcome / s02-meet-aura intro.
+  'a01-splash',
+  'a02-value',
+  'a03-social-proof',
+  // The quizzes fold onto existing profile fields so nothing is asked twice:
+  // goals → `values`, obstacle → `struggle`. Feeling is new (the safety router).
+  // s06-values and s10-struggle are therefore dropped from the flow below.
+  'a04-goals',
+  'a05-feeling',
+  'a06-obstacle',
   's03-name',
   's04-self-description',
   's05-work-feeling',
-  's06-values',
   // Dream-home re-enabled (2026-08-10): sensory concreteness feeds vivid Letters,
   // and the depth is what converts (Glow's data — removing personal questions
   // cratered conversion). s08-dream-city and s09-people stay retired for now —
   // their ids/columns are kept but their screens were removed.
   's07-dream-home',
-  's10-struggle',
-  's11-arrival-time',
-  // The commitment beat (2026-08-10): a quiet "are you ready" moment after she
-  // has shared everything, before the wow. Committing to a goal lifts follow-
-  // through (Duolingo/Headway pattern) — said in the future-self voice, never a
+  // Ritual time (A08, 2026-08-26): the design's preset picker, replacing
+  // s11-arrival-time. Same `arrival_time` column and notification schedule.
+  'a08-ritual-time',
+  // The commitment beat (A10): replaces s13-commit. Said generically — the A07
+  // identity anchor is not part of this flow — in the future-self voice, never a
   // coercive hold.
-  's13-commit',
-  // The notification education beat (2026-08-10): a dedicated screen that
-  // explains WHY the reminder matters — the moment is delivered by it — BEFORE
-  // the ask, so the OS prompt lands on a reason rather than cold.
-  's12-why-notifications',
-  // The closing step: the OS notification permission ask. Moved here from
-  // post-paywall (Home) so she opts in with her arrival time still fresh.
+  'a10-commitment',
+  // The first value moment (A11, new): one gentle, process-framed affirmation
+  // before any ask — a small felt payoff, the design's A11.
+  'a11-affirmation',
+  // Notification pre-prompt (A12): replaces s12-why-notifications. Previews the
+  // actual reminder, then hands off to the real OS ask below.
+  'a12-reminder',
+  // The closing step: the OS notification permission ask. She opts in with her
+  // arrival time still fresh.
   's12-notifications',
 ];
 
-/** Skippable per product 07: S4, S10. Never S3. */
-export const SKIPPABLE: ReadonlySet<OnboardingScreenId> = new Set([
-  's04-self-description',
-  's10-struggle',
-]);
+/** Skippable per product 07: S4. Never S3. (s10-struggle is retired from the flow.) */
+export const SKIPPABLE: ReadonlySet<OnboardingScreenId> = new Set(['s04-self-description']);
 
 export const ANSWER_TYPE: Record<OnboardingScreenId, OnboardingAnswerType> = {
+  'a01-splash': 'none',
+  'a02-value': 'none',
+  'a03-social-proof': 'none',
+  'a04-goals': 'multi_choice',
+  'a05-feeling': 'choice',
+  'a06-obstacle': 'choice',
+  'a08-ritual-time': 'choice',
+  'a10-commitment': 'none',
+  'a11-affirmation': 'none',
+  'a12-reminder': 'none',
   's01-welcome': 'none',
   's02-meet-aura': 'none',
   's03-name': 'text',

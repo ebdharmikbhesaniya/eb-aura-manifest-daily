@@ -10,7 +10,7 @@ import { useVariant } from '@/features/experiments/useVariant';
  * Two on/off experiments gate a single conversation screen each — `control`
  * (shipped) shows it, `off` removes it from the flow:
  *   • onboarding-dream-home → hides `s07-dream-home`
- *   • onboarding-commit-beat → hides `s13-commit`
+ *   • onboarding-commit-beat → hides `a10-commitment`
  *
  * Reading each flag makes PostHog emit `$feature_flag_called` (the exposure).
  * The navigation helpers (`nextScreen`/`previousScreen`) and the progress
@@ -25,7 +25,7 @@ export function useHiddenScreens(): ReadonlySet<OnboardingScreenId> {
   return useMemo(() => {
     const hidden = new Set<OnboardingScreenId>();
     if (dreamHome === 'off') hidden.add('s07-dream-home');
-    if (commitBeat === 'off') hidden.add('s13-commit');
+    if (commitBeat === 'off') hidden.add('a10-commitment');
     return hidden;
   }, [dreamHome, commitBeat]);
 }

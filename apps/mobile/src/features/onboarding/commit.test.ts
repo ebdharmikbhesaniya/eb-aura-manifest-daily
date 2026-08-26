@@ -71,7 +71,11 @@ describe('onboarding commit path', () => {
     });
 
     it('buckets free text and never sends its content', async () => {
-      await submitAnswer('user-1', 's10-struggle', 'a very long private disclosure about my life');
+      await submitAnswer(
+        'user-1',
+        's04-self-description',
+        'a very long private disclosure about my life',
+      );
 
       const payload = capture.mock.calls[0][1];
       expect(payload.char_count_bucket).toBe('medium');
@@ -79,7 +83,7 @@ describe('onboarding commit path', () => {
     });
 
     it('records a skip with skipped=true and no profile write', async () => {
-      await submitAnswer('user-1', 's10-struggle', null, true);
+      await submitAnswer('user-1', 's04-self-description', null, true);
 
       expect(capture).toHaveBeenCalledWith(
         'onboarding_answer_submitted',
@@ -92,14 +96,14 @@ describe('onboarding commit path', () => {
     it('drains answers that failed to sync', async () => {
       stubSupabase(new Set(['onboarding_answers']));
       await submitAnswer('user-1', 's03-name', 'Maya');
-      await submitAnswer('user-1', 's10-struggle', 'heavy days lately');
+      await submitAnswer('user-1', 'a06-obstacle', 'I lose motivation');
 
       stubSupabase();
       const synced = await flushPending('user-1');
 
       expect(synced).toBe(true);
       expect(useOnboardingDraft.getState().answers['s03-name']?.committedAt).not.toBeNull();
-      expect(useOnboardingDraft.getState().answers['s10-struggle']?.committedAt).not.toBeNull();
+      expect(useOnboardingDraft.getState().answers['a06-obstacle']?.committedAt).not.toBeNull();
     });
 
     it('reports false while still offline', async () => {
@@ -107,6 +111,25 @@ describe('onboarding commit path', () => {
       await submitAnswer('user-1', 's03-name', 'Maya');
 
       expect(await flushPending('user-1')).toBe(false);
+    });
+
+    it('a lagging profile column does not wedge the flush — the audit log has the answer', async () => {
+      // First submit: audit log down, so the answer stays pending.
+      stubSupabase(new Set(['onboarding_answers']));
+      await submitAnswer('user-1', 'a05-feeling', 'anxious');
+
+      // Retry: audit log recovers, but the `profiles` patch fails (mirrors a
+      // `feeling` column a migration hasn't reached this environment yet).
+      stubSupabase(new Set(['profiles']));
+      const synced = await flushPending('user-1');
+
+      // The answer is on the server (audit log), so the flush must not block.
+      expect(synced).toBe(true);
+      expect(useOnboardingDraft.getState().answers['a05-feeling']?.committedAt).not.toBeNull();
+      expect(capture).toHaveBeenCalledWith(
+        'onboarding_profile_patch_failed',
+        expect.objectContaining({ screen_id: 'a05-feeling' }),
+      );
     });
   });
 
@@ -123,7 +146,7 @@ describe('onboarding commit path', () => {
       useOnboardingDraft.getState().start(0);
       await submitAnswer('user-1', 's03-name', 'Maya');
       await submitAnswer('user-1', 's04-self-description', 'restless in a good way');
-      await submitAnswer('user-1', 's10-struggle', null, true);
+      await submitAnswer('user-1', 'a06-obstacle', null, true);
 
       await completeOnboarding('user-1', 120_000);
 

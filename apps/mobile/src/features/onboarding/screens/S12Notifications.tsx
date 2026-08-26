@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { Card } from '@/components';
+import { Card, PillButton, Screen, SerifDisplay, TextButton } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
 import { markPermissionAsked } from '@/features/notifications/permissionGate';
 import { requestPermissionAndRegister } from '@/features/notifications/useNotifications';
@@ -12,7 +12,6 @@ import { haptic } from '@/theme/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
 
 import { completeOnboarding } from '../commit';
-import { ConversationScreen } from '../ConversationScreen';
 import { NotificationHero } from '../NotificationHero';
 
 /**
@@ -72,27 +71,39 @@ export function S12Notifications() {
     }
   };
 
+  // Centred beat (bell → line → note) rather than a top-aligned question over a
+  // small block, so the closing ask reads full, not empty. No progress header and
+  // no edit-guard on a permission prompt.
   return (
-    <ConversationScreen
-      testID="s12-notifications"
-      // No header (no answer) and no edit-guard on a permission prompt.
-      showEditGuard={false}
-      question={onboardingCopy.s12Notifications.question}
-      helper={onboardingCopy.s12Notifications.helper}
-      primaryTitle={onboardingCopy.s12Notifications.primary}
-      onPrimary={() => void finish(true)}
-      primaryDisabled={busy}
-      skipTitle={onboardingCopy.s12Notifications.skip}
-      onSkip={() => void finish(false)}
-    >
-      <View style={{ gap: spacing.xl, paddingTop: spacing.sm }}>
+    <Screen testID="s12-notifications">
+      <View style={{ flex: 1, justifyContent: 'center', gap: spacing.lg }}>
         <NotificationHero icon="notifications" />
+        <View style={{ gap: spacing.sm }}>
+          <SerifDisplay variant="question" center>
+            {onboardingCopy.s12Notifications.question}
+          </SerifDisplay>
+          <Text style={[typography.body, { color: colors.text.secondary, textAlign: 'center' }]}>
+            {onboardingCopy.s12Notifications.helper}
+          </Text>
+        </View>
         <Card variant="solid" style={{ backgroundColor: colors.accent.parchment }}>
           <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
             {onboardingCopy.s12Notifications.note}
           </Text>
         </Card>
       </View>
-    </ConversationScreen>
+
+      <View style={{ paddingBottom: spacing.lg, gap: spacing.sm }}>
+        <PillButton
+          title={onboardingCopy.s12Notifications.primary}
+          onPress={() => void finish(true)}
+          disabled={busy}
+        />
+        <TextButton
+          title={onboardingCopy.s12Notifications.skip}
+          onPress={() => void finish(false)}
+        />
+      </View>
+    </Screen>
   );
 }

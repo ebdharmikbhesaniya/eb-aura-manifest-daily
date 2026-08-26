@@ -52,6 +52,17 @@ export type MemorySource =
  * end of onboarding rather than on the first Home after the paywall.
  */
 export type OnboardingScreenId =
+  // Funnel front-matter + quizzes (merged from the Aura design, 2026-08-26).
+  | 'a01-splash'
+  | 'a02-value'
+  | 'a03-social-proof'
+  | 'a04-goals'
+  | 'a05-feeling'
+  | 'a06-obstacle'
+  | 'a08-ritual-time'
+  | 'a10-commitment'
+  | 'a11-affirmation'
+  | 'a12-reminder'
   | 's01-welcome'
   | 's02-meet-aura'
   | 's03-name'
@@ -148,6 +159,13 @@ export interface EventCatalog {
   };
   /** Mobile. Fires once, when the closing step (s12-notifications) commits. */
   onboarding_completed: { duration_s: number; questions_answered: number };
+  /**
+   * Mobile. An answer's derived profile-column patch failed while its audit-log
+   * row succeeded — most often a column a migration hasn't reached this
+   * environment yet. Non-fatal (the answer is on the server); recorded so a
+   * lagging schema is visible rather than a silently dead completion button.
+   */
+  onboarding_profile_patch_failed: { screen_id: OnboardingScreenId; message: string };
   /** Mobile. She tapped "I'm ready" on the commitment beat (s13-commit, 2026-08-10). */
   commitment_accepted: Record<string, never>;
   /** Mobile. The one-time first-Home welcome/orientation card was shown (2026-08-10). */
