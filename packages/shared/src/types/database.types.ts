@@ -561,6 +561,7 @@ export type Database = {
           created_at: string;
           dream_city: string | null;
           dream_home: string | null;
+          feeling: string | null;
           free_text_note: string | null;
           is_anonymous: boolean;
           last_active_at: string;
@@ -580,6 +581,7 @@ export type Database = {
           created_at?: string;
           dream_city?: string | null;
           dream_home?: string | null;
+          feeling?: string | null;
           free_text_note?: string | null;
           is_anonymous?: boolean;
           last_active_at?: string;
@@ -599,6 +601,7 @@ export type Database = {
           created_at?: string;
           dream_city?: string | null;
           dream_home?: string | null;
+          feeling?: string | null;
           free_text_note?: string | null;
           is_anonymous?: boolean;
           last_active_at?: string;

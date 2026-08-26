@@ -125,8 +125,9 @@ function seedProfileFromDraft(
     self_description: text('s04-self-description'),
     dream_home: text('s07-dream-home'),
     dream_city: text('s08-dream-city'),
-    struggle: text('s10-struggle'),
-    values: (answers['s06-values']?.value as string[] | undefined) ?? null,
+    // Obstacle (a06) now carries what struggle used to; goals (a04) carry values.
+    struggle: text('a06-obstacle'),
+    values: (answers['a04-goals']?.value as string[] | undefined) ?? null,
   };
 }
 
@@ -160,6 +161,15 @@ async function syncAnswer(
 /** Screen → profile column (02 §1). Screens without a column return null. */
 function profileFieldFor(screen: OnboardingScreenId, value: unknown): Update<'profiles'> | null {
   switch (screen) {
+    // Merged funnel quizzes (2026-08-26): goals reuse `values`, obstacle reuses
+    // `struggle`, and feeling is the new safety-router column. Splash/value/
+    // social-proof carry no answer and fall through to null below.
+    case 'a04-goals':
+      return { values: value as string[] };
+    case 'a05-feeling':
+      return { feeling: value as string };
+    case 'a06-obstacle':
+      return { struggle: value as string };
     case 's03-name':
       return { name: value as string };
     case 's04-self-description':

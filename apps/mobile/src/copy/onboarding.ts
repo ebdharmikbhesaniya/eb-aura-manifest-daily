@@ -6,6 +6,82 @@
  * used within 10 seconds of learning it (product 07 S3).
  */
 export const onboardingCopy = {
+  // ── Funnel front-matter + quizzes, merged from the Aura design (2026-08-26) ──
+  a01Splash: {
+    tagline: 'Your calmest, most intentional self starts here.',
+    brand: 'Aura',
+  },
+
+  a02Value: {
+    panels: [
+      {
+        title: 'Rewire your mornings',
+        body: 'Three minutes of gratitude, affirmation and intention — before the day gets loud.',
+      },
+      {
+        title: 'Manifest with intention',
+        body: 'Affirmations and intentions that actually sound like you.',
+      },
+      {
+        title: 'Feel calm, grateful, unstoppable',
+        body: 'Small, daily, and yours — the mood you build in the morning carries the day.',
+      },
+    ],
+    primary: 'Continue',
+  },
+
+  a03SocialProof: {
+    // PLACEHOLDER numbers and reviews carried over from the design. Per the
+    // design's own rule ("real numbers only, once true"), replace with verified
+    // figures and real App Store / Play reviews before shipping.
+    heading: 'Join half a million building a daily ritual',
+    rating: '4.9 ★ · 128k ratings',
+    reviews: [
+      { quote: 'The first one that didn’t feel like it was shouting at me.', who: 'Priya · 8 months' },
+      { quote: 'Three minutes. I’ve never kept a habit this long.', who: 'Danielle · 1 year' },
+    ],
+    primary: 'Continue',
+  },
+
+  a04Goals: {
+    question: 'What do you most want to bring into your life?',
+    // Reuses the `values` column, capped at two in the DB (02 §1) — so the
+    // design's "as many as you like" becomes "up to two" here.
+    helper: 'Choose up to two.',
+    choices: [
+      { label: 'Confidence', icon: '✦' },
+      { label: 'Love & relationships', icon: '♡' },
+      { label: 'Money & abundance', icon: '◈' },
+      { label: 'Career & purpose', icon: '▲' },
+      { label: 'Calm & less anxiety', icon: '◐' },
+      { label: 'Better habits', icon: '↻' },
+    ],
+    primary: 'Continue',
+  },
+
+  a05Feeling: {
+    question: 'How have you been feeling lately?',
+    helper: 'There’s no wrong answer here.',
+    // Key is stored in `profiles.feeling`; 'anxious'/'stuck' are the gentle-content
+    // router's trigger answers (Wood et al. mitigation).
+    choices: {
+      anxious: 'Anxious or overwhelmed',
+      stuck: 'Stuck, low motivation',
+      hopeful: 'Hopeful but scattered',
+      good: 'Pretty good — I want to grow',
+    },
+    primary: 'Continue',
+  },
+
+  a06Obstacle: {
+    question: 'What usually gets in your way?',
+    helper: 'We’ll design around it.',
+    // Stored as free text in `struggle`, so submit the label (readable for the
+    // memory seed and the Letter), not a slug.
+    choices: ['I forget', 'I lose motivation', 'Self-doubt', 'Too busy'],
+    primary: 'Continue',
+  },
+
   s01Welcome: {
     title: 'Create the life you desire.',
     /**

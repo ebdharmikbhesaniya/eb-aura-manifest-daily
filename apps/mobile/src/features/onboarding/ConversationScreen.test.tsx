@@ -52,7 +52,7 @@ describe('ConversationScreen back chevron', () => {
 
     fireEvent.press(screen.getByLabelText(onboardingCopy.editGuard.back));
 
-    expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/s02-meet-aura');
+    expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/a06-obstacle');
   });
 
   it('moves the draft back too, so a resume does not jump forward again', async () => {
@@ -62,7 +62,7 @@ describe('ConversationScreen back chevron', () => {
 
     fireEvent.press(screen.getByLabelText(onboardingCopy.editGuard.back));
 
-    expect(useOnboardingDraft.getState().currentScreen).toBe('s02-meet-aura');
+    expect(useOnboardingDraft.getState().currentScreen).toBe('a06-obstacle');
   });
 
   it('opens the edit guard once there IS an answer to revise', async () => {

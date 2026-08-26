@@ -2,20 +2,20 @@ import { nextScreen, previousScreen, visibleQuestionScreens, QUESTION_SCREENS } 
 
 describe('flow navigation with experiment-hidden screens', () => {
   it('advances one screen when nothing is hidden (shipped flow)', () => {
-    expect(nextScreen('s06-values')).toBe('s07-dream-home');
+    expect(nextScreen('a04-goals')).toBe('a05-feeling');
     expect(nextScreen('s11-arrival-time')).toBe('s13-commit');
   });
 
   it('skips a hidden screen forward (onboarding-dream-home=off)', () => {
     const hidden = new Set(['s07-dream-home'] as const);
-    // s06 → (skip s07) → s10
-    expect(nextScreen('s06-values', hidden)).toBe('s10-struggle');
+    // s05-work-feeling → (skip s07) → s11-arrival-time
+    expect(nextScreen('s05-work-feeling', hidden)).toBe('s11-arrival-time');
   });
 
   it('skips a hidden screen backward, symmetrically', () => {
     const hidden = new Set(['s07-dream-home'] as const);
-    // s10 → (skip s07) → s06
-    expect(previousScreen('s10-struggle', hidden)).toBe('s06-values');
+    // s11-arrival-time → (skip s07) → s05-work-feeling
+    expect(previousScreen('s11-arrival-time', hidden)).toBe('s05-work-feeling');
   });
 
   it('skips the commit beat when onboarding-commit-beat=off', () => {
@@ -38,6 +38,6 @@ describe('flow navigation with experiment-hidden screens', () => {
 
   it('returns null past the ends regardless of hidden set', () => {
     expect(nextScreen('s12-notifications')).toBeNull();
-    expect(previousScreen('s01-welcome')).toBeNull();
+    expect(previousScreen('a01-splash')).toBeNull();
   });
 });

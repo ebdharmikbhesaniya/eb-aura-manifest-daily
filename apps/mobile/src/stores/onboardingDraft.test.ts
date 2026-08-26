@@ -51,7 +51,7 @@ describe('onboarding draft', () => {
 
   describe('resume (product 07: kill mid-flow → exact-screen resume)', () => {
     it('resumes a fresh draft at the first screen', () => {
-      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s01-welcome');
+      expect(resumeScreen(useOnboardingDraft.getState())).toBe('a01-splash');
     });
 
     it('resumes after the last answered screen', () => {
@@ -67,16 +67,16 @@ describe('onboarding draft', () => {
       // rewind past where she actually was.
       const store = useOnboardingDraft.getState();
       store.setAnswer('s03-name', 'Maya');
-      store.advanceTo('s10-struggle');
+      store.advanceTo('s07-dream-home');
 
-      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s10-struggle');
+      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s07-dream-home');
     });
 
     it('treats a skip as answered for resume purposes', () => {
       const store = useOnboardingDraft.getState();
-      store.setAnswer('s10-struggle', null, true);
+      store.setAnswer('s04-self-description', null, true);
 
-      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s11-arrival-time');
+      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s05-work-feeling');
     });
   });
 
@@ -127,11 +127,11 @@ describe('onboarding draft', () => {
   describe('offline queue (05 §3)', () => {
     it('lists uncommitted answers in screen order', () => {
       const store = useOnboardingDraft.getState();
-      store.setAnswer('s10-struggle', 'heavy days lately');
+      store.setAnswer('a06-obstacle', 'I lose motivation');
       store.setAnswer('s03-name', 'Maya');
       store.markCommitted('s03-name');
 
-      expect(pendingCommits(useOnboardingDraft.getState().answers)).toEqual(['s10-struggle']);
+      expect(pendingCommits(useOnboardingDraft.getState().answers)).toEqual(['a06-obstacle']);
     });
 
     it('is empty once everything synced', () => {
@@ -154,6 +154,6 @@ describe('onboarding draft', () => {
     const state = useOnboardingDraft.getState();
     expect(state.startedAt).toBeNull();
     expect(state.answers).toEqual({});
-    expect(state.currentScreen).toBe('s01-welcome');
+    expect(state.currentScreen).toBe('a01-splash');
   });
 });
