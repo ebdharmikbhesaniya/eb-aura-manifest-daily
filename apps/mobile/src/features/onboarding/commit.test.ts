@@ -145,7 +145,7 @@ describe('onboarding commit path', () => {
     it('stamps completion, seeds memory and fires the funnel event', async () => {
       useOnboardingDraft.getState().start(0);
       await submitAnswer('user-1', 's03-name', 'Maya');
-      await submitAnswer('user-1', 's04-self-description', 'restless in a good way');
+      await submitAnswer('user-1', 'a05-feeling', 'okay');
       await submitAnswer('user-1', 'a06-obstacle', null, true);
 
       await completeOnboarding('user-1', 120_000);
@@ -154,7 +154,6 @@ describe('onboarding commit path', () => {
         'user-1',
         expect.objectContaining({
           name: 'Maya',
-          self_description: 'restless in a good way',
           struggle: null,
         }),
       );

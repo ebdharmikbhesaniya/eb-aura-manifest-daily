@@ -1,8 +1,7 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Linking, Text, View } from 'react-native';
+import { AppState, Linking, ScrollView, Text, View } from 'react-native';
 
 import { Card, PillButton, Screen, SerifDisplay, TextButton } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
@@ -13,37 +12,36 @@ import {
 } from '@/features/notifications/useNotifications';
 import { analytics } from '@/lib/analytics';
 import { useAppState } from '@/stores/appState';
+import { useOnboardingDraft } from '@/stores/onboardingDraft';
 import { haptic } from '@/theme/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts } from '@/theme/typography';
 
 import { completeOnboarding } from '../commit';
+import { firstAffirmationOf, ritualTimeOf } from '../derive';
+import { Eyebrow } from '../Eyebrow';
+import { ReminderPreview } from '../ReminderPreview';
 
 /**
- * S12b — the notification second chance (founder decision, 2026-08-10).
+ * Notifications · second chance (design 27). Shown ONCE, only after "Not now"
+ * or an OS decline. It names the concrete loss and shows tomorrow's arrival
+ * — a warm second offer, never a guilt screen: "Continue without them" is
+ * always right there, and this is the last notification ask in the funnel.
  *
- * Shown ONCE, only when she declined the OS prompt or chose "Maybe later" on
- * S12. It names the concrete loss — the moment sits unseen without a reminder —
- * and offers to turn it on again. It is a warm second offer, never a guilt
- * screen: "Continue without them" is always right there, and it is never shown
- * a third time (this is the last notification ask in the funnel).
- *
- * The OS will not re-show its prompt once she has denied it, so on that path the
- * primary opens the system Settings; an AppState listener catches her return and
- * finishes if she flipped the switch there.
- *
- * Like S12, THIS screen finishes onboarding: it stamps completion and hands off
- * to the generation ritual on every exit.
+ * The OS will not re-show its prompt once denied, so on that path the primary
+ * opens Settings; an AppState listener finishes if she flipped the switch.
+ * Like the pre-prompt, THIS screen finishes onboarding on every exit.
  */
 export function S12NotificationsMore() {
   const router = useRouter();
-  const { colors, spacing, radii, typography } = useTheme();
+  const { colors, radii, shadows, spacing, typography } = useTheme();
   const userId = useAppState((s) => s.userId);
+  const answers = useOnboardingDraft((s) => s.answers);
   const [busy, setBusy] = useState(false);
-  // Drives the primary label: a fresh "Maybe later" can still be prompted; an
-  // OS-level denial cannot, so we send her to Settings instead.
   const [canAskAgain, setCanAskAgain] = useState(true);
   const proceeding = useRef(false);
+  const c = onboardingCopy.s12NotificationsMore;
+  const time = ritualTimeOf(answers);
 
   useEffect(() => {
     analytics.capture('notification_second_chance_viewed', {});
@@ -54,22 +52,18 @@ export function S12NotificationsMore() {
     if (proceeding.current || !userId) return;
     proceeding.current = true;
     try {
-      // She has now been asked as far as we will ever ask — record it so Home's
-      // fallback stays quiet (the weekly denied hint is still allowed).
+      // Asked as far as we will ever ask — Home's fallback stays quiet.
       markPermissionAsked(true);
       await completeOnboarding(userId);
       router.replace('/(onboarding)/generating');
     } catch (err) {
-      // Leave her able to retry rather than stranded on a stamped-but-not-routed
-      // state (mirrors S12's un-busy-on-failure). Log it — a silent catch here is
-      // what made a failing completion look like a dead button.
+      // Leave her able to retry rather than stranded. A silent catch here is
+      // what once made a failing completion look like a dead button.
       console.warn('[onboarding] second-chance proceed failed:', err);
       proceeding.current = false;
     }
   }, [router, userId]);
 
-  // If she leaves for Settings, enables notifications, and comes back, register
-  // the device and finish — so the trip to Settings is not a dead end.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
       if (state !== 'active' || !userId) return;
@@ -97,14 +91,10 @@ export function S12NotificationsMore() {
         return;
       }
       if (perms.canAskAgain) {
-        // Never OS-prompted yet (she came via "Maybe later") — ask now.
         await requestPermissionAndRegister(userId);
         await proceed();
         return;
       }
-      // Already denied at the OS level — the only way on is Settings. Stay on
-      // the screen; the AppState listener finishes if she enables it there, and
-      // "Continue without them" is still available.
       await Linking.openSettings();
     } finally {
       setBusy(false);
@@ -116,90 +106,53 @@ export function S12NotificationsMore() {
     void proceed();
   };
 
-  const c = onboardingCopy.s12NotificationsMore;
-
-  // Centred beat (question → preview → note) rather than a top-aligned question
-  // over a small block, so the second-chance ask reads full, not empty. No
-  // progress header and no edit-guard on a permission prompt — same as S12.
   return (
     <Screen testID="s12b-notifications">
-      <View style={{ flex: 1, justifyContent: 'center', gap: spacing.lg }}>
-        <View style={{ gap: spacing.sm }}>
-          <SerifDisplay variant="question" center>
-            {c.question}
-          </SerifDisplay>
-          <Text style={[typography.body, { color: colors.text.secondary, textAlign: 'center' }]}>
-            {c.helper}
-          </Text>
-        </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1, paddingTop: spacing.xl, gap: spacing.md + 2 }}
+      >
+        <Eyebrow tone="muted">{c.eyebrow}</Eyebrow>
+        <SerifDisplay variant="question">{c.question}</SerifDisplay>
+        <Text style={[typography.body, { color: colors.text.body }]}>{c.helper}</Text>
 
-        {/* A preview of the actual reminder she'd receive (Redesign 2m). */}
         <View
           style={{
+            marginTop: spacing.sm,
+            padding: spacing.md + 4,
+            borderRadius: radii.group,
             backgroundColor: colors.surface.card,
-            borderRadius: radii.card,
             borderWidth: 1,
             borderColor: colors.surface.border,
-            padding: spacing.md,
-            gap: spacing.sm,
+            gap: spacing.sm + 3,
+            ...shadows.card,
           }}
         >
           <Text
             style={{
-              fontFamily: fonts.sansSemiBold,
-              fontSize: 10.5,
-              letterSpacing: 1.1,
+              fontFamily: fonts.sans,
+              fontSize: 10,
+              letterSpacing: 1.3,
               textTransform: 'uppercase',
               color: colors.text.label,
             }}
           >
-            {c.previewLabel}
+            {c.previewLabel.replace('{time}', time)}
           </Text>
-          <View
-            style={{
-              flexDirection: 'row',
-              gap: spacing.sm,
-              alignItems: 'flex-start',
-              backgroundColor: colors.surface.divider,
-              borderRadius: radii.field,
-              padding: spacing.sm + 2,
-            }}
-          >
-            <LinearGradient
-              colors={[colors.orb.core, colors.orb.halo]}
-              start={{ x: 0.2, y: 0.1 }}
-              end={{ x: 0.9, y: 1 }}
-              style={{ width: 34, height: 34, borderRadius: 9 }}
-            />
-            <View style={{ flex: 1, gap: 2 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text
-                  style={{
-                    fontFamily: fonts.sansSemiBold,
-                    fontSize: 12.5,
-                    color: colors.text.primary,
-                  }}
-                >
-                  {c.previewApp}
-                </Text>
-                <Text
-                  style={{ fontFamily: fonts.sansMedium, fontSize: 11, color: colors.text.label }}
-                >
-                  now
-                </Text>
-              </View>
-              <Text style={{ fontFamily: fonts.sans, fontSize: 12.5, color: colors.text.body }}>
-                {c.previewBody}
-              </Text>
-            </View>
-          </View>
+          <ReminderPreview
+            tone="parchment"
+            app={c.previewApp}
+            when={c.previewWhen}
+            body={firstAffirmationOf(answers)}
+          />
         </View>
+
         <Card variant="solid" style={{ backgroundColor: colors.accent.parchment }}>
           <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>{c.note}</Text>
         </Card>
-      </View>
+      </ScrollView>
 
-      <View style={{ paddingBottom: spacing.lg, gap: spacing.sm }}>
+      <View style={{ paddingBottom: spacing.lg, paddingTop: spacing.md, gap: spacing.sm }}>
         <PillButton
           title={canAskAgain ? c.primary : c.openSettings}
           onPress={() => void onPrimary()}

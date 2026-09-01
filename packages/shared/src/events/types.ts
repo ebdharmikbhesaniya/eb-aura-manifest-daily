@@ -63,6 +63,20 @@ export type OnboardingScreenId =
   | 'a10-commitment'
   | 'a11-affirmation'
   | 'a12-reminder'
+  // Onboarding v5 (2026-09-01): the design's branching conversation. `q-` ids
+  // carry an answer, `v-` ids are value/consent beats. `q-pronoun` has no
+  // route of its own — it is answered from the name screen.
+  | 'q-priority'
+  | 'q-context'
+  | 'q-pronoun'
+  | 'q-lexicon'
+  | 'q-offlimits'
+  | 'q-belief'
+  | 'q-calibration'
+  | 'v-insight'
+  | 'v-reflect'
+  | 'v-gratitude'
+  | 'v-consent'
   | 's01-welcome'
   | 's02-meet-aura'
   | 's03-name'

@@ -1,47 +1,52 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text } from 'react-native';
 
-import { PillButton, Screen, SerifDisplay, TextButton } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
+import { useOnboardingDraft } from '@/stores/onboardingDraft';
 import { useTheme } from '@/theme/ThemeProvider';
+import { fonts } from '@/theme/typography';
 
+import { ConversationScreen } from '../ConversationScreen';
+import { primaryGoalOf } from '../flow';
 import { useConversation } from '../useConversation';
 
 /**
- * A11 — the first value moment (merged from the Aura design). One gentle,
- * process-framed affirmation before any ask — a small felt payoff that proves
- * the ritual is worth three minutes. Carries no answer; "Show me another" cycles
- * the sample line, "This resonates" advances. New screen (no prior equivalent).
+ * VALUE — your first one. A pre-written, process-framed line for her goal,
+ * shown before any data has left the device. "Show me another" cycles the
+ * bank; "This resonates" moves on. Carries no answer.
  */
 export function A11Affirmation() {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing } = useTheme();
   const { advance } = useConversation('a11-affirmation');
+  const answers = useOnboardingDraft((s) => s.answers);
   const c = onboardingCopy.a11Affirmation;
-  const [index, setIndex] = useState(0);
+  const bank = c.bank[primaryGoalOf(answers)];
+  const [reroll, setReroll] = useState(0);
 
   return (
-    <Screen testID="a11-affirmation">
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg }}>
-        <Text
-          style={[
-            typography.label,
-            { color: colors.text.secondary, letterSpacing: 2, textAlign: 'center' },
-          ]}
-        >
-          {c.eyebrow}
-        </Text>
-        <SerifDisplay variant="affirmationHero" center>
-          {c.affirmations[index % c.affirmations.length]}
-        </SerifDisplay>
-      </View>
-
-      <View style={{ paddingBottom: spacing.lg, gap: spacing.sm }}>
-        <PillButton title={c.primary} onPress={advance} />
-        <TextButton
-          title={c.another}
-          onPress={() => setIndex((i) => (i + 1) % c.affirmations.length)}
-        />
-      </View>
-    </Screen>
+    <ConversationScreen
+      testID="a11-affirmation"
+      screenId="a11-affirmation"
+      center
+      eyebrow={c.eyebrow}
+      primaryTitle={c.primary}
+      onPrimary={advance}
+      secondaryTitle={c.another}
+      onSecondary={() => setReroll((n) => n + 1)}
+    >
+      <Text
+        allowFontScaling={false}
+        style={{
+          fontFamily: fonts.serifSemiBold,
+          fontSize: 40,
+          lineHeight: 48,
+          letterSpacing: -0.5,
+          color: colors.text.primary,
+          marginTop: -spacing.sm,
+        }}
+      >
+        {`“${bank[reroll % bank.length]}”`}
+      </Text>
+    </ConversationScreen>
   );
 }

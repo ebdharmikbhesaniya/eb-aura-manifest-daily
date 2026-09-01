@@ -57,9 +57,9 @@ describe('onboarding draft', () => {
     it('resumes after the last answered screen', () => {
       const store = useOnboardingDraft.getState();
       store.setAnswer('s03-name', 'Maya');
-      store.setAnswer('s04-self-description', 'restless in a good way');
+      store.setAnswer('a05-feeling', 'updown');
 
-      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s05-work-feeling');
+      expect(resumeScreen(useOnboardingDraft.getState())).toBe('v-insight');
     });
 
     it('never pulls her backwards if she parked further along', () => {
@@ -67,16 +67,23 @@ describe('onboarding draft', () => {
       // rewind past where she actually was.
       const store = useOnboardingDraft.getState();
       store.setAnswer('s03-name', 'Maya');
-      store.advanceTo('s07-dream-home');
+      store.advanceTo('q-belief');
 
-      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s07-dream-home');
+      expect(resumeScreen(useOnboardingDraft.getState())).toBe('q-belief');
     });
 
     it('treats a skip as answered for resume purposes', () => {
       const store = useOnboardingDraft.getState();
-      store.setAnswer('s04-self-description', null, true);
+      store.setAnswer('q-context', null, true);
 
-      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s05-work-feeling');
+      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s03-name');
+    });
+
+    it('resumes past a screen the branch bypasses', () => {
+      // One goal → no priority question; habits → no context question.
+      useOnboardingDraft.getState().setAnswer('a04-goals', ['Better habits']);
+
+      expect(resumeScreen(useOnboardingDraft.getState())).toBe('s03-name');
     });
   });
 
@@ -132,6 +139,13 @@ describe('onboarding draft', () => {
       store.markCommitted('s03-name');
 
       expect(pendingCommits(useOnboardingDraft.getState().answers)).toEqual(['a06-obstacle']);
+    });
+
+    it('includes the pronoun, which has no screen of its own', () => {
+      const store = useOnboardingDraft.getState();
+      store.setAnswer('q-pronoun', 'they/them');
+
+      expect(pendingCommits(useOnboardingDraft.getState().answers)).toEqual(['q-pronoun']);
     });
 
     it('is empty once everything synced', () => {

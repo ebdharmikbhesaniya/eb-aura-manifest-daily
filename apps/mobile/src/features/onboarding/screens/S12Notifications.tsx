@@ -1,39 +1,45 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
-import { Card, PillButton, Screen, SerifDisplay, TextButton } from '@/components';
+import { PillButton, Screen, SerifDisplay, TextButton } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
 import { markPermissionAsked } from '@/features/notifications/permissionGate';
 import { requestPermissionAndRegister } from '@/features/notifications/useNotifications';
 import { analytics } from '@/lib/analytics';
 import { useAppState } from '@/stores/appState';
+import { useOnboardingDraft } from '@/stores/onboardingDraft';
 import { haptic } from '@/theme/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
+import { fonts } from '@/theme/typography';
 
 import { completeOnboarding } from '../commit';
-import { NotificationHero } from '../NotificationHero';
+import { firstAffirmationOf, ritualTimeOf } from '../derive';
+import { ReminderPreview } from '../ReminderPreview';
+
+const PROMISE_ICON: readonly (keyof typeof Ionicons.glyphMap)[] = [
+  'time-outline',
+  'leaf-outline',
+  'toggle-outline',
+];
 
 /**
- * S12: the closing step of the conversation — the OS notification permission
- * ask (founder decision, 2026-07-30). It used to land on the first Home after
- * the paywall (11 §2); it now sits here, right after she picks an arrival time
- * (S11), so the ask reads as a reminder of what she just set up.
+ * The notification pre-prompt (design 22): the actual reminder previewed at
+ * her time, the question, then the three promises — one screen replacing
+ * five. "Yes, remind me" asks the OS; "Not now" offers the second chance.
  *
- * This screen — not S11 — now finishes onboarding: it stamps completion and
- * hands off to the generation ritual (product 07 S12, 08 §1). It draws no
- * progress header (it carries no answer) and no edit-guard (nothing to revise
- * from a permission prompt).
- *
- * Enabling asks the OS and records the ask, so the post-paywall fallback on Home
- * stays quiet — she is never asked twice. "Maybe later" leaves it unrecorded, so
- * Home can still offer it on that first landing.
+ * This screen finishes onboarding on a yes: it stamps completion and hands
+ * off to the generation ritual. It draws no progress header.
  */
 export function S12Notifications() {
   const router = useRouter();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, radii, spacing, typography } = useTheme();
   const userId = useAppState((s) => s.userId);
+  const answers = useOnboardingDraft((s) => s.answers);
   const [busy, setBusy] = useState(false);
+  const c = onboardingCopy.s12Notifications;
+  const time = ritualTimeOf(answers);
 
   useEffect(() => {
     analytics.capture('onboarding_screen_viewed', { screen_id: 's12-notifications' });
@@ -48,22 +54,13 @@ export function S12Notifications() {
       if (ask) {
         const { granted } = await requestPermissionAndRegister(userId);
         if (granted) {
-          // She said yes — stamp completion and go straight into the ritual.
-          // `replace`, so a back-swipe cannot reopen onboarding.
           markPermissionAsked(true);
           await completeOnboarding(userId);
           router.replace('/(onboarding)/generating');
           return;
         }
-        // Declined at the OS level: one warm second chance (2026-08-10). Don't
-        // mark asked or complete yet — S12b may still turn it on, and if she
-        // continues from there it stamps completion itself.
-        router.push('/(onboarding)/s12b-notifications');
-        return;
       }
-
-      // "Maybe later" — offer the value once more before finishing, rather than
-      // silently dropping the whole daily loop.
+      // Declined at the OS, or "Not now": one warm second chance, shown once.
       router.push('/(onboarding)/s12b-notifications');
     } finally {
       // Left un-busy on a sync failure so she can retry rather than stall.
@@ -71,38 +68,65 @@ export function S12Notifications() {
     }
   };
 
-  // Centred beat (bell → line → note) rather than a top-aligned question over a
-  // small block, so the closing ask reads full, not empty. No progress header and
-  // no edit-guard on a permission prompt.
   return (
     <Screen testID="s12-notifications">
-      <View style={{ flex: 1, justifyContent: 'center', gap: spacing.lg }}>
-        <NotificationHero icon="notifications" />
-        <View style={{ gap: spacing.sm }}>
-          <SerifDisplay variant="question" center>
-            {onboardingCopy.s12Notifications.question}
-          </SerifDisplay>
-          <Text style={[typography.body, { color: colors.text.secondary, textAlign: 'center' }]}>
-            {onboardingCopy.s12Notifications.helper}
-          </Text>
-        </View>
-        <Card variant="solid" style={{ backgroundColor: colors.accent.parchment }}>
-          <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
-            {onboardingCopy.s12Notifications.note}
-          </Text>
-        </Card>
-      </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1, paddingTop: spacing.xl, gap: spacing.lg + 4 }}
+      >
+        <ReminderPreview app={c.previewApp} when={time} body={firstAffirmationOf(answers)} />
 
-      <View style={{ paddingBottom: spacing.lg, gap: spacing.sm }}>
-        <PillButton
-          title={onboardingCopy.s12Notifications.primary}
-          onPress={() => void finish(true)}
-          disabled={busy}
-        />
-        <TextButton
-          title={onboardingCopy.s12Notifications.skip}
-          onPress={() => void finish(false)}
-        />
+        <SerifDisplay variant="question">{c.question.replace('{time}', time)}</SerifDisplay>
+
+        <View style={{ gap: spacing.sm + 1 }}>
+          {c.promises.map((promise, i) => (
+            <View
+              key={promise.title}
+              style={{
+                flexDirection: 'row',
+                gap: spacing.md + 1,
+                alignItems: 'flex-start',
+                padding: spacing.md + 2,
+                borderRadius: radii.card - 4,
+                backgroundColor: colors.surface.card,
+                borderWidth: 1,
+                borderColor: colors.surface.border,
+              }}
+            >
+              <View
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.accent.parchment,
+                }}
+              >
+                <Ionicons name={PROMISE_ICON[i]} size={20} color={colors.accent.emberDeep} />
+              </View>
+              <View style={{ flex: 1, gap: 3 }}>
+                <Text
+                  style={{
+                    fontFamily: fonts.sansSemiBold,
+                    fontSize: 15,
+                    color: colors.text.primary,
+                  }}
+                >
+                  {promise.title}
+                </Text>
+                <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
+                  {promise.body}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+
+      <View style={{ paddingBottom: spacing.lg, paddingTop: spacing.md, gap: spacing.sm }}>
+        <PillButton title={c.primary} onPress={() => void finish(true)} disabled={busy} />
+        <TextButton title={c.skip} onPress={() => void finish(false)} />
       </View>
     </Screen>
   );

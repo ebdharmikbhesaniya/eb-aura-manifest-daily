@@ -1,344 +1,400 @@
 /**
- * The Conversation, S1–S11 (product 07). Verbatim where the doc gives copy;
- * in-voice where it gives intent. The copy lint audits every string here.
+ * Onboarding v5 — the Aura Ember conversation (design "Aura Ember Onboarding
+ * v5", 2026-09-01). Verbatim from the design's screen file; the copy lint
+ * audits every string here.
  *
- * {name} and {city} are interpolation slots filled by the flow — her name is
- * used within 10 seconds of learning it (product 07 S3).
+ * `{name}` / `{time}` / `{goal}` are interpolation slots filled by the flow.
+ * Option KEYS are stable analytics/profile values; LABELS are what she reads.
  */
+
+export type GoalKey = 'confidence' | 'love' | 'money' | 'career' | 'calm' | 'habits';
+export type MoodKey = 'good' | 'okay' | 'updown' | 'low' | 'struggling';
+export type ObstacleKey = 'forget' | 'motivation' | 'selfdoubt' | 'busy';
+export type LexiconKey = 'universe' | 'neuro' | 'faith' | 'practical' | 'mix';
+export type BeliefKey = 'identity' | 'process' | 'practical';
+export type CalibrationKey = 'true' | 'want' | 'fake';
+export type TimeKey = 'morning' | 'lunch' | 'evening' | 'before-bed';
+
 export const onboardingCopy = {
-  // ── Funnel A-screens (restored + combined with the Redesign chrome, 2026-08-26) ──
+  header: {
+    back: 'Back',
+    skip: 'Skip',
+  },
+
+  // 01 · Splash — the orb breathes once; auto-advances, or a faint Continue.
   a01Splash: {
-    tagline: 'Your calmest, most intentional self starts here.',
     brand: 'Aura',
+    tagline: 'Written for you, not at you',
+    continue: 'Continue',
   },
 
+  // 02 · What makes this different — the contract, before the first ask.
   a02Value: {
-    panels: [
-      {
-        title: 'Rewire your mornings',
-        body: 'Three minutes of gratitude, affirmation and intention — before the day gets loud.',
-      },
-      {
-        title: 'Manifest with intention',
-        body: 'Affirmations and intentions that actually sound like you.',
-      },
-      {
-        title: 'Feel calm, grateful, unstoppable',
-        body: 'Small, daily, and yours — the mood you build in the morning carries the day.',
-      },
-    ],
+    title: 'Everyone else hands you the same affirmations.',
+    body: 'Yours get written for you — in your words, at a level you can actually believe.',
     primary: 'Continue',
   },
 
-  a03SocialProof: {
-    // PLACEHOLDER numbers and reviews carried over from the design. Per the
-    // design's own rule ("real numbers only, once true"), replace with verified
-    // figures and real App Store / Play reviews before shipping.
-    heading: 'Join half a million building a daily ritual',
-    rating: '4.9 ★ · 128k ratings',
-    reviews: [
-      {
-        quote: 'The first one that didn’t feel like it was shouting at me.',
-        who: 'Priya · 8 months',
-      },
-      { quote: 'Three minutes. I’ve never kept a habit this long.', who: 'Danielle · 1 year' },
-    ],
-    primary: 'Continue',
-  },
-
+  // Q1 · Goal — multi, max 3. The root node.
   a04Goals: {
     question: 'What do you most want to bring into your life?',
-    // Reuses the `values` column, capped at two in the DB (02 §1) — so the
-    // design's "as many as you like" becomes "up to two" here.
-    helper: 'Choose up to two.',
+    helper: 'Pick up to three.',
+    primary: 'Continue',
     choices: [
-      { label: 'Confidence', icon: '✦' },
-      { label: 'Love & relationships', icon: '♡' },
-      { label: 'Money & abundance', icon: '◈' },
-      { label: 'Career & purpose', icon: '▲' },
-      { label: 'Calm & less anxiety', icon: '◐' },
-      { label: 'Better habits', icon: '↻' },
-    ],
-    primary: 'Continue',
+      { key: 'confidence', label: 'Confidence', phrase: 'confidence' },
+      { key: 'love', label: 'Love & relationships', phrase: 'love' },
+      { key: 'money', label: 'Money & abundance', phrase: 'abundance' },
+      { key: 'career', label: 'Career & purpose', phrase: 'purpose' },
+      { key: 'calm', label: 'Calm & less anxiety', phrase: 'calm' },
+      { key: 'habits', label: 'Better habits', phrase: 'better habits' },
+    ] as ReadonlyArray<{ key: GoalKey; label: string; phrase: string }>,
   },
 
-  a05Feeling: {
-    question: 'How have you been feeling lately?',
-    helper: 'There’s no wrong answer here.',
-    // Key is stored in `profiles.feeling`; 'anxious'/'stuck' are the gentle-content
-    // router's trigger answers (Wood et al. mitigation).
-    choices: {
-      anxious: 'Anxious or overwhelmed',
-      stuck: 'Stuck, low motivation',
-      hopeful: 'Hopeful but scattered',
-      good: 'Pretty good — I want to grow',
-    },
-    primary: 'Continue',
+  // Q2 · Priority — piped from Q1. Auto-skipped at one selection.
+  qPriority: {
+    question: 'Which one matters most right now, honestly?',
+    helper: 'Piped from what you just picked.',
   },
 
-  a06Obstacle: {
-    question: 'What usually gets in your way?',
-    helper: 'We’ll design around it.',
-    // Stored as free text in `struggle`, so submit the label (readable for the
-    // memory seed and the Letter), not a slug.
-    choices: ['I forget', 'I lose motivation', 'Self-doubt', 'Too busy'],
-    primary: 'Continue',
+  // Q3 · Context — branched on the primary goal. Habits has no variant.
+  qContext: {
+    eyebrow: 'Because you chose {goal}',
+    variants: {
+      career: {
+        question: 'And the work you do now — how does it feel?',
+        choices: [
+          'Love it',
+          'Fine for now',
+          'Ready for something new',
+          'Building something on the side',
+        ],
+      },
+      money: {
+        question: 'When money comes up, what’s the feeling?',
+        choices: [
+          'Tight and anxious',
+          'Stuck at the same level',
+          'Fine, I want more',
+          'I avoid thinking about it',
+        ],
+      },
+      love: {
+        question: 'Where are you with this right now?',
+        choices: [
+          'Single, want to meet someone',
+          'Building something new',
+          'In it, want it stronger',
+          'Healing from something',
+        ],
+      },
+      confidence: {
+        question: 'Where does it wobble most?',
+        choices: ['Speaking up', 'How I look', 'My work', 'Around certain people'],
+      },
+      calm: {
+        question: 'When is it loudest?',
+        choices: ['First thing in the morning', 'At work', 'Late at night', 'It’s fairly constant'],
+      },
+    } as Readonly<
+      Record<Exclude<GoalKey, 'habits'>, { question: string; choices: readonly string[] }>
+    >,
   },
 
-  a08RitualTime: {
-    question: 'When will you do your ritual?',
-    helper: 'Same time each day works best.',
-    // Keys map to `arrival_time` via ARRIVAL_PRESETS (commit.ts).
-    choices: {
-      morning: { label: 'Morning', meta: '7–9 AM' },
-      lunch: { label: 'Lunch', meta: '12–2 PM' },
-      evening: { label: 'Evening', meta: '6–8 PM' },
-      'before-bed': { label: 'Before bed', meta: '9–11 PM' },
-    },
-    primary: 'Continue',
-  },
-
-  a10Commitment: {
-    // The A07 identity anchor isn't in this flow, so the sentence stays general.
-    eyebrow: 'One moment',
-    question: 'Ready to commit three minutes a day?',
-    helper: 'That’s all it takes — small, daily, and yours.',
-    primary: 'I’m ready',
-    secondary: 'Not yet',
-  },
-
-  a11Affirmation: {
-    eyebrow: 'Your first affirmation',
-    // Process-framed on purpose (the app's affirmation voice): learning-to,
-    // choose-to, allowed-to — never an absolute claim.
-    affirmations: [
-      'I am allowed to move at my own pace.',
-      'I choose to take one small step today.',
-      'I’m learning to trust the version of me that keeps going.',
-      'Today I can do one thing that future me will thank me for.',
-    ],
-    primary: 'This resonates',
-    another: 'Show me another',
-  },
-
-  a12Reminder: {
-    previewApp: 'Aura · 8:00 AM',
-    previewBody: 'Good morning. Your three-minute ritual is ready.',
-    question: 'This is how I’ll reach you.',
-    helper:
-      'One gentle arrival at the time you chose — never a stream, never a scorecard. Turn it off in a single tap, anytime.',
-    primary: 'Continue',
-  },
-
-  s01Welcome: {
-    title: 'Create the life you desire.',
-    /**
-     * Anti-resentment checklist #1: the price appears on the FIRST screen, so
-     * effort is never invested blind. `{price}` is filled from the RevenueCat
-     * offering, which is localized — a hardcoded dollar figure would be a lie in
-     * every other currency, and lying about price is the exact failure mode this
-     * line exists to prevent. `priceUnknown` covers the first launch before the
-     * offering has loaded: still honest, just less specific.
-     */
-    priceHonesty: 'Free to begin. Premium from {price} — you’ll see everything before you decide.',
-    priceUnknown: 'Free to begin. You’ll see the price before anything starts.',
-    primary: 'Begin',
-    secondary: 'Restore purchase',
-  },
-
-  s02MeetAura: {
-    // Redesign 2b: an orb, a greeting, and a short "what to expect" card in place
-    // of the animated chat bubbles.
-    greeting: 'Hi. I’m Aura.',
-    body: 'To write your future I need a little about your present. Everything you share stays between us, and you can see and edit all of it, anytime.',
-    expectations: [
-      { title: 'Seven questions', body: 'Most are a tap. Two are yours to write.' },
-      { title: 'About four minutes', body: 'Then a letter, written for you.' },
-      { title: 'Yours to edit', body: 'Nothing is locked in — revise any answer later.' },
-    ],
-    primary: 'I’m ready',
-  },
-
+  // Q4 · Name and pronoun — both skippable. Never infer pronoun from the name.
   s03Name: {
     question: 'What should I call you?',
-    // Names the field for the screen reader and gives the empty box something
-    // to say; the helper below it stays the guidance.
     placeholder: 'Your name',
-    // Quiet guidance under the field (v4 S3).
-    helper: 'Just your given name is perfect.',
+    pronounHelper: 'And your pronoun, so the copy fits.',
+    pronouns: ['she/her', 'he/him', 'they/them'] as readonly string[],
+    pronounSkip: 'Skip',
     primary: 'Continue',
-    // Gentle trim, never harsh validation (product 07 S3 edge).
+    // Gentle trim, never harsh validation.
     tooLong: 'That’s a lot of name — what do the people closest to you use?',
   },
 
-  s04SelfDescription: {
-    question:
-      'Since we’ve just met, {name} — how would you describe yourself? Whatever comes to mind.',
-    // "Whatever comes to mind" is already in the question, so the placeholder
-    // lowers the bar rather than repeating it — a FEW words is enough.
-    placeholder: 'A few words about you',
-    primary: 'Continue',
-    skip: 'Skip for now',
-    // Reflection when she skipped (product 07 S4 edge).
-    skippedReflection: 'We’ll fill this in together as we go.',
-    emptyNudge: 'even one word helps me',
+  // VALUE · Your first one — a pre-written, process-framed line per goal.
+  a11Affirmation: {
+    eyebrow: 'Your first one',
+    primary: 'This resonates',
+    another: 'Show me another',
+    bank: {
+      career: [
+        'I’m allowed to want a different life than the one I built.',
+        'Today I can do the work without auditioning for it.',
+        'I’m learning what I actually want from this.',
+      ],
+      money: [
+        'I’m learning to look at my money without flinching.',
+        'Today I can make one clear decision about this.',
+        'I’m allowed to want more than I have.',
+      ],
+      love: [
+        'I’m allowed to want to be known.',
+        'I’m learning to stay open without bracing.',
+        'Today I can let someone in a little.',
+      ],
+      confidence: [
+        'I’m learning to trust my own voice in the room.',
+        'Today I can take up the space I was given.',
+        'I’m allowed to be a work in progress.',
+      ],
+      calm: [
+        'Today I can let the morning start slowly.',
+        'I’m learning that not every thought needs answering.',
+        'I’m allowed to put something down.',
+      ],
+      habits: [
+        'I take one clear step, most days.',
+        'Today I can do the small version.',
+        'I’m learning to keep my word to myself.',
+      ],
+    } as Readonly<Record<GoalKey, readonly string[]>>,
   },
 
-  s05WorkFeeling: {
-    question: 'And the work you do now — how does it feel?',
-    choices: {
-      love_it: 'Love it',
-      fine_for_now: 'It’s fine for now',
-      ready_for_new: 'Ready for something new',
-      building_side: 'Building something on the side',
-    },
-    primary: 'Continue',
-  },
-
-  s06Values: {
-    // V4 splits the limit off the question: serif asks, a quiet helper guides.
-    question: 'What matters most to you right now?',
-    helper: 'Pick up to two.',
+  // Q5 · Mood — the safety router. low / struggling set gentle_mode.
+  a05Feeling: {
+    question: 'How’s the last week or two actually been?',
+    helper: 'There’s no wrong answer here.',
     choices: [
-      'Feeling truly fulfilled',
-      'Financial freedom',
-      'Being recognized',
-      'Living with purpose',
-      'Being free',
-      'Family & love',
-    ],
-    primary: 'Continue',
+      { key: 'good', label: 'Good' },
+      { key: 'okay', label: 'Okay' },
+      { key: 'updown', label: 'Up and down' },
+      { key: 'low', label: 'Low' },
+      { key: 'struggling', label: 'I’ve been really struggling' },
+    ] as ReadonlyArray<{ key: MoodKey; label: string }>,
   },
 
-  s07DreamHome: {
-    question: 'Close your eyes for a second. Where do you live, in the life you want?',
-    cards: {
-      penthouse: 'Penthouse',
-      'beach-house': 'Beach house',
-      loft: 'Loft',
-      'cozy-cottage': 'Cozy cottage',
-      'country-house': 'Country house',
-      'mountain-retreat': 'Mountain retreat',
-      'minimalist-studio': 'Minimalist studio',
-      'anywhere-view': 'Anywhere with a view',
+  // VALUE · Insight (reciprocity on the very next screen) or Support.
+  vInsight: {
+    primary: 'Continue',
+    byMood: {
+      good: 'Good weeks are the best time to build something. Less to push against.',
+      okay: '“Okay” is honest. We’ll aim at the part of the day that decides the rest.',
+      updown:
+        'That pattern usually tracks mornings more than anything else. Which is exactly where we’re going to aim.',
+      low: 'Low weeks are the ones where the short version matters most. That’s the one I’ll build you.',
+    } as Readonly<Record<Exclude<MoodKey, 'struggling'>, string>>,
+    fallback: 'We’ll aim at the part of the day that decides the rest.',
+    support: {
+      title:
+        'That’s a lot to be carrying. I’ll keep things short and gentle — no pressure, no scoreboard.',
+      label: 'Support',
+      body: 'Aura is a mindset practice. It isn’t therapy. If you need someone now, these are free and open around the clock.',
+      link: 'See support options →',
+      primary: 'Keep going',
     },
+  },
+
+  // Q6 · Obstacle — configures mechanics, not content. Stored as the label.
+  a06Obstacle: {
+    question: 'What usually gets in the way?',
+    choices: [
+      { key: 'forget', label: 'I forget', phrase: 'forgetting' },
+      { key: 'motivation', label: 'I lose motivation', phrase: 'losing motivation' },
+      { key: 'selfdoubt', label: 'Self-doubt', phrase: 'self-doubt' },
+      { key: 'busy', label: 'I’m too busy', phrase: 'being too busy' },
+    ] as ReadonlyArray<{ key: ObstacleKey; label: string; phrase: string }>,
+  },
+
+  // Q7 · Belief language — the vocabulary fork.
+  qLexicon: {
+    question: 'What kind of language actually lands for you?',
+    choices: [
+      { key: 'universe', label: 'The universe & energy' },
+      { key: 'neuro', label: 'Neuroscience & mindset' },
+      { key: 'faith', label: 'Faith' },
+      { key: 'practical', label: 'Just practical' },
+      { key: 'mix', label: 'A mix' },
+    ] as ReadonlyArray<{ key: LexiconKey; label: string }>,
+  },
+
+  // Q8 · Off limits — pre-filled from Q7. Continue works with zero picks.
+  qOffLimits: {
+    question: 'Anything you’d rather I stayed away from?',
+    helper: 'You can change this any time.',
+    wordsLabel: 'Words',
+    topicsLabel: 'Topics',
+    words: [
+      'Manifest',
+      'The universe',
+      'God',
+      'Vibration',
+      'Energy',
+      'Abundance',
+    ] as readonly string[],
+    topics: ['Money', 'Work', 'My body', 'Relationships', 'Family', 'Health'] as readonly string[],
+    // Pre-selected when her language answer is neuroscience or practical.
+    prefill: ['Manifest', 'The universe', 'Vibration', 'Energy'] as readonly string[],
     primary: 'Continue',
   },
 
-  s08DreamCity: {
-    question: 'And where is it? A real place, or just a feeling of one.',
-    primary: 'Continue',
-    skip: 'Not sure yet',
-    // Reflection template; {city} is her verbatim answer (product 07 S8).
-    reflection: '{city}. I can already hear the mornings there.',
+  // Q9 · Believability — one tap measures framing and tone.
+  qBelief: {
+    question: 'Which of these could you actually say out loud and mean it?',
+    cards: [
+      { key: 'identity', label: 'I am a magnet for everything I want.', tag: 'identity, bold' },
+      { key: 'process', label: 'I’m learning to trust myself with this.', tag: 'process, gentle' },
+      { key: 'practical', label: 'I take one clear step, most days.', tag: 'practical, grounded' },
+    ] as ReadonlyArray<{ key: BeliefKey; label: string; tag: string }>,
+    afterPick:
+      'Good. Statements people don’t believe don’t work — there’s real research on that. Yours will be written at a level you can accept.',
   },
 
-  s09People: {
-    question: 'Who’s in this life with you? A name and one word for each.',
-    namePlaceholder: 'Name',
-    descriptorPlaceholder: 'One word — “safe”, “fun”…',
-    addAnother: '+ Add another',
-    justMe: 'Just me for now',
-    // Reflection proves listening (product 07 S9); {name} is the last person added.
-    reflection: '{name}’s in. Your circle is forming.',
-    primary: 'Continue',
+  // Q10 · Calibration — conditional. The contradiction resolver only.
+  qCalibration: {
+    eyebrow: 'One more, just to be sure',
+    question: 'When you read “I am confident,” what happens?',
+    choices: [
+      { key: 'true', label: 'That’s true' },
+      { key: 'want', label: 'I want it to be true' },
+      { key: 'fake', label: 'It feels fake' },
+    ] as ReadonlyArray<{ key: CalibrationKey; label: string }>,
   },
 
-  s10Struggle: {
-    question: 'Last one, and it matters most. What’s the thing that feels heaviest right now?',
-    // Invitational, never clinical — the field must not read as an intake form.
-    placeholder: 'In your own words',
-    primary: 'Continue',
-    skip: 'Not today',
-    // Gentle, non-clinical; NEVER followed by a sales beat (product 07 S10).
-    reflection: 'Thank you for trusting me with that. I’ll hold it carefully.',
+  // Reflect-back — the mirror. Her actual answers, never a template.
+  vReflect: {
+    eyebrow: 'Here’s what I heard{name}',
+    line1:
+      'You’re going after {goal}, it’s been {mood}, and the thing that usually derails you is {obstacle}.',
+    line2: 'So we’re building you a short {dayPart} ritual, written {framing}{blocked}.',
+    blockedClause: ', and we’ll leave {topic} out of it',
+    moodSoft: {
+      good: 'a good stretch',
+      okay: 'okay',
+      updown: 'up and down',
+      low: 'a low stretch',
+      struggling: 'genuinely hard',
+    } as Readonly<Record<MoodKey, string>>,
+    framingWord: { identity: 'boldly', process: 'gently', practical: 'plainly' } as Readonly<
+      Record<BeliefKey, string>
+    >,
+    primary: 'That’s right',
+    secondary: 'Not quite',
   },
 
-  s11ArrivalTime: {
-    question: 'Your moments will be written for you daily. When should they arrive?',
-    morning: 'Morning',
-    // V4 subtitle lines — a time of day with a reason, not a scheduler.
-    morningHint: 'Around 7:30 — before the day starts talking',
-    evening: 'Evening',
-    eveningHint: 'Around 21:00 — to close the day',
-    pickTime: 'Pick a time',
-    /**
-     * The anti-nag promise (v4 S11 note). The design's literal line ends
-     * "never a streak", but "streak" sits on the shared guilt-vocabulary ban
-     * list (product 14) — the copy lint would fail — so the promise is kept
-     * with a word the voice is allowed to say.
-     */
-    note: 'Only sent when your moment is ready. Never a nudge, never a scorecard.',
-    primary: 'Continue',
+  // Q11 · Time and commitment — the implementation intention is the button.
+  a08RitualTime: {
+    question: 'When will you take your three minutes?',
+    fineTune: 'Fine-tune',
+    primary: 'I’ll do this at {time}',
+    // Keys map to `arrival_time` via ARRIVAL_PRESETS (commit.ts); `time` is the
+    // preset the reminder will actually use, so the button never over-promises.
+    choices: [
+      { key: 'morning', label: 'Morning, 7–9am', time: '8:00am', dayPart: 'morning' },
+      { key: 'lunch', label: 'Midday, 12–2pm', time: '12:30pm', dayPart: 'midday' },
+      { key: 'evening', label: 'Evening, 6–8pm', time: '8:00pm', dayPart: 'evening' },
+      { key: 'before-bed', label: 'Before bed, 9–11pm', time: '10:00pm', dayPart: 'evening' },
+    ] as ReadonlyArray<{ key: TimeKey; label: string; time: string; dayPart: string }>,
   },
 
-  /**
-   * The commitment beat (2026-08-10) — a quiet "are you ready" moment after the
-   * last question, before the Letter. Committing to a goal lifts follow-through;
-   * said in the future-self voice, never a coercive hold. `{name}` is filled
-   * from the draft (falls back to a nameless "Ready?").
-   */
-  s13Commit: {
-    // Redesign 2j: a small eyebrow over the orb.
-    eyebrow: 'One moment',
-    question: 'Ready, {name}?',
-    questionNoName: 'Ready?',
-    helper:
-      'Everything you’ve shared becomes a letter from the version of you that already made it. Meeting them is a small act of belief — take it when you’re ready.',
-    primary: 'I’m ready',
+  // VALUE · First gratitude entry — seeds the journal before the money ask.
+  vGratitude: {
+    question: 'Name one thing you’re grateful for.',
+    helper: 'Small counts. Small is usually better.',
+    placeholder: 'Today, I’m grateful for…',
+    primary: 'Save it',
+    skip: 'Skip',
   },
 
-  /**
-   * The notification education screen (2026-08-10, founder decision) — a
-   * dedicated screen BEFORE the OS ask that explains why the reminder is the
-   * core of the ritual (the moment is delivered by it). Informational only:
-   * "Continue" leads to the ask on the next screen.
-   */
-  s12WhyNotifications: {
-    question: 'This is how I’ll reach you.',
-    helper:
-      'Every day I write a new moment for you. The reminder is simply how it finds you — without it, the words wait in the app until you remember to look.',
-    benefits: [
+  // AI consent — explicit, unbundled, before anything is generated.
+  vConsent: {
+    question: 'Before I write yours — is this okay?',
+    points: [
+      'Your answers go to our writing model to draft your week.',
+      'Your name and your journal entries are never sent.',
+      'Off in one tap in Settings, forever.',
+    ] as readonly string[],
+    primary: 'Yes, write mine',
+    secondary: 'No — use the standard library instead',
+  },
+
+  // Notification pre-prompt — the preview, then the three promises.
+  s12Notifications: {
+    previewApp: 'Aura',
+    question: 'Want this to reach you at {time}?',
+    promises: [
       { title: 'At your time', body: 'Your moment arrives at the hour you chose — not whenever.' },
       { title: 'Once a day', body: 'One gentle arrival. Never a stream, never a scorecard.' },
       { title: 'Always yours', body: 'Turn it off in a single tap, anytime.' },
-    ],
-    primary: 'Continue',
+    ] as ReadonlyArray<{ title: string; body: string }>,
+    primary: 'Yes, remind me',
+    skip: 'Not now',
   },
 
-  s12Notifications: {
-    // The closing step (founder decision 2026-07-30): ask for the OS permission
-    // while her arrival time is still fresh, so it reads as a reminder she just
-    // set up — not a cold system prompt. The "why" now lives on the dedicated
-    // education screen before this one, so this stays a short, warm ask.
-    question: 'Ready to let them in?',
-    helper: 'So the words written for you actually arrive.',
-    note: 'One quiet arrival at your time. Never a nudge, never a scorecard — and you can turn it off anytime.',
-    primary: 'Turn on reminders',
-    skip: 'Maybe later',
-  },
-
-  /**
-   * The second notification screen (2026-08-10, founder decision) — shown ONCE,
-   * only if she declined the OS prompt or chose "Maybe later" on S12. A warm
-   * second chance that spells out the concrete loss, NOT a guilt screen: the
-   * "Continue without" exit is always right there, and it is never shown again.
-   */
+  // Notifications · second chance — only after “Not now”. Shown once.
   s12NotificationsMore: {
+    eyebrow: 'Before we go on',
     question: 'Your moment can’t reach you on its own.',
     helper:
       'Without a reminder, the words written for you sit quietly in the app — and most mornings the day gets loud before you remember to open it. One gentle arrival at the time you chose is all it takes.',
-    // Reassurance so the ask never tips into pressure.
-    note: 'Still just one arrival a day. No nudges, no scorecards — off anytime.',
-    // Redesign 2m: a preview of the actual reminder she'd receive.
-    previewLabel: 'Tomorrow, 7:30',
+    previewLabel: 'Tomorrow, {time}',
     previewApp: 'Aura',
-    previewBody: 'Your moment is ready. Two minutes, in your own voice.',
+    previewWhen: 'now',
+    note: 'Still just one arrival a day. No nudges, no scorecards — off anytime.',
     primary: 'Turn on notifications',
     // If the OS won't prompt again (already declined), we send her to Settings.
     openSettings: 'Open Settings',
     skip: 'Continue without them',
   },
+
+  /**
+   * The bold (identity) and grounded (practical) banks — the framed set the
+   * reminder preview quotes from. Process-framed lines live in a11Affirmation.
+   */
+  framedBank: {
+    identity: {
+      career: [
+        'I am building the life I actually want.',
+        'I am the person my work is becoming.',
+        'I am worth the room I’m in.',
+      ],
+      money: [
+        'I am a magnet for abundance.',
+        'I am safe with money.',
+        'I am building real wealth.',
+      ],
+      love: ['I am easy to love.', 'I am worth being chosen.', 'I am open to what’s coming.'],
+      confidence: ['I am someone who speaks up.', 'I am enough in any room.', 'I am my own proof.'],
+      calm: ['I am steady in my own body.', 'I am safe right now.', 'I am allowed to rest.'],
+      habits: [
+        'I am someone who keeps their word.',
+        'I am consistent.',
+        'I am the sum of my small days.',
+      ],
+    },
+    practical: {
+      career: [
+        'I send one thing today, done not perfect.',
+        'I spend thirty minutes on the side project.',
+        'I ask the question I’ve been avoiding.',
+      ],
+      money: [
+        'I look at one number today.',
+        'I move ten dollars I won’t miss.',
+        'I name the thing I’m saving for.',
+      ],
+      love: [
+        'I send the message I’ve been drafting.',
+        'I say the true thing, plainly.',
+        'I make the plan instead of waiting.',
+      ],
+      confidence: [
+        'I say one sentence in the meeting.',
+        'I don’t apologise before I speak.',
+        'I finish the thought.',
+      ],
+      calm: [
+        'I take three slow breaths before the first email.',
+        'I put the phone down for ten minutes.',
+        'I write the worry down and close the book.',
+      ],
+      habits: [
+        'I do the two-minute version.',
+        'I set it out the night before.',
+        'I show up, badly if needed.',
+      ],
+    },
+  } as Readonly<Record<'identity' | 'practical', Readonly<Record<GoalKey, readonly string[]>>>>,
 
   editGuard: {
     entry: 'Fix an earlier answer',
@@ -348,11 +404,5 @@ export const onboardingCopy = {
     // Edits revise, never restart (product 07 rules).
     note: 'Your other answers stay exactly as they are.',
     cancel: 'Never mind',
-  },
-
-  reflectionTypingPause: {
-    // 600ms typing dots before a reflection lands (product 13 §catalog:
-    // "proves someone is listening before replying"). Duration lives with the
-    // motion catalog; this key exists so screens don't invent their own copy.
   },
 } as const;

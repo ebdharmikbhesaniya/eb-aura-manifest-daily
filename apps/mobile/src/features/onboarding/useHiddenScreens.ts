@@ -5,27 +5,17 @@ import { EXPERIMENTS, ON_OFF_VARIANTS } from '@/features/experiments/keys';
 import { useVariant } from '@/features/experiments/useVariant';
 
 /**
- * The set of onboarding screens the active experiments hide (2026-08-14).
+ * The set of onboarding screens the active experiments hide.
  *
- * Two on/off experiments gate a single conversation screen each — `control`
- * (shipped) shows it, `off` removes it from the flow:
- *   • onboarding-dream-home → hides `s07-dream-home`
- *   • onboarding-commit-beat → hides `a10-commitment`
- *
- * Reading each flag makes PostHog emit `$feature_flag_called` (the exposure).
- * The navigation helpers (`nextScreen`/`previousScreen`) and the progress
- * counter take this set so a hidden screen is skipped in BOTH directions and
- * the header never counts a step the user won't see. Flags load async, so this
- * starts as the empty set (everyone on control) and narrows once flags arrive.
+ * The two on/off flags used to gate `s07-dream-home` and `a10-commitment`;
+ * both screens left with Onboarding v5 (2026-09-01), so today the set is
+ * empty whatever the flags say. The flags are still read so PostHog keeps
+ * emitting the exposure, and the plumbing stays for the next experiment —
+ * `nextScreen`/`previousScreen` and the progress track all take this set.
  */
 export function useHiddenScreens(): ReadonlySet<OnboardingScreenId> {
-  const dreamHome = useVariant(EXPERIMENTS.onboardingDreamHome, 'control', ON_OFF_VARIANTS);
-  const commitBeat = useVariant(EXPERIMENTS.onboardingCommitBeat, 'control', ON_OFF_VARIANTS);
+  useVariant(EXPERIMENTS.onboardingDreamHome, 'control', ON_OFF_VARIANTS);
+  useVariant(EXPERIMENTS.onboardingCommitBeat, 'control', ON_OFF_VARIANTS);
 
-  return useMemo(() => {
-    const hidden = new Set<OnboardingScreenId>();
-    if (dreamHome === 'off') hidden.add('s07-dream-home');
-    if (commitBeat === 'off') hidden.add('a10-commitment');
-    return hidden;
-  }, [dreamHome, commitBeat]);
+  return useMemo(() => new Set<OnboardingScreenId>(), []);
 }

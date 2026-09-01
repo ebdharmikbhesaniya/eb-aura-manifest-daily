@@ -6,93 +6,81 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { PillButton, Screen, SerifDisplay, TextButton } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
+import { OutlinePill } from '@/features/paywall/OutlinePill';
 import { useOnboardingDraft } from '@/stores/onboardingDraft';
 import { useTheme } from '@/theme/ThemeProvider';
 
 import { EditGuardSheet } from './EditGuardSheet';
-import { previousScreen, QUESTION_SCREENS, screenRoute, visibleQuestionScreens } from './flow';
-import { ProgressHeader } from './ProgressHeader';
+import { Eyebrow } from './Eyebrow';
+import { previousScreen, progressOf, QUESTION_SCREENS, screenRoute, SKIPPABLE } from './flow';
+import { OnboardingHeader } from './OnboardingHeader';
 import { useHiddenScreens } from './useHiddenScreens';
 
 export interface ConversationScreenProps {
-  question: string;
-  /** Quiet guidance under the question ("Pick up to two."). */
+  screenId: OnboardingScreenId;
+  /** The serif question. Value beats supply their own content instead. */
+  question?: string;
+  /** Centre the content block — the design's value/consent beats. */
+  center?: boolean;
+  /** Quiet guidance under the question ("Pick up to three."). */
   helper?: string;
-  /**
-   * Drives the v4 progress header. Screens outside the live flow (SCREEN_ORDER)
-   * render no header — the track never lies about where she is.
-   */
-  screenId?: OnboardingScreenId;
+  /** A small uppercase line ABOVE the question ("Because you chose calm"). */
+  eyebrow?: string;
   children?: ReactNode;
-  /** Continue. Omit to let the content area drive advancement (chips-only screens). */
+  /** Continue. Omit on the auto-advancing single-choice questions. */
   primaryTitle?: string;
   onPrimary?: () => void;
   primaryDisabled?: boolean;
-  /** Skip, on the personal questions that allow it (product 07 — never S3). */
-  skipTitle?: string;
+  /** The header's Skip — only offered on the design's skippable questions. */
   onSkip?: () => void;
-  /** S1/S2 hide it — there is nothing to fix yet. */
-  showEditGuard?: boolean;
+  /** A secondary text action under Continue. */
+  secondaryTitle?: string;
+  onSecondary?: () => void;
+  /** `text` (default) is a quiet link; `outline` gives the alternative equal standing. */
+  secondaryVariant?: 'text' | 'outline';
+  /** A quiet note pinned above the buttons (design footnotes). */
+  footnote?: string;
   testID?: string;
 }
 
 /**
- * The shared shell of the conversation (product 07 rules): the v4 progress
- * header, one serif question, the answer surface, a floating Continue above
- * the keyboard, and the edit-guard entry — now the header's back chevron
- * (back means "fix an earlier answer", never a raw pop). Screens supply only
- * what differs.
+ * The shared shell of the v5 conversation: the header (back circle, ember
+ * track, Skip), an optional eyebrow, one serif question closing on an ember
+ * mark, the helper, the answer surface, and a floating Continue above the
+ * keyboard. Back means "fix an earlier answer" once anything is answered
+ * (product 07 — revise, never restart); before that it simply steps back.
  */
 export function ConversationScreen({
-  question,
-  helper,
   screenId,
+  question,
+  center = false,
+  helper,
+  eyebrow,
   children,
   primaryTitle,
   onPrimary,
   primaryDisabled = false,
-  skipTitle,
   onSkip,
-  showEditGuard = true,
+  secondaryTitle,
+  onSecondary,
+  secondaryVariant = 'text',
+  footnote,
   testID,
 }: ConversationScreenProps) {
   const router = useRouter();
   const { colors, spacing, typography } = useTheme();
   const [editGuardOpen, setEditGuardOpen] = useState(false);
   const answers = useOnboardingDraft((s) => s.answers);
-
-  /**
-   * The counter measures QUESTIONS, not screens.
-   *
-   * S1 and S2 are the welcome and the introduction — they ask nothing and they
-   * draw no header. Counting them anyway meant the first number she ever saw
-   * was "3/10", which reads as though the app skipped two steps behind her back.
-   * The first question is question one.
-   */
-  // Experiments can hide a question screen (e.g. onboarding-dream-home=off), so
-  // the counter measures the questions actually shown — never a step she'll skip.
   const hidden = useHiddenScreens();
-  const visibleQuestions = visibleQuestionScreens(hidden);
-  const stepIndex = screenId ? visibleQuestions.indexOf(screenId) : -1;
-  const hasHeader = stepIndex >= 0;
 
-  /**
-   * What the back chevron means depends on whether there is anything to revise.
-   *
-   * The edit-guard is product 07's "revise, never restart", and it lists only
-   * ANSWERED screens. On S3 — the first screen that asks for anything — nothing
-   * is answered yet, so the guard opened onto an empty sheet and S1 and S2 were
-   * unreachable: a chevron that visibly promised a way back and delivered a
-   * dead end. With nothing to revise, back simply means back.
-   */
+  const progress = progressOf(screenId, hidden, answers);
   const hasSomethingToRevise = QUESTION_SCREENS.some((id) => answers[id]);
-  const previous = screenId ? previousScreen(screenId, hidden) : null;
+  const previous = previousScreen(screenId, hidden, answers);
 
   const stepBack = () => {
     if (!previous) return;
     // `replace`, not `back`: a cold start lands here via a Redirect with no
-    // history behind it, so there is often no stack to pop. Moving
-    // `currentScreen` too keeps resume honest about where she actually is.
+    // history behind it. Moving `currentScreen` keeps resume honest.
     useOnboardingDraft.getState().advanceTo(previous);
     router.replace(screenRoute(previous) as never);
   };
@@ -105,11 +93,10 @@ export function ConversationScreen({
 
   return (
     <Screen {...(testID ? { testID } : {})}>
-      {hasHeader && (
-        <ProgressHeader
-          step={stepIndex + 1}
-          total={visibleQuestions.length}
-          {...(showEditGuard && onBack
+      {progress !== null && (
+        <OnboardingHeader
+          progress={progress}
+          {...(onBack
             ? {
                 onBack,
                 backLabel: hasSomethingToRevise
@@ -117,49 +104,56 @@ export function ConversationScreen({
                   : onboardingCopy.editGuard.back,
               }
             : {})}
+          {...(onSkip && SKIPPABLE.has(screenId) ? { onSkip } : {})}
         />
       )}
 
       <KeyboardAvoidingView
-        // The floating-Continue rule (product 07 shared spec): the button rides
-        // the keyboard rather than hiding under it.
-        //
-        // `padding` on BOTH platforms. Android used to be left on `undefined`,
-        // trusting the `adjustResize` in the manifest to shrink the window — but
-        // this app sets `edgeToEdgeEnabled=true` (android/gradle.properties), and
-        // under edge-to-edge Android stops applying adjustResize for the IME. The
-        // window never shrank, so on every text screen (S3 name, S4, S8, S10) the
-        // field and the Continue button sat underneath the keyboard. The sign-in
-        // gate had the identical bug and the identical fix.
+        // The floating-Continue rule: the button rides the keyboard rather than
+        // hiding under it. `padding` on both platforms — under edge-to-edge
+        // Android stops applying adjustResize for the IME.
         behavior="padding"
         style={{ flex: 1 }}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ flexGrow: 1, paddingVertical: spacing.xl, gap: spacing.xl }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingTop: spacing.lg,
+            paddingBottom: spacing.lg,
+            gap: spacing.lg + 4,
+            justifyContent: center ? 'center' : 'flex-start',
+          }}
         >
-          <View style={{ gap: spacing.sm }}>
-            <SerifDisplay variant="question">{question}</SerifDisplay>
-            {helper !== undefined && (
-              <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>{helper}</Text>
-            )}
-          </View>
-          <View style={{ flex: 1, gap: spacing.md }}>{children}</View>
+          {(eyebrow !== undefined || question !== undefined || helper !== undefined) && (
+            <View style={{ gap: spacing.sm + 2 }}>
+              {eyebrow !== undefined && <Eyebrow>{eyebrow}</Eyebrow>}
+              {question !== undefined && <SerifDisplay variant="question">{question}</SerifDisplay>}
+              {helper !== undefined && (
+                <Text style={[typography.body, { color: colors.text.secondary }]}>{helper}</Text>
+              )}
+            </View>
+          )}
+          <View style={{ flex: center ? 0 : 1, gap: spacing.md }}>{children}</View>
+          {footnote !== undefined && (
+            <Text style={[typography.bodySmall, { color: colors.text.label }]}>{footnote}</Text>
+          )}
         </ScrollView>
 
-        <View style={{ gap: spacing.sm, paddingBottom: spacing.lg }}>
-          {primaryTitle && onPrimary && (
-            <PillButton title={primaryTitle} onPress={onPrimary} disabled={primaryDisabled} />
-          )}
-          {skipTitle && onSkip && <TextButton title={skipTitle} onPress={onSkip} />}
-          {/* Screens without a header (outside the live flow) keep the text entry. */}
-          {!hasHeader && showEditGuard && (
-            <TextButton
-              title={onboardingCopy.editGuard.entry}
-              onPress={() => setEditGuardOpen(true)}
-            />
-          )}
-        </View>
+        {(primaryTitle || secondaryTitle) && (
+          <View style={{ gap: spacing.sm, paddingBottom: spacing.lg }}>
+            {primaryTitle && onPrimary && (
+              <PillButton title={primaryTitle} onPress={onPrimary} disabled={primaryDisabled} />
+            )}
+            {secondaryTitle && onSecondary && secondaryVariant === 'outline' && (
+              <OutlinePill title={secondaryTitle} onPress={onSecondary} />
+            )}
+            {secondaryTitle && onSecondary && secondaryVariant === 'text' && (
+              <TextButton title={secondaryTitle} onPress={onSecondary} />
+            )}
+          </View>
+        )}
       </KeyboardAvoidingView>
 
       <EditGuardSheet open={editGuardOpen} onClose={() => setEditGuardOpen(false)} />

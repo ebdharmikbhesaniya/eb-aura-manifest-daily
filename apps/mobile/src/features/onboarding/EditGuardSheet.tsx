@@ -11,15 +11,17 @@ import { QUESTION_SCREENS, screenRoute } from './flow';
 
 /** Screen id → the question she'll recognise it by. */
 const SCREEN_LABEL: Partial<Record<OnboardingScreenId, string>> = {
+  'a04-goals': 'What you want to bring in',
+  'q-priority': 'Which matters most',
+  'q-context': 'Where you are with it',
   's03-name': onboardingCopy.s03Name.question,
-  's04-self-description': 'How you described yourself',
-  's05-work-feeling': 'How work feels',
-  's06-values': 'What matters most',
-  's07-dream-home': 'Your dream home',
-  's08-dream-city': 'Your dream city',
-  's09-people': 'Your people',
-  's10-struggle': 'What feels heaviest',
-  's11-arrival-time': 'When moments arrive',
+  'a05-feeling': 'How the last weeks have been',
+  'a06-obstacle': 'What gets in the way',
+  'q-lexicon': 'The language that lands',
+  'q-offlimits': 'What to stay away from',
+  'q-belief': 'What you could say and mean',
+  'q-calibration': 'How “I am confident” reads',
+  'a08-ritual-time': 'When you take your three minutes',
 };
 
 /**

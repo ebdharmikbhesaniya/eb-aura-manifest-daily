@@ -1,55 +1,101 @@
 import { useState } from 'react';
+import { Text, View } from 'react-native';
 
 import { Input } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
+import { useAppState } from '@/stores/appState';
+import { useOnboardingDraft } from '@/stores/onboardingDraft';
+import { useTheme } from '@/theme/ThemeProvider';
 
+import { submitAnswer } from '../commit';
 import { ConversationScreen } from '../ConversationScreen';
+import { OptionChip } from '../OptionChip';
 import { useConversation } from '../useConversation';
 
 /** Past this, it's probably a paste or a joke — nudge toward what friends use. */
 const GENTLE_TRIM_LENGTH = 40;
 
 /**
- * S3: the key personalization token, used within 10 seconds on S4. The one
- * question that cannot be skipped (product 07) — everything downstream opens
- * with her name.
+ * Q4 — name and pronoun. Both skippable (design v5): an empty name is
+ * recorded as a skip, and the pronoun defaults to they/them downstream —
+ * never inferred from the name. The pronoun rides along as its own answer
+ * (`q-pronoun`) so it syncs like everything else.
  */
 export function S03Name() {
-  const { submit, existingValue } = useConversation('s03-name');
+  const { colors, spacing, typography } = useTheme();
+  const userId = useAppState((s) => s.userId);
+  const { submit, skip, existingValue } = useConversation('s03-name');
+  const existingPronoun = useOnboardingDraft((s) => s.answers['q-pronoun']?.value);
+  const c = onboardingCopy.s03Name;
+
   const [name, setName] = useState(typeof existingValue === 'string' ? existingValue : '');
+  const [pronoun, setPronoun] = useState<string | null>(
+    typeof existingPronoun === 'string' ? existingPronoun : null,
+  );
 
   const tooLong = name.length > GENTLE_TRIM_LENGTH;
+
+  const recordPronoun = async () => {
+    if (!userId) return;
+    await submitAnswer(userId, 'q-pronoun', pronoun, pronoun === null);
+  };
+
+  const onContinue = async () => {
+    await recordPronoun();
+    const trimmed = name.trim();
+    if (trimmed === '') await skip();
+    else await submit(trimmed);
+  };
+
+  const onSkip = async () => {
+    await recordPronoun();
+    await skip();
+  };
 
   return (
     <ConversationScreen
       testID="s03-name"
       screenId="s03-name"
-      question={onboardingCopy.s03Name.question}
-      primaryTitle={onboardingCopy.s03Name.primary}
-      onPrimary={() => void submit(name.trim())}
-      // Empty or absurdly long blocks Continue — but the copy stays gentle, and
-      // there is no red anywhere (product 12 §inputs).
-      primaryDisabled={name.trim() === '' || tooLong}
+      question={c.question}
+      primaryTitle={c.primary}
+      onPrimary={() => void onContinue()}
+      primaryDisabled={tooLong}
+      onSkip={() => void onSkip()}
     >
       <Input
         value={name}
         onChangeText={setName}
-        // The question sits above the field, not in it — so an empty field had
-        // nothing to name it, for sighted use or for a screen reader.
-        placeholder={onboardingCopy.s03Name.placeholder}
+        placeholder={c.placeholder}
         autoFocus
-        // The field autofocuses, so the keyboard is already up and Continue is
-        // behind it — the return key is the nearest way forward.
         returnKeyType="go"
         onSubmitEditing={() => {
-          // Same guard as `primaryDisabled`, so return cannot submit a name
-          // Continue would have refused.
-          if (name.trim() !== '' && !tooLong) void submit(name.trim());
+          if (!tooLong) void onContinue();
         }}
-        // The gentle trim replaces the helper when it applies — one line under
-        // the field, never two (v4 S3).
-        hint={tooLong ? onboardingCopy.s03Name.tooLong : onboardingCopy.s03Name.helper}
+        {...(tooLong ? { hint: c.tooLong } : {})}
       />
+
+      <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
+        <Text style={[typography.bodySmall, { color: colors.text.secondary }]}>
+          {c.pronounHelper}
+        </Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm + 1 }}>
+          {c.pronouns.map((option) => (
+            <OptionChip
+              key={option}
+              label={option}
+              selected={pronoun === option}
+              onPress={() => setPronoun(option)}
+              testID={`q-pronoun-${option}`}
+            />
+          ))}
+          <OptionChip
+            label={c.pronounSkip}
+            selected={false}
+            onPress={() => setPronoun(null)}
+            testID="q-pronoun-skip"
+          />
+        </View>
+      </View>
     </ConversationScreen>
   );
 }

@@ -1,94 +1,126 @@
-import type { ReactNode } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, Text, View } from 'react-native';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts } from '@/theme/typography';
 
+/** Design v5 row metrics — the icon tile and the check/dot have no token. */
+const ICON_TILE = 38;
+const CHECK = 21;
+const DOT = 18;
+
 export interface AnswerRowProps {
   label: string;
-  /** A quiet reason under the label (arrival hints). */
-  subtitle?: string;
   selected: boolean;
   onPress: () => void;
-  /** An optional leading tile (e.g. an icon). */
-  leading?: ReactNode;
   /**
-   * `check` (default) shows a ✓ when selected; `chevron` shows a › always — for a
-   * disclosure row like "Pick a time".
+   * An icon makes it the design's tile row (goals, obstacles): an ember tile
+   * on the left and a ✓ circle on the right. Without one it is the plain
+   * radio row (priority, context, mood, language, calibration, time).
    */
-  trailing?: 'check' | 'chevron';
+  icon?: keyof typeof Ionicons.glyphMap;
   testID?: string;
 }
 
 /**
- * The Onboarding Redesign's one answer control: a full-width list row, used for
- * every choice question (work-feeling, values, dream-home, arrival) so the flow
- * reads as one pattern rather than four. Selected = ink fill + cream text + ✓;
- * unselected = white surface + olive hairline. All Ember & Bone tokens.
+ * The one answer control of the v5 conversation. Unselected sits on the glassy
+ * white with a faint hairline; selected turns the hairline ink, the surface
+ * solid white, and fills the dot (or lights the tile ember and draws the ✓).
  */
-export function AnswerRow({
-  label,
-  subtitle,
-  selected,
-  onPress,
-  leading,
-  trailing = 'check',
-  testID,
-}: AnswerRowProps) {
-  const { colors, spacing, radii } = useTheme();
+export function AnswerRow({ label, selected, onPress, icon, testID }: AnswerRowProps) {
+  const { colors, radii, spacing } = useTheme();
+  const tile = icon !== undefined;
 
   return (
     <Pressable
       testID={testID}
-      accessibilityRole={trailing === 'chevron' ? 'button' : 'radio'}
-      accessibilityState={trailing === 'chevron' ? undefined : { selected }}
-      accessibilityLabel={subtitle ? `${label}. ${subtitle}` : label}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      accessibilityLabel={label}
       onPress={onPress}
-      style={{
+      style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
-        gap: spacing.md,
-        paddingVertical: spacing.md + 2,
-        paddingHorizontal: spacing.md + 4,
-        borderRadius: radii.card,
-        backgroundColor: selected ? colors.cta.background : colors.surface.card,
-        borderWidth: selected ? 0 : 1,
-        borderColor: colors.surface.border,
-      }}
+        gap: tile ? spacing.md + 1 : spacing.md,
+        paddingVertical: tile ? spacing.sm + 1 : spacing.md + 5,
+        paddingLeft: tile ? spacing.sm + 1 : spacing.md + 6,
+        paddingRight: tile ? spacing.md + 2 : spacing.md + 6,
+        borderRadius: tile ? radii.card - 4 : radii.field,
+        borderWidth: 1,
+        borderColor: selected ? colors.text.primary : colors.surface.border,
+        backgroundColor: selected ? colors.surface.card : colors.surface.cardGlassy,
+        opacity: pressed ? 0.9 : 1,
+      })}
     >
-      {leading}
-      <View style={{ flex: 1, gap: 3 }}>
-        <Text
-          style={{
-            fontFamily: fonts.sansMedium,
-            fontSize: 15,
-            lineHeight: 21,
-            color: selected ? colors.text.onCta : colors.text.body,
-          }}
-        >
-          {label}
-        </Text>
-        {subtitle ? (
-          <Text
+      {tile ? (
+        selected ? (
+          <LinearGradient
+            colors={[colors.accent.emberSoft, colors.accent.emberDeep]}
             style={{
-              fontFamily: fonts.sansMedium,
-              fontSize: 13,
-              lineHeight: 18,
-              color: selected ? 'rgba(245,242,232,0.7)' : colors.text.secondary,
+              width: ICON_TILE,
+              height: ICON_TILE,
+              borderRadius: 12,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            {subtitle}
-          </Text>
-        ) : null}
-      </View>
-      {trailing === 'chevron' ? (
-        <Text style={{ fontFamily: fonts.sansSemiBold, fontSize: 15, color: colors.text.label }}>
-          ›
-        </Text>
-      ) : selected ? (
-        <Text style={{ fontFamily: fonts.sansSemiBold, fontSize: 13, color: colors.text.onCta }}>
-          ✓
-        </Text>
+            <Ionicons name={icon} size={20} color={colors.text.onCta} />
+          </LinearGradient>
+        ) : (
+          <View
+            style={{
+              width: ICON_TILE,
+              height: ICON_TILE,
+              borderRadius: 12,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors.accent.parchment,
+            }}
+          >
+            <Ionicons name={icon} size={20} color={colors.text.label} />
+          </View>
+        )
+      ) : (
+        <View
+          style={{
+            width: DOT,
+            height: DOT,
+            borderRadius: DOT / 2,
+            borderWidth: 1.5,
+            borderColor: selected ? colors.text.primary : colors.surface.border,
+            backgroundColor: selected ? colors.text.primary : 'transparent',
+          }}
+        />
+      )}
+
+      <Text
+        style={{
+          flex: 1,
+          fontFamily: fonts.sansMedium,
+          fontSize: 16,
+          lineHeight: 22,
+          color: colors.text.primary,
+        }}
+      >
+        {label}
+      </Text>
+
+      {tile ? (
+        <View
+          style={{
+            width: CHECK,
+            height: CHECK,
+            borderRadius: CHECK / 2,
+            borderWidth: 1.5,
+            borderColor: selected ? colors.text.primary : colors.surface.border,
+            backgroundColor: selected ? colors.text.primary : 'transparent',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {selected ? <Ionicons name="checkmark" size={12} color={colors.text.onCta} /> : null}
+        </View>
       ) : null}
     </Pressable>
   );

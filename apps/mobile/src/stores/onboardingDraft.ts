@@ -131,7 +131,9 @@ export function resumeScreen(state: {
 
   if (!lastAnswered) return state.currentScreen;
 
-  const afterAnswered = nextScreen(lastAnswered) ?? lastAnswered;
+  // Branching (v5) reads her answers, so a resume lands on the screen the live
+  // flow would actually show next — never a bypassed one.
+  const afterAnswered = nextScreen(lastAnswered, undefined, state.answers) ?? lastAnswered;
   const parkedIndex = SCREEN_ORDER.indexOf(state.currentScreen);
   const answeredIndex = SCREEN_ORDER.indexOf(afterAnswered);
 
@@ -142,7 +144,13 @@ export function resumeScreen(state: {
 export function pendingCommits(
   answers: Partial<Record<OnboardingScreenId, DraftAnswer>>,
 ): OnboardingScreenId[] {
-  return SCREEN_ORDER.filter((id) => {
+  // Every answered id, not just SCREEN_ORDER: `q-pronoun` is answered from the
+  // name screen and has no route of its own, but it still has to sync.
+  const ids = new Set<OnboardingScreenId>([
+    ...SCREEN_ORDER,
+    ...(Object.keys(answers) as OnboardingScreenId[]),
+  ]);
+  return [...ids].filter((id) => {
     const answer = answers[id];
     return answer !== undefined && answer.committedAt === null;
   });

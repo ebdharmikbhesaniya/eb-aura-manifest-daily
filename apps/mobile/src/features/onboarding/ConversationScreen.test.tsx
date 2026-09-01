@@ -17,7 +17,6 @@ jest.mock('expo-router', () => ({
 jest.mock('@/lib/analytics', () => ({
   analytics: { capture: jest.fn() },
   initAnalytics: jest.fn(),
-  // useVariant (onboarding experiments) reads these; default = control fallback.
   getFeatureFlag: () => undefined,
   onFeatureFlags: () => () => {},
 }));
@@ -31,54 +30,63 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 /**
- * The back chevron (product 07 "revise, never restart" — and its edge).
+ * The back circle (product 07 "revise, never restart" — and its edge).
  *
- * The guard lists ANSWERED screens only. S1 and S2 carry no answer, so on S3 —
- * the first screen that asks for anything — the guard had nothing to list and
- * opened onto an empty sheet. The chevron promised a way back and delivered a
- * dead end, which is exactly how a resumed draft left people stranded on step 3
- * with no route to steps 1 and 2.
+ * The guard lists ANSWERED screens only. Before anything is answered it had
+ * nothing to list, so back simply steps back; once there is an answer, back
+ * opens the guard.
  */
-describe('ConversationScreen back chevron', () => {
+describe('ConversationScreen header', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useOnboardingDraft.getState().reset();
   });
 
-  it('steps back to the previous screen when nothing is answered yet', async () => {
+  it('steps back over bypassed screens when nothing is answered yet', async () => {
     await render(<ConversationScreen screenId="s03-name" question="What should I call you?" />, {
       wrapper,
     });
 
     fireEvent.press(screen.getByLabelText(onboardingCopy.editGuard.back));
 
-    expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/a06-obstacle');
-  });
-
-  it('moves the draft back too, so a resume does not jump forward again', async () => {
-    await render(<ConversationScreen screenId="s03-name" question="What should I call you?" />, {
-      wrapper,
-    });
-
-    fireEvent.press(screen.getByLabelText(onboardingCopy.editGuard.back));
-
-    expect(useOnboardingDraft.getState().currentScreen).toBe('a06-obstacle');
+    // No goals yet → priority is bypassed; context (default variant) is not.
+    expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/q-context');
+    expect(useOnboardingDraft.getState().currentScreen).toBe('q-context');
   });
 
   it('opens the edit guard once there IS an answer to revise', async () => {
     useOnboardingDraft.getState().setAnswer('s03-name', 'Maya');
 
-    await render(
-      <ConversationScreen screenId="s05-work-feeling" question="How does work feel?" />,
-      { wrapper },
-    );
+    await render(<ConversationScreen screenId="a05-feeling" question="How has it been?" />, {
+      wrapper,
+    });
 
-    // Finding the chevron by THIS label is half the assertion: the two branches
-    // announce themselves differently, so this only resolves on the guard path.
     fireEvent.press(screen.getByLabelText(onboardingCopy.editGuard.entry));
 
     // The guard, not a raw pop — revise, never restart.
     expect(mockReplace).not.toHaveBeenCalled();
-    expect(useOnboardingDraft.getState().currentScreen).not.toBe('s04-self-description');
+  });
+
+  it('offers Skip only on the skippable questions', async () => {
+    const onSkip = jest.fn();
+    const skippable = await render(
+      <ConversationScreen screenId="q-context" question="Where are you?" onSkip={onSkip} />,
+      { wrapper },
+    );
+    fireEvent.press(skippable.getByText(onboardingCopy.header.skip));
+    expect(onSkip).toHaveBeenCalled();
+
+    const notSkippable = await render(
+      <ConversationScreen screenId="a05-feeling" question="How has it been?" onSkip={onSkip} />,
+      { wrapper },
+    );
+    expect(notSkippable.queryByText(onboardingCopy.header.skip)).toBeNull();
+  });
+
+  it('draws no track on the screens outside the conversation', async () => {
+    const view = await render(<ConversationScreen screenId="a02-value" question="Why" />, {
+      wrapper,
+    });
+    expect(view.queryByRole('progressbar')).toBeNull();
   });
 });

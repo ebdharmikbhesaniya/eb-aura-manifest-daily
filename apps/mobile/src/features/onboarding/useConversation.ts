@@ -14,7 +14,8 @@ import { useHiddenScreens } from './useHiddenScreens';
 /**
  * One hook per conversation screen: views, submits, advances, and understands
  * edit mode (product 07). Screens stay declarative; the flow logic lives here
- * exactly once.
+ * exactly once. `nextScreen` reads the draft so the v5 branches (priority,
+ * context, calibration) resolve against what she has actually answered.
  */
 export function useConversation(screenId: OnboardingScreenId) {
   const router = useRouter();
@@ -28,49 +29,50 @@ export function useConversation(screenId: OnboardingScreenId) {
     analytics.capture('onboarding_screen_viewed', { screen_id: screenId });
   }, [screenId]);
 
-  /**
-   * Submit an answer and move on. In edit mode the flow returns to where the
-   * conversation was (revise, never restart); otherwise it advances.
-   */
-  const submit = async (value: unknown, skipped = false): Promise<void> => {
-    void haptic('onboardingContinue');
-
-    if (userId) await submitAnswer(userId, screenId, value, skipped);
-
+  const goNext = async (): Promise<void> => {
     if (isEditing) {
       const returnTo = useOnboardingDraft.getState().endEdit();
       if (returnTo) router.replace(screenRoute(returnTo) as never);
       return;
     }
 
-    const next = nextScreen(screenId, hidden);
+    const next = nextScreen(screenId, hidden, useOnboardingDraft.getState().answers);
     if (next) {
       useOnboardingDraft.getState().advanceTo(next);
       router.push(screenRoute(next) as never);
       return;
     }
 
-    // S11: the conversation ends and the ritual begins (product 07 S12). She
-    // goes straight into generating — the emotional setup from S10 is the whole
-    // reason the Letter lands, so nothing is allowed between them (product 08
-    // §1). `replace`, so a back-swipe cannot return her to the conversation.
+    // Past the last screen the conversation ends and the ritual begins.
+    // `replace`, so a back-swipe cannot return her to the conversation.
     if (userId) {
       await completeOnboarding(userId);
       router.replace('/(onboarding)/generating');
     }
   };
 
-  /** Advance without an answer (S1/S2 — no data screens). */
+  /**
+   * Submit an answer and move on. In edit mode the flow returns to where the
+   * conversation was (revise, never restart); otherwise it advances.
+   */
+  const submit = async (value: unknown, skipped = false): Promise<void> => {
+    void haptic('onboardingContinue');
+    if (userId) await submitAnswer(userId, screenId, value, skipped);
+    await goNext();
+  };
+
+  /** Skip = a recorded non-answer, then on. */
+  const skip = (): Promise<void> => submit(null, true);
+
+  /** Advance without an answer (value beats — no data screens). */
   const advance = (): void => {
     void haptic('onboardingContinue');
-    const next = nextScreen(screenId, hidden);
-    if (!next) return;
-    useOnboardingDraft.getState().advanceTo(next);
-    router.push(screenRoute(next) as never);
+    void goNext();
   };
 
   return {
     submit,
+    skip,
     advance,
     isEditing,
     /** Prefill when she re-enters via the edit-guard. */
