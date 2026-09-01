@@ -41,6 +41,16 @@ jest.mock('@/features/paywall/claim', () => ({
   appleAuthAvailable: jest.fn(async () => true),
 }));
 
+jest.mock('@/hooks/useProfile', () => ({
+  useProfile: () => ({ data: { name: 'Maya', values: ['Calm & less anxiety'] } }),
+}));
+jest.mock('@/features/gratitude/useGratitude', () => ({
+  useGratitude: () => ({ todaysEntry: null }),
+}));
+jest.mock('@/stores/appState', () => ({
+  useAppState: (selector: (s: { status: string; userId: string }) => unknown) =>
+    selector({ status: 'ready', userId: 'user-1' }),
+}));
 jest.mock('@/lib/analytics', () => ({
   analytics: { capture: jest.fn(), register: jest.fn() },
 }));

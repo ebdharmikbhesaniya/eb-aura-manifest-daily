@@ -21,6 +21,52 @@ export const paywallCopy = {
   headline: 'Your future self has more to tell you.',
 
   /**
+   * Onboarding v5 (design "Aura Ember Onboarding v5", 2026-09-01): the paywall
+   * headline is keyed to her primary goal, three plans sit under it with the
+   * trial plan as the hero, and the trial's exact dates are shown on their own
+   * beat before anything is charged. Prices and trial lengths still come from
+   * the store — `{price}`, `{days}` and `{date}` are filled at the call site.
+   */
+  v5: {
+    headlines: {
+      confidence: 'Confidence isn’t a mood. It’s a practice you can keep.',
+      love: 'Written for the version of you that’s ready to be known.',
+      money: 'A steadier relationship with money starts with what you tell yourself.',
+      career: 'Words for the life you’re actually building.',
+      calm: 'Three quiet minutes a day, written for the way you think.',
+      habits: 'The small version, every day, is the whole thing.',
+    },
+    mostPopular: 'Most popular',
+    yearlyTrial: 'Yearly · {days}-day trial',
+    yearly: 'Yearly',
+    monthly: 'Monthly',
+    weekly: 'Weekly',
+    perYear: '/yr',
+    perWeek: '/wk',
+    ctaTrial: 'Start my free trial',
+    cta: 'Continue',
+    freeTier: 'The free tier stays available. No card charged today.',
+    close: 'Close',
+    transparency: {
+      title: 'Exactly what happens, and when.',
+      day1Title: 'Today · Day 1',
+      day1: 'Full access begins. Nothing charged.',
+      remindTitle: 'Day {day} · {date}',
+      remind: 'We remind you. Two days left.',
+      endTitle: 'Day {day} · {date}',
+      end: '{price} charged, unless you’ve cancelled.',
+      cta: 'Start my {days} days',
+      back: 'Back to plans',
+    },
+    handoff: {
+      title: 'Your first two minutes{name}. Right now, while you’re here.',
+      saved: 'Your gratitude entry is already saved',
+      progress: '1 of 4',
+      cta: 'Start day 1',
+    },
+  },
+
+  /**
    * The trial-timeline presentation (2026-08-10). Honest by construction: it
    * names the day billing starts and promises a reminder first — the opposite of
    * a hidden charge. `{days}`, `{remind}` and `{price}` are filled from the

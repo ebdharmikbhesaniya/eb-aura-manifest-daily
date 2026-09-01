@@ -37,7 +37,9 @@ export function S03Name() {
 
   const recordPronoun = async () => {
     if (!userId) return;
-    await submitAnswer(userId, 'q-pronoun', pronoun, pronoun === null);
+    // Fire-and-forget like `submit`: the draft write is synchronous, the sync
+    // is drained later if the network drops it.
+    void submitAnswer(userId, 'q-pronoun', pronoun, pronoun === null);
   };
 
   const onContinue = async () => {

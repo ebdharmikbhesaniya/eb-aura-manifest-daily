@@ -22,7 +22,7 @@ export function QPriority() {
   const reorderGoals = async (primary: string) => {
     if (!userId || !picked.includes(primary)) return;
     const reordered = [primary, ...picked.filter((g) => g !== primary)];
-    await submitAnswer(userId, 'a04-goals', reordered);
+    void submitAnswer(userId, 'a04-goals', reordered);
   };
 
   return (

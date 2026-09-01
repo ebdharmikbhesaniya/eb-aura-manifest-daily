@@ -4,7 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, Linking, Text, View } from 'react-native';
 
 import { Screen, TextButton } from '@/components';
+import { useGratitude } from '@/features/gratitude/useGratitude';
+import { goalKeyOf, primaryGoalOf } from '@/features/onboarding/flow';
 import { ClaimSheet } from '@/features/paywall/ClaimSheet';
+import { HandoffScreen } from '@/features/paywall/HandoffScreen';
 import { PaywallScreen } from '@/features/paywall/PaywallScreen';
 import { appleAuthAvailable } from '@/features/paywall/claim';
 import { markPaywallSeen } from '@/features/paywall/paywallSeen';
@@ -16,8 +19,11 @@ import {
   type OfferedPlan,
 } from '@/features/paywall/purchases';
 import { paywallCopy } from '@/copy/paywall';
+import { useProfile } from '@/hooks/useProfile';
 import { analytics } from '@/lib/analytics';
 import { env } from '@/lib/env';
+import { useAppState } from '@/stores/appState';
+import { useOnboardingDraft } from '@/stores/onboardingDraft';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
 import { LetterMotionProvider } from '@/theme/motion';
@@ -52,6 +58,23 @@ export default function PaywallRoute() {
   // Soft mode (from=settings) is the deliberate, dismissible presentation.
   const hard = !askedForPlans;
   const { premium } = useEntitlement();
+  const userId = useAppState((s) => s.userId);
+  const { data: profile } = useProfile(userId ?? undefined);
+  const { todaysEntry } = useGratitude(userId ?? undefined);
+  const answers = useOnboardingDraft((s) => s.answers);
+  /**
+   * Her primary goal keys the headline (design v5). The draft still holds her
+   * answers after completion; the profile's first value is the fallback for a
+   * device that never ran this onboarding.
+   */
+  const goal = answers['a04-goals']
+    ? primaryGoalOf(answers)
+    : (goalKeyOf(profile?.values?.[0]) ?? null);
+  /**
+   * The hand-off (design v5 step 26) — shown once the wall is behind her, paid
+   * or free, before Home. `null` = still on the wall.
+   */
+  const [handoff, setHandoff] = useState(false);
   const [plans, setPlans] = useState<OfferedPlan[]>([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -111,8 +134,10 @@ export default function PaywallRoute() {
       router.back();
       return;
     }
-    leaveToHome();
-  }, [askedForPlans, router, leaveToHome]);
+    // Design v5: the ✕ leads to the first-ritual hand-off, then Home. The free
+    // tier is a real outcome, said once, never a punishment.
+    setHandoff(true);
+  }, [askedForPlans, router]);
 
   /**
    * A subscriber must never be held at the wall. Covers a premium user the boot
@@ -187,12 +212,13 @@ export default function PaywallRoute() {
       // sign-in gate is the first hop of the funnel). Soft mode keeps the sheet, so
       // a Settings purchase still offers to secure the account (03 §2.2).
       if (hard) {
-        router.replace('/(tabs)/home');
+        // Paid and free meet at the same hand-off (design v5 step 26).
+        setHandoff(true);
         return;
       }
       claimRef.current?.present();
     },
-    [hard, router],
+    [hard],
   );
 
   const onRestore = useCallback(async () => {
@@ -210,6 +236,17 @@ export default function PaywallRoute() {
     }
   }, [hard, router]);
 
+  if (handoff) {
+    return (
+      <HandoffScreen
+        testID="paywall-handoff"
+        name={profile?.name?.trim() || null}
+        gratitudeSaved={todaysEntry !== null}
+        onStart={leaveToHome}
+      />
+    );
+  }
+
   return (
     <LetterMotionProvider>
       {showCover ? (
@@ -219,9 +256,8 @@ export default function PaywallRoute() {
             plans={plans}
             busy={busy}
             onPurchase={(plan) => void onPurchase(plan)}
-            // Hard mode passes no dismiss at all — no ✕, no free exit. Only soft
-            // mode (opened from Settings / a locked feature) can be closed.
-            {...(hard ? {} : { onDismiss: onDismissCover })}
+            goal={goal}
+            onDismiss={onDismissCover}
             onRestore={() => void onRestore()}
             notice={notice}
             // Rendered only when a URL exists. Both are required before a

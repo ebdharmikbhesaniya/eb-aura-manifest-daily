@@ -57,7 +57,11 @@ export function useConversation(screenId: OnboardingScreenId) {
    */
   const submit = async (value: unknown, skipped = false): Promise<void> => {
     void haptic('onboardingContinue');
-    if (userId) await submitAnswer(userId, screenId, value, skipped);
+    // The draft is written synchronously inside submitAnswer; only the network
+    // sync is async. Don't hold the screen on it — the tap IS the advance
+    // (design v5), and anything the network drops is drained by flushPending
+    // before completion. Waiting here made every tap lag by a round-trip.
+    if (userId) void submitAnswer(userId, screenId, value, skipped);
     await goNext();
   };
 
