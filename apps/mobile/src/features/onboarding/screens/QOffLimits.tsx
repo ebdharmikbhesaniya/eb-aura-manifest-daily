@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
+import { Input } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
 import { useOnboardingDraft } from '@/stores/onboardingDraft';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -39,6 +40,22 @@ export function QOffLimits() {
       (typeof lexicon === 'string' && PREFILL_FOR.has(lexicon) ? [...c.prefill] : []),
   );
   const [topics, setTopics] = useState<string[]>(existing?.topics ?? []);
+  // Her own words sit beside the catalog's, already struck through — adding
+  // one IS blocking it. Anything recorded that isn't in the catalog is hers.
+  const [custom, setCustom] = useState<string[]>(
+    (existing?.words ?? []).filter((w) => !c.words.includes(w)),
+  );
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState('');
+
+  const addCustom = () => {
+    const word = draft.trim();
+    setDraft('');
+    setAdding(false);
+    if (word === '' || c.words.includes(word) || custom.includes(word)) return;
+    setCustom((list) => [...list, word]);
+    setWords((w) => (w.includes(word) ? w : [...w, word]));
+  };
 
   const section = (label: string) => (
     <Text
@@ -68,7 +85,7 @@ export function QOffLimits() {
       <View>
         {section(c.wordsLabel)}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-          {c.words.map((word) => (
+          {[...c.words, ...custom].map((word) => (
             <OptionChip
               key={word}
               label={word}
@@ -78,7 +95,28 @@ export function QOffLimits() {
               testID={`q-offlimits-word-${word}`}
             />
           ))}
+          {!adding && (
+            <OptionChip
+              label={c.addYourOwn}
+              selected={false}
+              onPress={() => setAdding(true)}
+              testID="q-offlimits-add"
+            />
+          )}
         </View>
+        {adding && (
+          <View style={{ marginTop: spacing.sm + 2 }}>
+            <Input
+              value={draft}
+              onChangeText={setDraft}
+              placeholder={c.addPlaceholder}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={addCustom}
+              testID="q-offlimits-add-input"
+            />
+          </View>
+        )}
       </View>
       <View style={{ marginTop: spacing.md }}>
         {section(c.topicsLabel)}

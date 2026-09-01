@@ -211,6 +211,23 @@ describe('onboarding v5 screens', () => {
       expect(isSelected(view, 'God')).toBe(false);
     });
 
+    it('lets her add her own word, already struck through', async () => {
+      const view = await render(<QOffLimits />, { wrapper });
+
+      await fireEvent.press(view.getByText(onboardingCopy.qOffLimits.addYourOwn));
+      await fireEvent.changeText(view.getByTestId('q-offlimits-add-input'), 'Hustle');
+      await fireEvent(view.getByTestId('q-offlimits-add-input'), 'submitEditing');
+
+      expect(isSelected(view, 'Hustle')).toBe(true);
+      await fireEvent.press(view.getByText(onboardingCopy.qOffLimits.primary));
+      expect(submitAnswer).toHaveBeenCalledWith(
+        'user-1',
+        'q-offlimits',
+        { words: ['Hustle'], topics: [] },
+        false,
+      );
+    });
+
     it('records the picks as words and topics', async () => {
       useOnboardingDraft.getState().setAnswer('q-lexicon', 'faith');
       const view = await render(<QOffLimits />, { wrapper });
